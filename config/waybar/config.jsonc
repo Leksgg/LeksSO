@@ -91,15 +91,15 @@
     ],
     "modules-center": [],
     "modules-right": [
-      "custom/version",
       "custom/actualizacion",
       "custom/copias",
       "custom/ia",
+      "custom/perfil",
       "cpu",
       "memory",
       "pulseaudio",
-      "battery",
       "network",
+      "custom/bateria",
       "clock"
     ],
     "wlr/taskbar": {
@@ -118,35 +118,54 @@
       "return-type": "json",
       "interval": 30
     },
+    "custom/perfil": {
+      "exec": "leksso-barra-perfil",
+      "return-type": "json",
+      "interval": 30,
+      "signal": 10,
+      "hide-empty-text": true,
+      "on-click": "leksso-barra-perfil menu"
+    },
+    "custom/bateria": {
+      "exec": "leksso-barra-bateria",
+      "return-type": "json",
+      "interval": 10,
+      "hide-empty-text": true
+    },
     "cpu": {
-      "format": "CPU {usage}%",
+      "format": " {usage:>2}%",
+      "tooltip-format": "Procesador al {usage}%",
       "interval": 3,
       "states": {
-        "warning": 80,
-        "critical": 95
+        "warning": 70,
+        "critical": 90
       }
     },
     "memory": {
-      "format": "RAM {used:0.1f} GB",
-      "tooltip-format": "{used:0.1f} de {total:0.1f} GB en uso",
+      "format": " {percentage:>2}%",
+      "tooltip-format": "Memoria: {used:0.1f} de {total:0.1f} GB en uso",
       "interval": 3,
       "states": {
-        "warning": 80,
-        "critical": 92
+        "warning": 75,
+        "critical": 90
       }
     },
     "pulseaudio": {
-      "format": "  {volume}%",
-      "format-muted": "  sin sonido",
+      "format": "{icon} {volume}%",
+      "format-icons": {
+        "default": ["", "", ""]
+      },
+      "format-muted": " silencio",
       "tooltip-format": "{desc}\nVolumen {volume}%",
       "scroll-step": 5,
       "on-click": "pavucontrol-qt",
       "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
     },
     "network": {
-      "format-ethernet": "  Cable",
-      "format-wifi": "  {signalStrength}%",
-      "format-disconnected": "  Sin red",
+      "format-ethernet": " Cable",
+      "format-wifi": " {icon}",
+      "format-icons": ["▂", "▄", "▆", "█"],
+      "format-disconnected": " Sin red",
       "tooltip-format-ethernet": "Cable · {ifname}\nIP {ipaddr}\nPuerta de enlace {gwaddr}",
       "tooltip-format-wifi": "Wi-Fi: {essid}\nSeñal {signalStrength}%\nIP {ipaddr}",
       "tooltip-format-disconnected": "Sin conexión",
@@ -155,26 +174,6 @@
     "clock": {
       "format": "{:%H:%M}",
       "tooltip-format": "{:%A %d de %B de %Y}"
-    },
-    "battery": {
-      "format": "{icon}  {capacity}%",
-      "format-icons": ["", "", "", "", ""],
-      "format-charging": " {icon}  {capacity}%",
-      "format-plugged": " {icon}  {capacity}%",
-      "states": {
-        "warning": 25,
-        "critical": 10
-      },
-      "tooltip-format": "Batería {capacity}%\n{timeTo}",
-      "tooltip-format-charging": "Cargando · {capacity}%\n{timeTo}",
-      "tooltip-format-plugged": "Enchufado · {capacity}% (no carga: batería llena o protegida)",
-      "interval": 30
-    },
-    "custom/version": {
-      "exec": "leksso-actualizar version",
-      "interval": 60,
-      "tooltip-format": "Versión instalada de LeksSO (clic: actualizaciones)",
-      "on-click": "leksso-actualizaciones"
     },
     "custom/copias": {
       "exec": "leksso-copias barra",

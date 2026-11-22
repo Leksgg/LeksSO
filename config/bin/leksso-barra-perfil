@@ -1,0 +1,69 @@
+#!/usr/bin/env python3
+"""Modo de energía para la barra de LeksSO: lo enseña y deja cambiarlo con un menú.
+
+  leksso-barra-perfil          imprime el estado para la barra (icono y nombre del modo)
+  leksso-barra-perfil menu     abre un menú con los tres modos y una línea que explica cada uno
+
+Los tres modos son los de power-profiles-daemon (los mismos que en Energía y en Ajustes).
+"""
+import json
+import shutil
+import subprocess
+import sys
+
+# clave del sistema -> (nombre, icono de FontAwesome 4.7, clase CSS, qué hace)
+MODOS = {
+    "power-saver": ("Ahorro", "", "ahorro", "La batería dura más; el equipo va más lento y más fresco."),
+    "balanced": ("Equilibrado", "", "equilibrado", "Rinde cuando hace falta y ahorra cuando no. El de uso normal."),
+    "performance": ("Rendimiento", "", "rendimiento", "Todo al máximo. Gasta más batería y calienta más."),
+}
+ORDEN = ["power-saver", "balanced", "performance"]
+
+
+def actual():
+    try:
+        r = subprocess.run(["powerprofilesctl", "get"], capture_output=True, text=True, timeout=3)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return r.stdout.strip() if r.returncode == 0 else ""
+
+
+def estado():
+    clave = actual()
+    if clave not in MODOS:
+        return {"text": ""}     # sin power-profiles-daemon: la barra oculta el módulo
+    nombre, icono, clase, texto = MODOS[clave]
+    return {"text": f"{icono} {nombre}", "class": clase, "tooltip": f"Modo de energía: {nombre}\n{texto}\nClic para cambiarlo."}
+
+
+def linea(clave, marcado):
+    nombre, _, _, texto = MODOS[clave]
+    return f"{'✓' if marcado else ' '} {nombre}  ·  {texto}"
+
+
+def poner(clave):
+    subprocess.run(["powerprofilesctl", "set", clave], capture_output=True, timeout=5)
+    subprocess.run(["pkill", "-RTMIN+10", "waybar"], capture_output=True)     # la barra se refresca al momento
+
+
+def menu():
+    ahora = actual()
+    if ahora not in MODOS:
+        return 1
+    if shutil.which("fuzzel") is None:
+        # sin menú disponible: pasa al modo siguiente
+        poner(ORDEN[(ORDEN.index(ahora) + 1) % len(ORDEN)])
+        return 0
+    lineas = "\n".join(linea(c, c == ahora) for c in ORDEN)
+    r = subprocess.run(["fuzzel", "--dmenu", "--index", "--prompt", "Modo de energía: ", "--lines", "3", "--width", "66"],
+                       input=lineas, capture_output=True, text=True)
+    elegido = r.stdout.strip()
+    if r.returncode == 0 and elegido.isdigit() and int(elegido) < len(ORDEN) and ORDEN[int(elegido)] != ahora:
+        poner(ORDEN[int(elegido)])
+    return 0
+
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "menu":
+        sys.exit(menu())
+    print(json.dumps(estado(), ensure_ascii=False))

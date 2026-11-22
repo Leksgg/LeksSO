@@ -1,0 +1,109 @@
+#!/usr/bin/env python3
+"""Batería para la barra de LeksSO: nivel, carga y color de estado.
+
+Lo lee la barra (waybar) cada pocos segundos y pinta el módulo según la clase:
+  bien      verde      más del 50 % (y descargando)
+  media     ámbar      del 21 % al 50 %
+  baja      rojo       del 20 % o menos
+  critica   parpadea   del 10 % o menos (se añade a «baja»)
+  cargando  verde      enchufada (cargando, o llena y conectada), sea cual sea el nivel
+Sin batería (un sobremesa) no imprime texto y la barra oculta el módulo.
+"""
+import glob
+import json
+import os
+
+RAIZ = os.environ.get("LEKSSO_SYSFS", "/sys/class/power_supply")
+
+# Iconos de FontAwesome 4.7: pila vacía ... llena, y el rayo de la carga.
+PILAS = ["", "", "", "", ""]
+RAYO = ""
+ESTADOS = {"Charging": "Cargando", "Discharging": "Descargando", "Full": "Llena", "Not charging": "Enchufada, sin cargar",
+           "Unknown": "Estado desconocido"}
+
+
+def leer(ruta):
+    try:
+        with open(ruta, encoding="utf-8") as f:
+            return f.read().strip()
+    except OSError:
+        return None
+
+
+def numero(ruta):
+    v = leer(ruta)
+    try:
+        return int(v) if v is not None else None
+    except ValueError:
+        return None
+
+
+def clases(nivel, enchufada):
+    """Clases CSS según tu regla: verde por encima del 50 %, ámbar del 21 al 50 %, rojo del 20 % o menos; parpadeo al 10 % o menos.
+    Enchufada, siempre verde."""
+    if enchufada:
+        return ["cargando"]
+    if nivel > 50:
+        return ["bien"]
+    if nivel > 20:
+        return ["media"]
+    return ["baja", "critica"] if nivel <= 10 else ["baja"]
+
+
+def icono(nivel):
+    return PILAS[min(4, max(0, (nivel + 12) // 25))]
+
+
+def hay_corriente():
+    """¿Hay un cargador conectado? (cualquier fuente de tipo Mains con online=1)"""
+    for ruta in glob.glob(os.path.join(RAIZ, "*")):
+        if leer(os.path.join(ruta, "type")) == "Mains" and leer(os.path.join(ruta, "online")) == "1":
+            return True
+    return False
+
+
+def duracion(horas):
+    minutos = int(round(horas * 60))
+    h, m = divmod(minutos, 60)
+    return f"{h} h {m:02d} min" if h else f"{m} min"
+
+
+def tiempo(ruta, estado):
+    """Tiempo que queda (descargando) o que falta (cargando), si la batería da los datos."""
+    for ahora, lleno, ritmo in (("energy_now", "energy_full", "power_now"), ("charge_now", "charge_full", "current_now")):
+        e, f, r = (numero(os.path.join(ruta, x)) for x in (ahora, lleno, ritmo))
+        if e is None or f is None or not r:
+            continue
+        if estado == "Discharging":
+            return "Quedan " + duracion(e / r)
+        if estado == "Charging":
+            return "Faltan " + duracion(max(0, f - e) / r) + " para llenarse"
+    return ""
+
+
+def salud(ruta):
+    for lleno, diseno in (("energy_full", "energy_full_design"), ("charge_full", "charge_full_design")):
+        f, d = numero(os.path.join(ruta, lleno)), numero(os.path.join(ruta, diseno))
+        if f and d:
+            return f"Salud de la batería: {round(100 * f / d)} %"
+    return ""
+
+
+def estado():
+    pilas = sorted(glob.glob(os.path.join(RAIZ, "BAT*")))
+    for ruta in pilas:
+        nivel = numero(os.path.join(ruta, "capacity"))
+        if nivel is None:
+            continue
+        nivel = max(0, min(100, nivel))
+        est = leer(os.path.join(ruta, "status")) or "Unknown"
+        enchufada = est in ("Charging", "Full", "Not charging") or hay_corriente()
+        texto = f"{icono(nivel)} {nivel}%" + (f" {RAYO}" if est == "Charging" else "")
+        lineas = [f"Batería {nivel} %", ESTADOS.get(est, est), tiempo(ruta, est), salud(ruta)]
+        return {"text": texto, "class": clases(nivel, enchufada), "percentage": nivel,
+                "tooltip": "\n".join(x for x in lineas if x)}
+    return {"text": ""}
+
+
+if __name__ == "__main__":
+    print(json.dumps(estado(), ensure_ascii=False))

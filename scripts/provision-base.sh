@@ -278,6 +278,7 @@ install -m 0644 "$RAIZ"/config/tema/*.json /usr/local/share/leksso/temas/
 install -m 0755 "$RAIZ/scripts/leksso-tema.py" /usr/local/bin/leksso-tema
 install -m 0755 "$RAIZ/config/bin/leksso-apariencia" /usr/local/bin/leksso-apariencia
 install -m 0755 "$RAIZ/config/bin/leksso-copias-ui" /usr/local/bin/leksso-copias-ui
+install -m 0755 "$RAIZ/config/bin/leksso-barra-bateria" "$RAIZ/config/bin/leksso-barra-perfil" /usr/local/bin/
 sudo -u "$USUARIO" leksso-tema reaplicar || true
 # La sesión abierta sigue con la configuración vieja (barra, atajos): se le pide que lea la nueva sin cerrar sesión.
 sudo -u "$USUARIO" leksso-tema recargar || true

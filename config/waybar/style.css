@@ -38,17 +38,19 @@ window#waybar {
 #custom-ia.sin-instalar { color: #667576; }
 #custom-ia.asistente { color: #00c4bf; }
 #custom-ia.admin { color: #fdc357; font-weight: bold; }
-#custom-version { padding: 0 12px; color: #667576; }
-#custom-version:hover { color: #e3edef; }
 
-#cpu, #memory, #pulseaudio, #network, #battery, #clock {
+#cpu, #memory, #pulseaudio, #network, #custom-bateria, #custom-perfil, #clock {
   font-family: "DejaVu Sans", "Font Awesome 5 Free", "FontAwesome";
   padding: 0 12px;
   color: #e3edef;
 }
 #clock { font-weight: bold; }
+/* CPU y RAM: gris en calma; ámbar y rojo solo cuando importa */
+#cpu, #memory { color: #94a1a3; min-width: 52px; }
 #cpu.warning, #memory.warning { color: #fdc357; }
 #cpu.critical, #memory.critical { color: #ff735a; }
+#pulseaudio { min-width: 60px; }
+#network { min-width: 44px; }
 #pulseaudio.muted, #network.disconnected { color: #94a1a3; }
 
 tooltip {
@@ -79,9 +81,23 @@ window#waybar.raiz {
 
 #custom-energia:hover { color: #ff735a; background: #3f1a13; }
 
-#battery.warning { color: #fdc357; }
-#battery.critical { color: #ff735a; }
-#battery.charging { color: #85ce6c; }
+/* Batería: verde por encima del 50 %, ámbar del 21 al 50 %, rojo del 20 % o menos, parpadeo al 10 % o menos; enchufada, verde */
+#custom-bateria { min-width: 78px; }
+#custom-bateria.bien, #custom-bateria.cargando { color: #85ce6c; }
+#custom-bateria.media { color: #fdc357; }
+#custom-bateria.baja { color: #ff735a; }
+#custom-bateria.critica { animation: parpadeo 1s steps(1) infinite; }
+@keyframes parpadeo {
+  0% { color: #ff735a; background: #3f1a13; }
+  50% { color: #021012; background: #ff735a; }
+}
+
+/* Modo de energía: el color dice cuánto rinde */
+#custom-perfil { min-width: 110px; }
+#custom-perfil.ahorro { color: #85ce6c; }
+#custom-perfil.equilibrado { color: #00c4bf; }
+#custom-perfil.rendimiento { color: #fdc357; }
+#custom-perfil:hover { background: #112123; }
 
 #custom-actualizacion { padding: 0 12px; color: #fdc357; font-weight: bold; }
 #custom-actualizacion:hover { background: #332305; }

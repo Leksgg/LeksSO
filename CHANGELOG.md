@@ -5,6 +5,8 @@ Lo más reciente, arriba.
 
 ## Sin publicar
 
+~ **Barra inferior más viva.** La batería cambia de color con el nivel (verde por encima del 50 %, ámbar del 21 al 50 %, rojo del 20 % o menos), parpadea al 10 % o menos y, enchufada, se queda en verde con un rayo; el tooltip da el tiempo restante y la salud de la pila. Nuevo módulo del **modo de energía** (Ahorro, Equilibrado, Rendimiento) con icono y color propios; un clic abre un menú con los tres modos y una línea que explica cada uno. CPU y memoria pasan a icono y porcentaje, en gris en calma, ámbar desde el 70 % (CPU) o 75 % (RAM) y rojo desde el 90 %. La red enseña barras de señal en vez de un número, el volumen cambia de icono según el nivel y los módulos tienen ancho fijo para que la barra no baile. Se quita la versión de la barra (sigue en Ajustes, Actualizaciones): el aviso de actualización aparece solo cuando hay una nueva.
+
 ~ **Escritorio por zonas: Steam y los programas antiguos ya no caen en cualquier sitio.** La regla que manda lo que abres al centro solo reconocía programas de Wayland (los que tienen `app_id`). Steam y otros programas de X11 (por XWayland) no lo tienen, se saltaban la regla y se abrían donde estuviera el foco: debajo del centro, junto a la terminal, o como una pestaña dentro del panel de la IA. Ahora hay una regla también para ellos, y **el panel de la IA queda reservado a las IA** (panel, asistentes); todo lo demás, al centro. Siguen flotando el menú, la energía, el portapapeles, los ajustes y las actualizaciones. Comprobado en `a01`: Steam se abrió dentro del panel de la IA, justo en su recuadro.
 
 ## Beta 0.1.35 · 2026-11-21
