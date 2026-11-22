@@ -3,7 +3,7 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
-## Sin publicar
+## Beta 0.1.37 · 2026-11-22
 
 ~ **Escritorio por zonas más simple: explorador en el centro y la IA a la derecha.** Se acabó la franja estrecha del centro con el texto «Aquí se abre la app…» y la columna de carpetas aparte, que repetía el árbol del explorador (y a veces salía duplicada si el explorador de LeksSO tardaba en arrancar). Ahora el centro es el explorador completo (barra, árbol y contenido); lo que abras (Steam, Brave, la terminal…) entra como pestaña nueva en esa misma zona, y el panel de la IA sigue a la derecha. Comprobado en `a01`.
 
