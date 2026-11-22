@@ -69,9 +69,23 @@ class Bateria(unittest.TestCase):
         self.assertEqual(leer(100, estado="Full", corriente=True)["class"], ["cargando"])
         self.assertEqual(leer(8, estado="Not charging", corriente=True)["class"], ["cargando"])
 
-    def test_rayo_solo_al_cargar(self):
-        self.assertIn(bateria.RAYO, leer(40, estado="Charging", corriente=True)["text"])
-        self.assertNotIn(bateria.RAYO, leer(40)["text"])
+    def test_enchufe_solo_al_cargar(self):
+        self.assertIn(bateria.ENCHUFE, leer(40, estado="Charging", corriente=True)["text"])
+        self.assertNotIn(bateria.ENCHUFE, leer(40)["text"])
+
+    def test_rayo_y_hoja_segun_el_modo(self):
+        for clave, color, hoja in (("power-saver", "#85ce6c", True), ("balanced", "#85ce6c", False), ("performance", "#fdc357", False)):
+            with mock.patch.object(bateria, "modo", return_value=clave):
+                t = leer(60)["text"]
+            self.assertIn(bateria.RAYO, t)
+            self.assertIn(color, t)
+            self.assertEqual(bateria.HOJA in t, hoja)
+
+    def test_sin_bateria_solo_modo(self):
+        with mock.patch.object(bateria, "RAIZ", sysfs(None)), mock.patch.object(bateria, "modo", return_value="balanced"):
+            self.assertIn(bateria.RAYO, bateria.estado()["text"])
+        with mock.patch.object(bateria, "RAIZ", sysfs(None)), mock.patch.object(bateria, "modo", return_value=""):
+            self.assertEqual(bateria.estado(), {"text": ""})
 
     def test_texto_con_porcentaje(self):
         self.assertTrue(leer(42)["text"].endswith("42%"))
@@ -112,7 +126,7 @@ class Perfil(unittest.TestCase):
              mock.patch.object(perfil.subprocess, "run") as run, \
              mock.patch.object(perfil, "poner") as poner:
             run.return_value = mock.Mock(returncode=0, stdout="2\n")
-            self.assertEqual(perfil.menu(), 0)
+            self.assertEqual(perfil.menu_fuzzel("balanced"), 0)
             poner.assert_called_once_with("performance")
 
     def test_menu_cancelado_no_cambia(self):
@@ -121,7 +135,7 @@ class Perfil(unittest.TestCase):
              mock.patch.object(perfil.subprocess, "run") as run, \
              mock.patch.object(perfil, "poner") as poner:
             run.return_value = mock.Mock(returncode=1, stdout="")
-            perfil.menu()
+            perfil.menu_fuzzel("balanced")
             poner.assert_not_called()
 
     def test_menu_sin_fuzzel_pasa_al_siguiente(self):
@@ -147,7 +161,7 @@ class Configuracion(unittest.TestCase):
 
     def test_scripts_de_la_barra_existen(self):
         t = self.barras["tareas"]
-        for m in ("custom/bateria", "custom/perfil"):
+        for m in ("custom/bateria",):
             self.assertTrue(os.path.exists(os.path.join(BIN, t[m]["exec"])))
 
     def test_senales_sin_repetir(self):

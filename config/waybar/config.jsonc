@@ -94,7 +94,6 @@
       "custom/actualizacion",
       "custom/copias",
       "custom/ia",
-      "custom/perfil",
       "cpu",
       "memory",
       "pulseaudio",
@@ -118,19 +117,13 @@
       "return-type": "json",
       "interval": 30
     },
-    "custom/perfil": {
-      "exec": "leksso-barra-perfil",
-      "return-type": "json",
-      "interval": 30,
-      "signal": 10,
-      "hide-empty-text": true,
-      "on-click": "leksso-barra-perfil menu"
-    },
     "custom/bateria": {
       "exec": "leksso-barra-bateria",
       "return-type": "json",
       "interval": 10,
-      "hide-empty-text": true
+      "signal": 10,
+      "hide-empty-text": true,
+      "on-click": "leksso-barra-perfil menu"
     },
     "cpu": {
       "format": " {usage:>2}%",

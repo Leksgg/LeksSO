@@ -1,5 +1,5 @@
 #!/bin/sh
-# Monta las zonas de LeksSO: explorador | centro (pestañas) + terminal | panel de IA.
+# Monta las zonas de LeksSO: centro (explorador + apps y terminal como pestañas) | panel de IA.
 # Las apps que abra el usuario van siempre a la zona central.
 # Uso: leksso-zonas              monta las zonas al iniciar la sesión
 #      leksso-zonas --restaurar  vuelve a la vista por defecto sin cerrar las apps del usuario
@@ -88,7 +88,7 @@ vigilar() {
 # Espera a que exista una ventana que cumpla el criterio y le pone una marca.
 marcar() {
   i=0
-  while [ $i -lt 40 ]; do
+  while [ $i -lt "${3:-40}" ]; do
     swaymsg "[$1] mark --add $2" 2>/dev/null | grep -q '"success": true' && return 0
     i=$((i + 1)); sleep 0.25
   done
@@ -101,6 +101,7 @@ restaurar_previo() {
   swaymsg '[class=".*"] move container to workspace number 9' >/dev/null 2>&1
   swaymsg '[app_id="^leksso-"] kill' >/dev/null 2>&1
   swaymsg '[con_mark="explorador"] kill' >/dev/null 2>&1
+  swaymsg '[con_mark="centro"] kill' >/dev/null 2>&1
   sleep 1
 }
 
@@ -109,36 +110,24 @@ montar() {
   cargar
   swaymsg 'workspace number 1; layout splith' >/dev/null
   rm -f "$PLEGADO"
-  # Archivos de LeksSO: «Carpetas» a la izquierda y el contenido de la carpeta en el centro (lo que se ve
-  # cuando no hay ninguna app abierta). Si no arrancara, se vuelve al explorador clásico y a un centro vacío.
-  swaymsg exec leksso-archivos >/dev/null
-  if marcar 'app_id="leksso-archivos" title="^Carpetas$"' explorador && marcar 'app_id="leksso-archivos" title="^Archivos"' centro; then
-    swaymsg '[con_mark="explorador"] move left; [con_mark="explorador"] move left' >/dev/null
-  else
-    swaymsg exec pcmanfm-qt >/dev/null
-    marcar 'app_id="pcmanfm-qt" workspace="1"' explorador
-    swaymsg exec "leksso-term -T \"Operativa usuario\" --app-id leksso-centro -e sh -c 'clear; printf \"\n  Aquí se abre la app que estés usando.\n\"; exec sleep infinity'" >/dev/null
-    marcar 'app_id="leksso-centro"' centro
-  fi
+  # Explorador completo (barra, árbol y contenido) en el centro: es lo que se ve cuando no hay ninguna app abierta.
+  # El centro es un grupo de pestañas: lo que abra el usuario (y la terminal) entra como pestaña nueva.
+  swaymsg exec pcmanfm-qt >/dev/null
+  marcar 'app_id="pcmanfm-qt" workspace="1"' centro 160
   swaymsg exec "leksso-term -T \"Panel de la IA\" --app-id leksso-ia -e python3 /usr/local/lib/leksso-ia/panel.py" >/dev/null
   marcar 'app_id="leksso-ia"' panel-ia
-
-  # Terminal debajo del centro
-  swaymsg '[con_mark="centro"] focus; splitv' >/dev/null
+  swaymsg '[con_mark="centro"] focus; splith; layout tabbed' >/dev/null
+  # Terminal: otra pestaña del centro
+  swaymsg '[con_mark="centro"] focus' >/dev/null
   swaymsg exec "leksso-term -T Terminal --app-id leksso-terminal" >/dev/null
   marcar 'app_id="leksso-terminal"' terminal
-  # La columna central (centro + terminal) lleva su marca: sirve para devolver las carpetas a su sitio al desplegar
-  swaymsg '[con_mark="terminal"] focus; focus parent; mark --add columna' >/dev/null
-  # El centro pasa a ser un grupo de pestañas
-  swaymsg '[con_mark="centro"] focus; splith; layout tabbed' >/dev/null
+  swaymsg '[con_mark="terminal"] move container to mark centro' >/dev/null
 
   # La zona de la derecha pasa a ser un grupo de pestañas: panel de la IA y asistente
   swaymsg '[con_mark="panel-ia"] focus; splith; layout tabbed' >/dev/null
 
   # Proporciones (las que dejó el usuario, o las de fábrica)
-  swaymsg "[con_mark=\"explorador\"] resize set width $EXPL ppt" >/dev/null
   swaymsg "[con_mark=\"panel-ia\"] resize set width $PANEL ppt" >/dev/null
-  swaymsg "[con_mark=\"terminal\"] resize set height $TERM ppt" >/dev/null
 
   # A partir de ahora, todo lo que abra el usuario va al centro (la regla se añade una sola vez)
   marca="${XDG_RUNTIME_DIR:-/tmp}/leksso-zonas.regla"
@@ -147,7 +136,7 @@ montar() {
     # de X11 (Steam y otros antiguos, por XWayland), que NO tienen app_id y antes se saltaban la regla: caían donde estuviera el foco
     # (debajo del centro o dentro del panel de la IA). Quedan fuera las zonas propias (panel de la IA, asistentes, centro, terminal)
     # y las ventanas flotantes de LeksSO. Así el panel de la IA solo recibe IA.
-    swaymsg 'for_window [app_id="^(?!leksso-(ia|asistente|asistentes|centro|terminal|menu|energia|portapapeles|ajustes|actualizaciones)).*"] move container to mark centro' >/dev/null
+    swaymsg 'for_window [app_id="^(?!leksso-(ia|asistente|asistentes|centro|terminal|menu|energia|modo|portapapeles|ajustes|actualizaciones)).*"] move container to mark centro' >/dev/null
     swaymsg 'for_window [shell="xwayland"] move container to mark centro' >/dev/null
     : > "$marca"
   fi

@@ -50,6 +50,78 @@ def menu():
     ahora = actual()
     if ahora not in MODOS:
         return 1
+    try:
+        return ventana(ahora)
+    except ImportError:
+        return menu_fuzzel(ahora)
+
+
+def ventana(ahora):
+    """Ventanita con los tres modos: se cierra con la X, con Esc, al hacer clic fuera o al elegir uno."""
+    sys.path.insert(0, "/usr/local/lib/leksso-ui")
+    from PySide6 import QtCore, QtWidgets
+    from leksso_ui import ESTILO_BASE, alternar, estilo, pintar
+
+    if alternar("leksso-modo"):      # un segundo clic en la batería la cierra
+        return 0
+
+    class Modos(QtWidgets.QWidget):
+        def __init__(self):
+            super().__init__()
+            self.setWindowTitle("Modo de energía")
+            estilo(self, ESTILO_BASE)
+            raiz = QtWidgets.QVBoxLayout(self)
+            raiz.setContentsMargins(14, 10, 14, 14)
+            cab = QtWidgets.QHBoxLayout()
+            t = QtWidgets.QLabel("Modo de energía")
+            t.setObjectName("titulo")
+            cab.addWidget(t)
+            cab.addStretch()
+            x = QtWidgets.QPushButton("✕")
+            x.setObjectName("cerrar")
+            x.setToolTip("Cerrar (Esc)")
+            x.clicked.connect(self.close)
+            cab.addWidget(x)
+            raiz.addLayout(cab)
+            for clave in ORDEN:
+                nombre, icono, _, texto = MODOS[clave]
+                b = QtWidgets.QPushButton(f"{icono}  {nombre}\n{texto}")
+                b.setObjectName("accion")
+                if clave == ahora:
+                    b.setStyleSheet(pintar("background: #003635; color: #00c4bf; border: 1px solid #00c4bf;"))
+                b.clicked.connect(lambda _=False, c=clave: self.elegir(c))
+                raiz.addWidget(b)
+
+        def elegir(self, clave):
+            if clave != ahora:
+                poner(clave)
+            self.close()
+
+        def keyPressEvent(self, ev):
+            if ev.key() == QtCore.Qt.Key_Escape:
+                self.close()
+            else:
+                super().keyPressEvent(ev)
+
+        def changeEvent(self, ev):
+            # al perder el foco (clic fuera) se cierra, salvo en el primer instante, cuando aún no lo había recibido
+            if ev.type() == QtCore.QEvent.ActivationChange and self.tuvo_foco and not self.isActiveWindow():
+                self.close()
+            elif self.isActiveWindow():
+                self.tuvo_foco = True
+            super().changeEvent(ev)
+
+        tuvo_foco = False
+
+    app = QtWidgets.QApplication(sys.argv)
+    app.setDesktopFileName("leksso-modo")
+    w = Modos()
+    w.resize(400, 300)
+    w.show()
+    return app.exec()
+
+
+def menu_fuzzel(ahora):
     if shutil.which("fuzzel") is None:
         # sin menú disponible: pasa al modo siguiente
         poner(ORDEN[(ORDEN.index(ahora) + 1) % len(ORDEN)])

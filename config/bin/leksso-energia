@@ -144,7 +144,7 @@ class Energia(QtWidgets.QWidget):
     def poner_perfil(self, clave):
         subprocess.run(["powerprofilesctl", "set", clave], capture_output=True, timeout=5)
         self.marcar_perfil(self.perfil_actual())
-        subprocess.run(["pkill", "-RTMIN+9", "waybar"], capture_output=True)
+        subprocess.run(["pkill", "-RTMIN+10", "waybar"], capture_output=True)
 
     def hacer(self, nombre, orden, confirma):
         if confirma:

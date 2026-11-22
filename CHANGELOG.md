@@ -3,6 +3,12 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
+## Sin publicar
+
+~ **Escritorio por zonas más simple: explorador en el centro y la IA a la derecha.** Se acabó la franja estrecha del centro con el texto «Aquí se abre la app…» y la columna de carpetas aparte, que repetía el árbol del explorador (y a veces salía duplicada si el explorador de LeksSO tardaba en arrancar). Ahora el centro es el explorador completo (barra, árbol y contenido); lo que abras (Steam, Brave, la terminal…) entra como pestaña nueva en esa misma zona, y el panel de la IA sigue a la derecha. Comprobado en `a01`.
+
+~ **Modo de energía dentro de la batería.** El módulo aparte de «Rendimiento» desaparece: ahora un rayo delante de la pila lo dice por color. Ahorro, rayo verde con una hoja verde; Equilibrado, rayo verde; Rendimiento, rayo amarillo. Un clic en la batería abre una ventanita con los tres modos y lo que hace cada uno; se cierra con la X, con Esc o al elegir uno (el menú anterior no se podía cerrar). Enchufada y cargando, la pila lleva un enchufe en vez de rayo, para no confundirlos. En un sobremesa, sin batería, se enseña solo el rayo del modo.
+
 ## Beta 0.1.36 · 2026-11-22
 
 ~ **Barra inferior más viva.** La batería cambia de color con el nivel (verde por encima del 50 %, ámbar del 21 al 50 %, rojo del 20 % o menos), parpadea al 10 % o menos y, enchufada, se queda en verde con un rayo; el tooltip da el tiempo restante y la salud de la pila. Nuevo módulo del **modo de energía** (Ahorro, Equilibrado, Rendimiento) con icono y color propios; un clic abre un menú con los tres modos y una línea que explica cada uno. CPU y memoria pasan a icono y porcentaje, en gris en calma, ámbar desde el 70 % (CPU) o 75 % (RAM) y rojo desde el 90 %. La red enseña barras de señal en vez de un número, el volumen cambia de icono según el nivel y los módulos tienen ancho fijo para que la barra no baile. Se quita la versión de la barra (sigue en Ajustes, Actualizaciones): el aviso de actualización aparece solo cuando hay una nueva.

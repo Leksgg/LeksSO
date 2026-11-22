@@ -7,19 +7,49 @@ Lo lee la barra (waybar) cada pocos segundos y pinta el módulo según la clase:
   baja      rojo       del 20 % o menos
   critica   parpadea   del 10 % o menos (se añade a «baja»)
   cargando  verde      enchufada (cargando, o llena y conectada), sea cual sea el nivel
-Sin batería (un sobremesa) no imprime texto y la barra oculta el módulo.
+Delante de la pila va el modo de energía, con un rayo (y una hoja en Ahorro) que cambia de color:
+  Ahorro       rayo verde + hoja verde
+  Equilibrado  rayo verde
+  Rendimiento  rayo amarillo
+Un clic en el módulo abre el menú de los tres modos (leksso-barra-perfil menu).
+Sin batería (un sobremesa) solo se enseña el modo de energía; sin ninguno de los dos, la barra oculta el módulo.
 """
 import glob
 import json
 import os
+import subprocess
 
 RAIZ = os.environ.get("LEKSSO_SYSFS", "/sys/class/power_supply")
 
 # Iconos de FontAwesome 4.7: pila vacía ... llena, y el rayo de la carga.
 PILAS = ["", "", "", "", ""]
 RAYO = ""
+ENCHUFE = ""   # enchufada y cargando (el rayo es del modo de energía)
+HOJA = ""
+VERDE, AMARILLO = "#85ce6c", "#fdc357"
+MODOS = {  # modo de power-profiles-daemon -> (nombre, color del rayo, lleva hoja)
+    "power-saver": ("Ahorro", VERDE, True),
+    "balanced": ("Equilibrado", VERDE, False),
+    "performance": ("Rendimiento", AMARILLO, False),
+}
 ESTADOS = {"Charging": "Cargando", "Discharging": "Descargando", "Full": "Llena", "Not charging": "Enchufada, sin cargar",
            "Unknown": "Estado desconocido"}
+
+
+def modo():
+    try:
+        r = subprocess.run(["powerprofilesctl", "get"], capture_output=True, text=True, timeout=3)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return r.stdout.strip() if r.returncode == 0 else ""
+
+
+def marca_modo(clave):
+    """Rayo (y hoja) del modo de energía, con su color, en el formato de texto de la barra."""
+    if clave not in MODOS:
+        return ""
+    _, color, hoja = MODOS[clave]
+    return f'<span foreground="{color}">{RAYO}{" " + HOJA if hoja else ""}</span>'
 
 
 def leer(ruta):
@@ -89,6 +119,10 @@ def salud(ruta):
     return ""
 
 
+def aviso_modo(clave):
+    return f"Modo de energía: {MODOS[clave][0]}. Clic para cambiarlo." if clave in MODOS else ""
+
+
 def estado():
     pilas = sorted(glob.glob(os.path.join(RAIZ, "BAT*")))
     for ruta in pilas:
@@ -98,10 +132,14 @@ def estado():
         nivel = max(0, min(100, nivel))
         est = leer(os.path.join(ruta, "status")) or "Unknown"
         enchufada = est in ("Charging", "Full", "Not charging") or hay_corriente()
-        texto = f"{icono(nivel)} {nivel}%" + (f" {RAYO}" if est == "Charging" else "")
-        lineas = [f"Batería {nivel} %", ESTADOS.get(est, est), tiempo(ruta, est), salud(ruta)]
+        clave = modo()
+        texto = (marca_modo(clave) + " " if clave in MODOS else "") + f"{icono(nivel)} {nivel}%" + (f" {ENCHUFE}" if est == "Charging" else "")
+        lineas = [f"Batería {nivel} %", ESTADOS.get(est, est), tiempo(ruta, est), salud(ruta), aviso_modo(clave)]
         return {"text": texto, "class": clases(nivel, enchufada), "percentage": nivel,
                 "tooltip": "\n".join(x for x in lineas if x)}
+    clave = modo()
+    if clave in MODOS:     # sin batería: solo el modo de energía
+        return {"text": marca_modo(clave), "class": ["sinpila"], "tooltip": aviso_modo(clave)}
     return {"text": ""}
 
 
