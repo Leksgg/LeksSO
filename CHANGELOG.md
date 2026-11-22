@@ -3,6 +3,10 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
+## Sin publicar
+
+~ **Escritorio por zonas: Steam y los programas antiguos ya no caen en cualquier sitio.** La regla que manda lo que abres al centro solo reconocía programas de Wayland (los que tienen `app_id`). Steam y otros programas de X11 (por XWayland) no lo tienen, se saltaban la regla y se abrían donde estuviera el foco: debajo del centro, junto a la terminal, o como una pestaña dentro del panel de la IA. Ahora hay una regla también para ellos, y **el panel de la IA queda reservado a las IA** (panel, asistentes); todo lo demás, al centro. Siguen flotando el menú, la energía, el portapapeles, los ajustes y las actualizaciones. Comprobado en `a01`: Steam se abrió dentro del panel de la IA, justo en su recuadro.
+
 ## Beta 0.1.35 · 2026-11-21
 
 ~ **Instalador: un grupo LVM viejo en otro disco ya no atasca la instalación.** Si otro disco tenía un volumen llamado `leksso-vg` (de una instalación anterior), LVM no deja crear otro con el mismo nombre y la instalación se paraba en el resumen de particiones, con el cifrado creado y vacío. Ahora, al elegir el disco, el instalador mira los grupos que hay en los demás discos y usa un nombre libre (`leksso-vg-2`, `-3`...). Si el grupo viejo está en el propio disco elegido, se borra como siempre.

@@ -143,7 +143,12 @@ montar() {
   # A partir de ahora, todo lo que abra el usuario va al centro (la regla se añade una sola vez)
   marca="${XDG_RUNTIME_DIR:-/tmp}/leksso-zonas.regla"
   if [ ! -e "$marca" ]; then
-    swaymsg 'for_window [app_id="^(?!leksso-).*"] move container to mark centro' >/dev/null
+    # Todo lo que abre el usuario va al centro. Dos reglas, porque hay dos clases de programas: los de Wayland (tienen app_id) y los
+    # de X11 (Steam y otros antiguos, por XWayland), que NO tienen app_id y antes se saltaban la regla: caían donde estuviera el foco
+    # (debajo del centro o dentro del panel de la IA). Quedan fuera las zonas propias (panel de la IA, asistentes, centro, terminal)
+    # y las ventanas flotantes de LeksSO. Así el panel de la IA solo recibe IA.
+    swaymsg 'for_window [app_id="^(?!leksso-(ia|asistente|asistentes|centro|terminal|menu|energia|portapapeles|ajustes|actualizaciones)).*"] move container to mark centro' >/dev/null
+    swaymsg 'for_window [shell="xwayland"] move container to mark centro' >/dev/null
     : > "$marca"
   fi
   swaymsg '[con_mark="centro"] focus' >/dev/null
