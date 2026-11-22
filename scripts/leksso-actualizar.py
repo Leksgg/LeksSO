@@ -109,6 +109,8 @@ def comprobar(avisar=False):
     os.makedirs(os.path.dirname(CACHE), exist_ok=True)
     with open(CACHE, "w", encoding="utf-8") as f:
         json.dump({"actual": actual, "disponible": disponible, "comprobado": int(time.time())}, f)
+    # la barra solo lee esta caché: se le avisa al momento (si no, al iniciar sesión se quedaba con la caché vieja hasta el siguiente ciclo)
+    subprocess.run(["pkill", "-RTMIN+11", "waybar"], capture_output=True)
     if not disponible:
         print(f"Estás al día: LeksSO {bonita(actual)}.")
         return 0
