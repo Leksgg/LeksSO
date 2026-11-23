@@ -3,7 +3,7 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
-## Sin publicar
+## Beta 0.1.43 · 2026-11-23
 
 + **Aplicaciones: pestaña «Para instalar».** El menú de aplicaciones tiene ahora dos pestañas: «Instaladas» (como hasta ahora) y «Para instalar», con lo del catálogo de LeksSO que aún no tienes (OBS, Steam, Discord…), por grupos y con buscador. Un clic abre una terminal que lo instala: pregunta antes y pide tu contraseña. Hace falta internet.
 
