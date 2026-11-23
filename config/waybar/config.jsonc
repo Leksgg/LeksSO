@@ -12,7 +12,7 @@
       "custom/portapapeles",
       "custom/camara",
       "custom/notificaciones",
-      "custom/modelos",
+      "custom/captura",
       "custom/asistente",
       "custom/juego",
       "custom/config"
@@ -27,11 +27,6 @@
       "format": "",
       "tooltip-format": "Plegar o desplegar las carpetas (Súper+E)",
       "on-click": "leksso-zonas --plegar"
-    },
-    "custom/modelos": {
-      "format": "",
-      "tooltip-format": "Modelos de IA",
-      "on-click": "leksso-term -T \"Modelos de IA\" -e python3 /usr/local/lib/leksso-ia/modelo.py ver"
     },
     "custom/juego": {
       "exec": "leksso-juego barra",
@@ -50,6 +45,11 @@
       "tooltip-format": "Notificaciones",
       "on-click": "leksso-notificaciones"
     },
+    "custom/captura": {
+      "format": "",
+      "tooltip-format": "Captura de pantalla: elige una zona (Imprimir)",
+      "on-click": "leksso-captura region"
+    },
     "custom/config": {
       "format": "",
       "tooltip-format": "Ajustes",
@@ -57,14 +57,8 @@
     },
     "modules-right": [
       "custom/flotantes",
-      "custom/vista",
       "custom/energia"
     ],
-    "custom/vista": {
-      "format": "",
-      "tooltip-format": "Restaurar la vista por defecto",
-      "on-click": "sh -c 'leksso-zonas --restaurar >/tmp/leksso-zonas.log 2>&1'"
-    },
     "custom/apps": {
       "format": "",
       "tooltip-format": "Aplicaciones",
@@ -83,7 +77,7 @@
     },
     "custom/flotantes": {
       "format": "",
-      "tooltip-format": "Ocultar o mostrar las ventanas flotantes",
+      "tooltip-format": "Minimizar: ocultar o mostrar las ventanas flotantes",
       "on-click": "leksso-flotantes"
     },
     "custom/portapapeles": {

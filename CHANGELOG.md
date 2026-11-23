@@ -5,6 +5,8 @@ Lo más reciente, arriba.
 
 ## Sin publicar
 
+~ **Raíl más limpio.** Nuevo botón de **Captura** (elige una zona; también con Imprimir). Se quita «Modelos de IA» (sigue en el terminal) y «Vista» pasa a Ajustes como «Vista del escritorio». «Flotantes» pasa a llamarse «Minimizar» en su aviso.
+
 + **Cámara y micrófono: botón en el raíl, avisos en la barra y bloqueo real.** El botón de la cámara abre un panel con tus cámaras, el volumen y el silencio del micrófono, y un interruptor «Bloquear la cámara». Bloquear quita el controlador de la cámara (uvcvideo) y lo deja sin cargar, también tras reiniciar: ningún programa puede usarla. Bloquear no pide contraseña; **permitirla otra vez sí**, para que un programa con tu usuario no pueda destaparla. En la barra de abajo sale un aviso solo cuando importa: rojo si la cámara está en uso, gris si está bloqueada, ámbar si el micrófono está silenciado. Si la cámara está en uso, el bloqueo te lo dice y no se queda a medias. Solo vale para cámaras con el controlador estándar (casi todas las de portátil). Sin probar todavía con una cámara real.
 
 + **Notificaciones: botón (campana) en el raíl para releer los avisos.** Lista las últimas 50 notificaciones, con botones para quitar las que siguen en pantalla, volver a mostrar la última y activar «No molestar» (los avisos se siguen guardando pero no salen). Se cierra con la X, Esc o al hacer clic fuera.

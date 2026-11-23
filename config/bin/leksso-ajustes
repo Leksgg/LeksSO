@@ -29,6 +29,8 @@ AJUSTES = [
      "leksso-apps"),
     ("Zonas del escritorio", "Tus tamaños se guardan solos. Pulsa para volver a los de fábrica",
      ["leksso-zonas", "--fabrica"], "leksso-zonas"),
+    ("Vista del escritorio", "Vuelve a la vista por defecto sin cerrar tus programas",
+     ["leksso-zonas", "--restaurar"], "leksso-zonas"),
     ("Actualizaciones", "Versión y novedades", ["leksso-actualizaciones"], "leksso-actualizaciones"),
     ("Copias", "Copias de seguridad de tus archivos", ["leksso-copias-ui"], "leksso-copias-ui"),
     ("Acceso remoto (SSH)", "__SSH__", None, "leksso-acceso-remoto"),
