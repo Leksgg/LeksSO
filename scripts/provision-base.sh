@@ -80,6 +80,9 @@ usermod -aG video,input,render "$USUARIO" 2>/dev/null || true
 systemctl enable --now seatd 2>/dev/null || true
 usermod -aG seatd "$USUARIO" 2>/dev/null || true
 
+# ¿Primera instalación en este usuario? (sin configuración del escritorio todavía). Se usa más abajo para el tema por defecto.
+PRIMERA_INSTALACION=0
+[ -e "$HOME_USR/.config/sway/config" ] || PRIMERA_INSTALACION=1
 # Configuración del escritorio.
 U install -d "$HOME_USR/.config/sway"
 U install -m 0644 "$RAIZ/config/sway/config" "$HOME_USR/.config/sway/config"
@@ -287,6 +290,12 @@ install -m 0755 "$RAIZ/scripts/leksso-tema.py" /usr/local/bin/leksso-tema
 install -m 0755 "$RAIZ/config/bin/leksso-apariencia" /usr/local/bin/leksso-apariencia
 install -m 0755 "$RAIZ/config/bin/leksso-copias-ui" /usr/local/bin/leksso-copias-ui
 install -m 0755 "$RAIZ/config/bin/leksso-barra-bateria" "$RAIZ/config/bin/leksso-barra-perfil" /usr/local/bin/
+# Apariencia base: Waves. Solo en una instalación nueva y si el usuario no eligió ya otro tema: un equipo que se actualiza conserva
+# el aspecto que tenía. La configuración base está pintada con Marea y `reaplicar` la repinta con el tema anotado en ~/.config/leksso/tema.
+if [ "$PRIMERA_INSTALACION" = 1 ] && [ ! -e "$HOME_USR/.config/leksso/tema" ]; then
+  U install -d "$HOME_USR/.config/leksso"
+  echo waves | U tee "$HOME_USR/.config/leksso/tema" >/dev/null
+fi
 sudo -u "$USUARIO" leksso-tema reaplicar || true
 # La sesión abierta sigue con la configuración vieja (barra, atajos): se le pide que lea la nueva sin cerrar sesión.
 sudo -u "$USUARIO" leksso-tema recargar || true
