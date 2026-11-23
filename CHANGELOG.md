@@ -3,7 +3,7 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
-## Sin publicar
+## Beta 0.1.44 · 2026-11-23
 
 ~ **Redes: ventana propia en vez del menú de texto.** El clic en la red de la barra (y Ajustes, Red) abre ahora una ventana que se maneja con el ratón: dice a qué estás conectado, lista las redes wifi con su señal y un clic te conecta (pide la clave si la red es nueva). Tiene botones para encender o apagar el wifi, buscar de nuevo, desconectar y olvidar una red, y se cierra con la X, con Esc o al hacer clic fuera. El menú de texto de antes, donde «Back» no se podía pulsar con el ratón, sigue en «Avanzado…» para IP fija y casos raros. Sin probar todavía con un wifi real.
 
