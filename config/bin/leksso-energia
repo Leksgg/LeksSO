@@ -25,7 +25,7 @@ def admite(metodo):
 
 # (texto, descripción, orden, método de logind o None, pide confirmación, peligro)
 ACCIONES = [
-    ("Bloquear", "Pide la contraseña para volver", ["swaylock", "-f", "-c", "021012"], None, False, False),
+    ("Bloquear", "Pide la contraseña para volver", ["leksso-bloquear"], None, False, False),
     ("Suspender", "Pausa el equipo y gasta muy poco", ["systemctl", "suspend"], "CanSuspend", False, False),
     ("Hibernar", "Guarda todo en el disco y apaga", ["systemctl", "hibernate"], "CanHibernate", True, False),
     ("Cerrar sesión", "Cierra tus programas y vuelve al inicio", ["swaymsg", "exit"], None, True, False),

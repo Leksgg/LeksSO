@@ -107,7 +107,7 @@ bindsym Shift+Print exec leksso-captura pantalla
 bindsym $mod+Print exec leksso-captura ventana
 bindsym $mod+v exec leksso-portapapeles
 bindsym $mod+i exec leksso-ajustes
-bindsym $mod+l exec swaylock -f
+bindsym $mod+l exec leksso-bloquear
 
 # Ajustes locales de este equipo (por ejemplo, la resolución en una máquina virtual).
 include ~/.config/sway/local.conf

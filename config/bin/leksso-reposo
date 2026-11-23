@@ -26,10 +26,10 @@ case "${1:-}" in
   iniciar)
     leer
     set -- -w
-    [ "$BLOQUEO" -gt 0 ] && set -- "$@" timeout $((BLOQUEO * 60)) 'swaylock -f'
+    [ "$BLOQUEO" -gt 0 ] && set -- "$@" timeout $((BLOQUEO * 60)) 'leksso-bloquear'
     [ "$PANTALLA" -gt 0 ] && set -- "$@" timeout $((PANTALLA * 60)) 'swaymsg "output * power off"' resume 'swaymsg "output * power on"'
     [ "$SUSPENSION" -gt 0 ] && set -- "$@" timeout $((SUSPENSION * 60)) 'leksso-reposo'
-    [ "$BLOQUEO" -gt 0 ] && set -- "$@" before-sleep 'swaylock -f'
+    [ "$BLOQUEO" -gt 0 ] && set -- "$@" before-sleep 'leksso-bloquear'
     # si no queda ninguna regla, swayidle no tendría nada que hacer
     [ $# -gt 1 ] || exec sleep infinity
     exec swayidle "$@"

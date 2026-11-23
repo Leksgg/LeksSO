@@ -1,0 +1,277 @@
+#!/usr/bin/env python3
+"""Bloquea la pantalla de LeksSO.
+
+  leksso-bloquear            bloquea ahora (Súper+L, Apagar → Bloquear, y solo tras el tiempo sin tocar el equipo)
+  leksso-bloquear --diseno   imprime el diseño de la pantalla (para revisarlo) y sale
+
+La pantalla enseña el nombre y la versión del sistema, el usuario que tiene la sesión, la hora y el campo de la
+contraseña con un icono de ojo para verla mientras la escribes. Usa gtklock; si no está instalado o no arranca, usa el
+bloqueo de antes (swaylock), para que el equipo nunca se quede sin bloquear.
+"""
+import getpass
+import os
+import shutil
+import subprocess
+import sys
+from xml.sax.saxutils import escape
+
+for _ruta in ("/usr/local/lib/leksso-ui", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ui")):
+    if _ruta not in sys.path:
+        sys.path.insert(0, _ruta)
+
+# Colores del tema base (Marea); al escribir el archivo se pasan a los del tema activo.
+ESTILO = """
+window { background-color: #021012; color: #e3edef; font-family: "DejaVu Sans", sans-serif; }
+#sistema-label { font-size: 18px; color: #00c4bf; font-weight: bold; }
+#usuario-label { font-size: 16px; color: #94a1a3; }
+#clock-label { font-size: 72px; font-weight: bold; margin-top: 18px; }
+#date-label { font-size: 18px; color: #94a1a3; margin-bottom: 18px; }
+#input-label { font-size: 16px; }
+#input-field { font-size: 18px; padding: 10px 12px; background-color: #112123; color: #e3edef; border: 1px solid #25393c;
+               border-radius: 0; box-shadow: none; caret-color: #00c4bf; }
+#input-field:focus { border: 1px solid #00c4bf; }
+#unlock-button { font-size: 16px; padding: 8px 18px; background-image: none; background-color: #003635; color: #e3edef;
+                 border: 1px solid #00c4bf; border-radius: 0; box-shadow: none; text-shadow: none; }
+#ayuda-label { font-size: 13px; color: #94a1a3; }
+#error-label { color: #ff735a; }
+#warning-label { color: #fdc357; }
+"""
+
+
+def diseno(sistema, usuario):
+    """El diseño de la pantalla (GtkBuilder). Es el de gtklock con los textos en español, el nombre del sistema, el
+    usuario y una línea de ayuda. Los identificadores que usa gtklock se conservan todos."""
+    s, u = escape(sistema), escape(usuario)
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <object class="GtkBox" id="window-box">
+    <property name="name">window-box</property>
+    <property name="margin">100</property>
+    <property name="halign">center</property>
+    <property name="valign">center</property>
+    <property name="orientation">vertical</property>
+    <property name="spacing">10</property>
+    <child>
+      <object class="GtkBox" id="info-box">
+        <property name="name">info-box</property>
+        <property name="halign">center</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">5</property>
+        <child>
+          <object class="GtkLabel" id="sistema-label">
+            <property name="name">sistema-label</property>
+            <property name="visible">1</property>
+            <property name="halign">center</property>
+            <property name="label">{s}</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel" id="usuario-label">
+            <property name="name">usuario-label</property>
+            <property name="visible">1</property>
+            <property name="halign">center</property>
+            <property name="label">Usuario: {u}</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox" id="time-box">
+            <property name="name">time-box</property>
+            <property name="halign">center</property>
+            <property name="orientation">vertical</property>
+            <child>
+              <object class="GtkLabel" id="clock-label">
+                <property name="name">clock-label</property>
+                <property name="halign">center</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel" id="date-label">
+                <property name="name">date-label</property>
+                <property name="halign">center</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkRevealer" id="body-revealer">
+        <property name="transition-type">none</property>
+        <property name="reveal-child">0</property>
+        <child>
+          <object class="GtkGrid" id="body-grid">
+            <property name="row-spacing">8</property>
+            <property name="column-spacing">8</property>
+            <child>
+              <object class="GtkLabel" id="input-label">
+                <property name="name">input-label</property>
+                <property name="label">Contraseña:</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="input-field">
+                <property name="name">input-field</property>
+                <property name="width-request">380</property>
+                <property name="visibility">0</property>
+                <property name="caps-lock-warning">0</property>
+                <property name="input-purpose">password</property>
+                <property name="secondary-icon-name">view-reveal-symbolic</property>
+                <property name="secondary-icon-tooltip-text">Ver la contraseña</property>
+                <signal name="icon-release" handler="window_pw_toggle_vis"/>
+                <signal name="activate" handler="window_pw_check"/>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">0</property>
+                <property name="width">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkRevealer" id="message-revealer">
+                <property name="transition-type">none</property>
+                <property name="no-show-all">1</property>
+                <child>
+                  <object class="GtkScrolledWindow" id="message-scrolled-window">
+                    <property name="hscrollbar-policy">never</property>
+                    <property name="max-content-height">256</property>
+                    <property name="propagate-natural-height">1</property>
+                    <child>
+                      <object class="GtkViewport">
+                        <child>
+                          <object class="GtkBox" id="message-box">
+                            <property name="orientation">vertical</property>
+                            <property name="homogeneous">1</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">1</property>
+                <property name="width">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox">
+                <property name="halign">end</property>
+                <property name="spacing">8</property>
+                <child>
+                  <object class="GtkLabel" id="warning-label">
+                    <property name="name">warning-label</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="error-label">
+                    <property name="name">error-label</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="unlock-button">
+                    <property name="name">unlock-button</property>
+                    <property name="label">Desbloquear</property>
+                    <signal name="clicked" handler="window_pw_check"/>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">2</property>
+                <property name="width">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="ayuda-label">
+                <property name="name">ayuda-label</property>
+                <property name="visible">1</property>
+                <property name="halign">start</property>
+                <property name="label">Pulsa el ojo para ver la contraseña mientras la escribes.</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">3</property>
+                <property name="width">2</property>
+              </packing>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>
+"""
+
+
+def nombre_sistema():
+    """«LeksSO Beta 0.1.45», o solo «LeksSO» si no se puede leer la versión."""
+    try:
+        r = subprocess.run(["leksso-actualizar", "version"], capture_output=True, text=True, timeout=10)
+        t = r.stdout.strip().splitlines()[0] if r.returncode == 0 and r.stdout.strip() else ""
+    except (OSError, subprocess.SubprocessError):
+        t = ""
+    return t if t.startswith("LeksSO") else "LeksSO"
+
+
+def estilo_del_tema():
+    try:
+        from leksso_ui import pintar
+        return pintar(ESTILO)
+    except Exception:
+        return ESTILO
+
+
+def ya_bloqueado():
+    for prog in ("gtklock", "swaylock"):
+        try:
+            if subprocess.run(["pgrep", "-u", str(os.getuid()), "-x", prog], capture_output=True).returncode == 0:
+                return True
+        except OSError:
+            pass
+    return False
+
+
+def orden_gtklock(ruta_diseno, ruta_estilo):
+    return ["gtklock", "--daemonize", "--layout", ruta_diseno, "--style", ruta_estilo,
+            "--time-format", "%H:%M", "--date-format", "%A %d de %B"]
+
+
+def bloquear():
+    if ya_bloqueado():
+        return 0
+    if shutil.which("gtklock"):
+        try:
+            carpeta = os.path.join(os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}", "leksso-bloqueo")
+            os.makedirs(carpeta, mode=0o700, exist_ok=True)
+            rd, re_ = os.path.join(carpeta, "diseno.ui"), os.path.join(carpeta, "estilo.css")
+            with open(rd, "w", encoding="utf-8") as f:
+                f.write(diseno(nombre_sistema(), getpass.getuser()))
+            with open(re_, "w", encoding="utf-8") as f:
+                f.write(estilo_del_tema())
+            if subprocess.run(orden_gtklock(rd, re_), timeout=20).returncode == 0:
+                return 0
+        except (OSError, subprocess.SubprocessError):
+            pass
+        if ya_bloqueado():              # arrancó pero tardó en avisar: ya está bloqueado, no se pone otro encima
+            return 0
+    # respaldo: el bloqueo de antes
+    return subprocess.run(["swaylock", "-f"]).returncode
+
+
+def main(a):
+    if a == ["--diseno"]:
+        print(diseno(nombre_sistema(), getpass.getuser()))
+        return 0
+    if not a:
+        return bloquear()
+    print(__doc__)
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
