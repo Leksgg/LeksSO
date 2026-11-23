@@ -3,7 +3,7 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
-## Sin publicar
+## 0.1.49 · 2026-11-23
 
 * **Al cambiar de apariencia, el explorador ya no se queda con los iconos de la anterior.** Las carpetas seguían con el color del tema de antes (por ejemplo rosas en Pizarra) hasta cerrar y abrir el explorador. Ahora se cierra y se vuelve a abrir solo, en su sitio; el resto de programas no se tocan.
 
