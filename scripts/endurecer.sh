@@ -28,6 +28,12 @@ if [ "$SSH" -eq 0 ] && [ -f /etc/leksso/acceso-remoto ]; then
     REGLA_SSH='ip saddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } tcp dport 22 accept comment "leksso-acceso-remoto"'
   fi
 fi
+# Solicitudes de conexión (leksso-solicitud): con el acceso remoto en modo local, su puerto se conserva igual que el de SSH.
+# Sin esto, cada actualización cerraba ese puerto hasta apagar y encender el acceso remoto.
+REGLA_SOLICITUD=""
+if [ -f /etc/systemd/system/leksso-solicitud.socket ] && [ -f /etc/leksso/acceso-remoto ] && [ "$(cat /etc/leksso/acceso-remoto)" != publico ]; then
+  REGLA_SOLICITUD='ip saddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } tcp dport 22222 ct state new limit rate 12/minute burst 6 packets accept comment "leksso-acceso-remoto solicitud"'
+fi
 cat > /etc/nftables.conf <<NFT
 #!/usr/sbin/nft -f
 # LeksSO: entrante bloqueado por defecto. Saliente libre.
@@ -47,6 +53,7 @@ table inet leksso {
     udp sport 67 udp dport 68 accept
     udp sport 547 udp dport 546 accept
     $REGLA_SSH
+    $REGLA_SOLICITUD
   }
   # No somos un router. Docker añade sus propias reglas de reenvío.
   chain reenvio { type filter hook forward priority 0; policy accept; }
