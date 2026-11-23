@@ -3,7 +3,7 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
-## Sin publicar
+## Beta 0.1.47 · 2026-11-23
 
 ~ **El actualizador ya entiende las versiones normales, que son solo un número (0.1.48).** Hasta ahora todas llevaban «-alpha» o «-beta» y un equipo no veía ninguna otra. Esta versión es el puente: hay que pasar por ella para recibir las siguientes, que ya no llevan «beta». Las de prueba (-alpha, -beta, -rc) siguen existiendo y van por debajo de la normal del mismo número.
 
