@@ -83,10 +83,12 @@ def recargar():
     env = entorno_de_sesion()
     # kitty es un único proceso para todas las ventanas: SIGUSR1 le hace releer kitty.conf sin cerrarlas
     ordenes = [["pkill", "-USR2", "-u", str(os.getuid()), "waybar"], ["pkill", "-USR1", "-u", str(os.getuid()), "-x", "kitty"],
-               ["makoctl", "reload"], ["swaymsg", "reload"], ["labwc", "--reconfigure"]]
+               ["makoctl", "reload"], ["swaymsg", "reload"], ["labwc", "--reconfigure"],
+               # el explorador guarda en memoria los iconos del tema anterior: se cierra y se abre de nuevo en su sitio
+               ["leksso-zonas", "--explorador"]]
     for o in ordenes:
         try:
-            subprocess.run(o, capture_output=True, timeout=10, env=env)
+            subprocess.run(o, capture_output=True, timeout=30, env=env)
         except (OSError, subprocess.SubprocessError):
             pass
 

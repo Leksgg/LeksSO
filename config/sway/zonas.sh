@@ -4,6 +4,7 @@
 # Uso: leksso-zonas              monta las zonas al iniciar la sesión
 #      leksso-zonas --restaurar  vuelve a la vista por defecto sin cerrar las apps del usuario
 #      leksso-zonas --plegar     pliega o despliega la columna de carpetas (más sitio para la app)
+#      leksso-zonas --explorador cierra y vuelve a abrir el explorador en su sitio (para que estrene los iconos de la apariencia nueva)
 #      leksso-zonas --medir      muestra los tamaños actuales de las zonas (en % de la pantalla)
 #      leksso-zonas --guardar    guarda ahora los tamaños actuales (normalmente se hace solo cada 15 s)
 #      leksso-zonas --fabrica    vuelve a los tamaños de fábrica (sin cerrar ni mover ventanas)
@@ -144,6 +145,21 @@ montar() {
   rm -f "$MONTANDO"
 }
 
+# El explorador guarda en memoria los iconos del tema que había al abrirlo: tras cambiar de apariencia se cierra y se
+# abre de nuevo en su sitio (pestaña del centro). Lo llama leksso-tema. Los demás programas no se tocan.
+reabrir_explorador() {
+  pgrep -u "$(id -u)" -x pcmanfm-qt >/dev/null 2>&1 || return 0
+  : > "$MONTANDO"
+  swaymsg '[con_mark="centro"] focus' >/dev/null 2>&1
+  swaymsg '[app_id="pcmanfm-qt"] kill' >/dev/null 2>&1
+  i=0
+  while [ $i -lt 20 ] && pgrep -u "$(id -u)" -x pcmanfm-qt >/dev/null 2>&1; do i=$((i + 1)); sleep 0.25; done
+  swaymsg exec pcmanfm-qt >/dev/null
+  marcar 'app_id="pcmanfm-qt" workspace="1"' centro 80
+  swaymsg '[con_mark="centro"] focus' >/dev/null 2>&1
+  rm -f "$MONTANDO"
+}
+
 plegar() {
   cargar
   if [ -e "$PLEGADO" ]; then
@@ -174,6 +190,8 @@ elif [ "${1:-}" = "--fabrica" ]; then
   swaymsg "[con_mark=\"terminal\"] resize set height $TERM ppt" >/dev/null 2>&1
 elif [ "${1:-}" = "--guardar" ]; then
   guardar
+elif [ "${1:-}" = "--explorador" ]; then
+  reabrir_explorador
 elif [ "${1:-}" = "--medir" ]; then
   medir
 elif [ "${1:-}" = "--restaurar" ]; then

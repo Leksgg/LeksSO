@@ -5,6 +5,8 @@ Lo más reciente, arriba.
 
 ## Sin publicar
 
+* **Al cambiar de apariencia, el explorador ya no se queda con los iconos de la anterior.** Las carpetas seguían con el color del tema de antes (por ejemplo rosas en Pizarra) hasta cerrar y abrir el explorador. Ahora se cierra y se vuelve a abrir solo, en su sitio; el resto de programas no se tocan.
+
 * **El aviso de versión nueva ya no se queda puesto después de actualizar.** La barra y el botón del raíl comparaban con la versión que había cuando se comprobó por última vez, no con la instalada: tras actualizar podían seguir anunciando una versión más antigua que la que ya tenías.
 
 ## 0.1.48 · 2026-11-23
