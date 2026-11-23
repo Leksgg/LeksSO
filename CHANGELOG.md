@@ -3,6 +3,10 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
+## Sin publicar
+
++ **Instalador: entrada EXPERIMENTAL «junto a Windows» con particionado manual.** Todas las entradas anteriores borran el disco entero que elijas. Esta no: abre el particionador del propio Debian para que elijas tú el **espacio libre** que dejó Windows, y no toca las particiones de Windows. Es sin cifrar y de momento manual (no detecta el espacio por ti). Pasos: instala Windows dejando espacio sin asignar; arranca el pendrive; elige «[EXPERIMENTAL] Instalar LeksSO JUNTO a Windows»; en el particionador selecciona el espacio libre, créale una partición para `/` (ext4) y, sin formatearla, marca la partición de arranque de Windows (la «EFI», ~100 MB) para usarla como `/boot/efi`. Sin probar todavía en hardware real. La versión guiada (que detecta el espacio y pregunta con textos cortos) queda para más adelante.
+
 ## Beta 0.1.40 · 2026-11-23
 
 + **Plugins de audio LSP, en el catálogo.** `leksso-apps instalar lsp-plugins` instala los plugins LSP (gratuitos y de código abierto): compresor, gate, ecualizadores paramétricos, multibanda y limitador, en formato VST 2 (el que carga el filtro «VST 2.x» de OBS en el micrófono) y LV2 (para Easy Effects y otros programas de audio). No vienen en la base: se instalan a petición.

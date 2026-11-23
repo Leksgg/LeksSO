@@ -55,6 +55,12 @@ for par in "preseed:preseed-sin-contrasena" "preseed-sin-cifrado:preseed-sin-cif
   printf '\n# --- Sin contraseña de usuario: la deja bloqueada y postinstalar.sh la quita ---\nd-i passwd/user-password-crypted password !\n' >> "$PAQ/$destino.cfg"
 done
 
+# 1a-ter. Variante EXPERIMENTAL «junto a Windows» con particionado MANUAL: no lleva receta ni elección de disco (esas BORRAN el disco
+#     entero), así que el instalador de Debian enseña su propio particionador y el usuario elige el espacio libre, sin cifrar.
+#     Nada se borra salvo lo que el usuario marque. El resto (usuario, paquetes, LeksSO) es igual que la variante «sin cifrar».
+sed -e '/^d-i partman\/early_command/d' -e '/^d-i partman-auto/d' -e '/^d-i partman-lvm\//d' -e '/^d-i partman-md\//d' \
+    -e '/^d-i partman-partitioning\//d' "$PAQ/preseed.cfg" > "$PAQ/preseed-manual.cfg"
+
 # 1a-bis. Disco cifrado con DESBLOQUEO AUTOMÁTICO (TPM2): igual que «cifrado», pero en el primer arranque del escritorio se ofrece
 #     enlazar el disco al TPM para no teclear la clave en cada encendido (la clave elegida queda de respaldo).
 sed -E 's#^(  in-target sh /opt/leksso-instalacion/postinstalar.sh( --sin-contrasena)?)$#\1 --disco-automatico#' "$PAQ/preseed.cfg" > "$PAQ/preseed-disco-automatico.cfg"
@@ -107,6 +113,13 @@ $(variante 'Instalar LeksSO | Cifrado con TPM, sin clave | Usuario con contrase�
 $(variante 'Instalar LeksSO | Cifrado con TPM, sin clave | Usuario sin contraseña' preseed-disco-automatico-sin-contrasena.cfg)
 $(variante 'Instalar LeksSO | Disco sin cifrar | Usuario con contraseña' preseed-sin-cifrado.cfg)
 $(variante 'Instalar LeksSO | Disco sin cifrar | Usuario sin contraseña' preseed-sin-cifrado-sin-contrasena.cfg)
+$(printf "menuentry '${AVISO_PRUEBAS}[EXPERIMENTAL] Instalar LeksSO JUNTO a Windows | Particionado manual | Sin cifrar | Usuario con contraseña' {
+    set background_color=black
+    echo 'Se abrira el particionador de Debian. Elige el ESPACIO LIBRE. No toques las particiones de Windows.'
+    sleep 4
+    linux    /install.amd/vmlinuz auto=true priority=high file=/cdrom/leksso/preseed-manual.cfg vga=788 --- quiet
+    initrd   /install.amd/initrd.gz
+}")
 $(printf "menuentry 'Reparar LeksSO que no arranca (rescate, no borra nada)' {
     set background_color=black
     echo 'MODO DE RESCATE. Elige el idioma y el teclado, abre el disco con tu clave y entra en la consola del sistema.'
