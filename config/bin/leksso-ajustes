@@ -18,7 +18,7 @@ from leksso_ui import ESTILO_BASE, alternar, estilo, pedir_permiso, sudo_cmd  # 
 # (nombre, descripción, orden, programa que debe existir)
 AJUSTES = [
     ("Sonido", "Salidas, entradas, volumen", ["pavucontrol-qt"], "pavucontrol-qt"),
-    ("Red", "Cable y Wi-Fi", ["leksso-term", "-T", "Redes", "-e", "leksso-redes"], "nmtui"),
+    ("Red", "Cable y Wi-Fi", ["leksso-redes"], "nmcli"),
     ("Pantallas", "Resolución y escala", ["wdisplays"], "wdisplays"),
     ("Bluetooth", "Auriculares y mandos", ["blueman-manager"], "blueman-manager"),
     ("Apariencia", "Tema de color, letra, iconos", ["leksso-apariencia"], "leksso-apariencia"),

@@ -1,26 +1,375 @@
-#!/bin/sh
-# Gestor de redes (nmtui) con los colores de LeksSO en vez del azul de fábrica.
-export NEWT_COLORS='root=white,black
-window=white,black
-border=cyan,black
-title=cyan,black
-shadow=black,black
-button=black,cyan
-actbutton=black,white
-compactbutton=white,black
-listbox=white,black
-actlistbox=black,cyan
-sellistbox=cyan,black
-actsellistbox=black,cyan
-textbox=white,black
-acttextbox=black,cyan
-entry=white,black
-disentry=gray,black
-checkbox=white,black
-actcheckbox=black,cyan
-label=white,black
-helpline=white,black
-roottext=white,black
-emptyscale=,gray
-fullscale=,cyan'
-exec nmtui "$@"
+#!/usr/bin/env python3
+"""Redes de LeksSO: ver a qué estás conectado y elegir una red wifi, todo con el ratón.
+
+  leksso-redes                    abre la ventana (clic en la red de la barra, o Ajustes, Red; otro clic la cierra)
+  leksso-redes --captura F.png    guarda una imagen de la ventana y sale (para revisar el diseño)
+
+Un clic en una red se conecta a ella; si es nueva y tiene clave, la pide. Botones: encender o apagar el wifi, buscar de
+nuevo, desconectar, olvidar la red elegida y «Avanzado» (el gestor de texto de antes, para IP fija y casos raros).
+Se cierra con la X, con Esc o al hacer clic fuera. Usa NetworkManager (nmcli).
+"""
+import os
+import re
+import subprocess
+import sys
+
+AQUI = os.path.dirname(os.path.abspath(__file__))
+BARRAS = ["▂", "▂▄", "▂▄▆", "▂▄▆█"]
+
+
+# ---------- lógica (sin ventana, para poder probarla) ----------
+def partir(linea):
+    """Una línea de `nmcli -t` -> campos. El separador es «:» y los «:» del propio texto vienen como «\\:»."""
+    campos, actual, i = [], "", 0
+    while i < len(linea):
+        c = linea[i]
+        if c == "\\" and i + 1 < len(linea):
+            actual += linea[i + 1]
+            i += 2
+            continue
+        if c == ":":
+            campos.append(actual)
+            actual = ""
+        else:
+            actual += c
+        i += 1
+    campos.append(actual)
+    return campos
+
+
+def parse_wifi(texto):
+    """`nmcli -t -f IN-USE,SSID,SIGNAL,SECURITY device wifi list` -> [{'ssid','senal','segura','en_uso'}], la más fuerte
+    primero y la conectada arriba. Una red que se ve por varias antenas sale una sola vez; las ocultas (sin nombre) no salen."""
+    redes = {}
+    for linea in (texto or "").splitlines():
+        c = partir(linea)
+        if len(c) < 4 or not c[1].strip():
+            continue
+        try:
+            senal = int(c[2])
+        except ValueError:
+            senal = 0
+        r = {"ssid": c[1], "senal": senal, "segura": c[3].strip() not in ("", "--"), "en_uso": c[0].strip() == "*"}
+        ant = redes.get(r["ssid"])
+        if ant is None or r["en_uso"] or (senal > ant["senal"] and not ant["en_uso"]):
+            redes[r["ssid"]] = r
+    return sorted(redes.values(), key=lambda r: (not r["en_uso"], -r["senal"], r["ssid"].lower()))
+
+
+def parse_guardadas(texto):
+    """`nmcli -t -f NAME,TYPE connection show` -> nombres de las redes wifi guardadas."""
+    res = set()
+    for linea in (texto or "").splitlines():
+        c = partir(linea)
+        if len(c) >= 2 and "wireless" in c[1]:
+            res.add(c[0])
+    return res
+
+
+def parse_estado(texto):
+    """`nmcli -t -f DEVICE,TYPE,STATE,CONNECTION device` -> (frase para la ventana, hay_wifi)."""
+    cable, wifi, hay_wifi = None, None, False
+    for linea in (texto or "").splitlines():
+        c = partir(linea)
+        if len(c) < 4:
+            continue
+        if c[1] == "wifi":
+            hay_wifi = True
+        if c[2] != "connected":          # «connected (externally)» y similares no cuentan
+            continue
+        if c[1] == "ethernet":
+            cable = c[3]
+        elif c[1] == "wifi":
+            wifi = c[3]
+    if cable and wifi:
+        return f"Conectado por cable y por wifi ({wifi}).", hay_wifi
+    if cable:
+        return "Conectado por cable.", hay_wifi
+    if wifi:
+        return f"Conectado por wifi a {wifi}.", hay_wifi
+    return "Sin conexión.", hay_wifi
+
+
+def barras(senal):
+    return BARRAS[min(3, max(0, int(senal)) // 26)]
+
+
+def linea_red(r, guardadas):
+    """Texto de una red en la lista: señal, nombre y lo que hace falta saber antes de pulsar."""
+    extra = []
+    if r["en_uso"]:
+        extra.append("conectada")
+    elif r["ssid"] in guardadas:
+        extra.append("guardada")
+    extra.append("con clave" if r["segura"] else "abierta")
+    return f"{barras(r['senal']):<4}  {r['ssid']}   ·   " + ", ".join(extra)
+
+
+def clave_valida(clave):
+    """Una clave wifi (WPA) tiene entre 8 y 63 caracteres."""
+    return 8 <= len(clave or "") <= 63
+
+
+def orden_conectar(ssid, guardadas, clave=None):
+    """La orden de nmcli para conectarse. Una red guardada se levanta sin clave; una nueva la lleva si la tiene."""
+    if clave is None and ssid in guardadas:
+        return ["nmcli", "--wait", "30", "connection", "up", "id", ssid]
+    orden = ["nmcli", "--wait", "30", "device", "wifi", "connect", ssid]
+    if clave:
+        orden += ["password", clave]
+    return orden
+
+
+def mensaje_error(salida):
+    """La salida de nmcli al fallar -> una frase que se entienda."""
+    s = (salida or "").lower()
+    if "secrets were required" in s or "802-11-wireless-security" in s or "invalid" in s and "psk" in s:
+        return "La clave no es correcta."
+    if "no network with ssid" in s:
+        return "Esa red ya no se ve. Pulsa «Buscar de nuevo»."
+    if "timeout" in s or "timed out" in s:
+        return "La red no ha contestado a tiempo. Prueba otra vez o acércate al router."
+    return "No he podido conectar. " + (salida or "").strip().splitlines()[-1][:120] if (salida or "").strip() else "No he podido conectar."
+
+
+def _nmcli(*args, espera=20):
+    try:
+        r = subprocess.run(["nmcli", *args], capture_output=True, text=True, timeout=espera)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return r.stdout if r.returncode == 0 else None
+
+
+# ---------- ventana ----------
+def ventana(captura=None):
+    for ruta in ("/usr/local/lib/leksso-ui", os.path.join(AQUI, "..", "ui")):
+        if ruta not in sys.path:
+            sys.path.insert(0, ruta)
+    from PySide6 import QtCore, QtGui, QtWidgets
+    from leksso_ui import ESTILO_BASE, alternar, estilo
+
+    if captura is None and alternar("leksso-redes"):
+        return 0
+
+    class Redes(QtWidgets.QWidget):
+        def __init__(self):
+            super().__init__()
+            self.setWindowTitle("Redes")
+            estilo(self, ESTILO_BASE)
+            self.tuvo_foco = False
+            self.dialogo = False            # mientras se pide la clave no se cierra al perder el foco
+            self.guardadas = set()
+            self.proceso = None
+            raiz = QtWidgets.QVBoxLayout(self)
+            raiz.setContentsMargins(14, 10, 14, 14)
+            raiz.setSpacing(8)
+            cab = QtWidgets.QHBoxLayout()
+            t = QtWidgets.QLabel("Redes")
+            t.setObjectName("titulo")
+            cab.addWidget(t)
+            cab.addStretch()
+            x = QtWidgets.QPushButton("✕")
+            x.setObjectName("cerrar")
+            x.setToolTip("Cerrar (Esc)")
+            x.clicked.connect(self.close)
+            cab.addWidget(x)
+            raiz.addLayout(cab)
+            self.estado = QtWidgets.QLabel("")
+            self.estado.setWordWrap(True)
+            raiz.addWidget(self.estado)
+            self.wifi = self.boton("", self.alternar_wifi)
+            raiz.addWidget(self.wifi)
+            self.lista = QtWidgets.QListWidget()
+            self.lista.setFocusPolicy(QtCore.Qt.NoFocus)
+            self.lista.setFont(QtGui.QFontDatabase.systemFont(QtGui.QFontDatabase.GeneralFont))
+            self.lista.itemClicked.connect(self.conectar)
+            raiz.addWidget(self.lista, 1)
+            self.nota = QtWidgets.QLabel("")
+            self.nota.setObjectName("nota")
+            self.nota.setWordWrap(True)
+            raiz.addWidget(self.nota)
+            fila = QtWidgets.QHBoxLayout()
+            fila.addWidget(self.boton("Buscar de nuevo", lambda: self.refrescar(buscar=True)))
+            self.b_desconectar = self.boton("Desconectar", self.desconectar)
+            fila.addWidget(self.b_desconectar)
+            raiz.addLayout(fila)
+            fila2 = QtWidgets.QHBoxLayout()
+            self.b_olvidar = self.boton("Olvidar la red elegida", self.olvidar)
+            fila2.addWidget(self.b_olvidar)
+            fila2.addWidget(self.boton("Avanzado…", self.avanzado))
+            raiz.addLayout(fila2)
+            self.lista.currentItemChanged.connect(lambda *_: self.botones())
+            self.refrescar()
+            self.reloj = QtCore.QTimer(self)
+            self.reloj.timeout.connect(self.refrescar)
+            self.reloj.start(8000)
+
+        def boton(self, texto, accion):
+            b = QtWidgets.QPushButton(texto)
+            b.setObjectName("accion")
+            b.setFocusPolicy(QtCore.Qt.NoFocus)
+            b.clicked.connect(lambda _=False: accion())
+            return b
+
+        def elegida(self):
+            it = self.lista.currentItem()
+            return it.data(QtCore.Qt.UserRole) if it else None
+
+        def botones(self):
+            r = self.elegida()
+            self.b_olvidar.setEnabled(bool(r) and r["ssid"] in self.guardadas)
+            self.b_desconectar.setEnabled(any(self.lista.item(i).data(QtCore.Qt.UserRole)
+                                              and self.lista.item(i).data(QtCore.Qt.UserRole)["en_uso"]
+                                              for i in range(self.lista.count())))
+
+        def refrescar(self, buscar=False):
+            if self.proceso is not None:
+                return                       # conectando: no se toca la lista
+            frase, hay_wifi = parse_estado(_nmcli("-t", "-f", "DEVICE,TYPE,STATE,CONNECTION", "device") or "")
+            self.estado.setText(frase)
+            encendido = "enabled" in (_nmcli("radio", "wifi") or "")
+            self.wifi.setVisible(hay_wifi)
+            self.wifi.setText("Wi-Fi: encendido (pulsa para apagarlo)" if encendido else "Wi-Fi: apagado (pulsa para encenderlo)")
+            antes = (self.elegida() or {}).get("ssid")
+            self.guardadas = parse_guardadas(_nmcli("-t", "-f", "NAME,TYPE", "connection", "show") or "")
+            self.lista.clear()
+            if not hay_wifi:
+                self.lista.addItem("Este equipo no tiene wifi (o no tiene su controlador).")
+            elif not encendido:
+                self.lista.addItem("El wifi está apagado.")
+            else:
+                t = _nmcli("-t", "-f", "IN-USE,SSID,SIGNAL,SECURITY", "device", "wifi", "list",
+                           "--rescan", "yes" if buscar else "auto", espera=30)
+                redes = parse_wifi(t or "")
+                if not redes:
+                    self.lista.addItem("No se ve ninguna red. Pulsa «Buscar de nuevo».")
+                for r in redes:
+                    it = QtWidgets.QListWidgetItem(linea_red(r, self.guardadas))
+                    it.setData(QtCore.Qt.UserRole, r)
+                    self.lista.addItem(it)
+                    if r["ssid"] == antes:
+                        self.lista.setCurrentItem(it)
+            self.botones()
+
+        def alternar_wifi(self):
+            encendido = "enabled" in (_nmcli("radio", "wifi") or "")
+            _nmcli("radio", "wifi", "off" if encendido else "on")
+            QtCore.QTimer.singleShot(1500, lambda: self.refrescar(buscar=not encendido))
+            self.refrescar()
+
+        def conectar(self, item):
+            r = item.data(QtCore.Qt.UserRole)
+            if not r or self.proceso is not None:
+                return
+            if r["en_uso"]:
+                self.nota.setText("Ya estás conectado a esa red.")
+                return
+            clave = None
+            if r["segura"] and r["ssid"] not in self.guardadas:
+                clave = self.pedir_clave(r["ssid"])
+                if clave is None:
+                    return
+            self.lanzar(orden_conectar(r["ssid"], self.guardadas, clave), f"Conectando a {r['ssid']}…",
+                        f"Conectado a {r['ssid']}.", nueva=r["ssid"] if clave else None)
+
+        def pedir_clave(self, ssid):
+            self.dialogo = True
+            try:
+                while True:
+                    clave, ok = QtWidgets.QInputDialog.getText(self, "Clave del wifi", f"Clave de «{ssid}»:",
+                                                               QtWidgets.QLineEdit.Password)
+                    if not ok:
+                        return None
+                    if clave_valida(clave):
+                        return clave
+                    QtWidgets.QMessageBox.information(self, "Clave del wifi", "La clave tiene que tener entre 8 y 63 caracteres.")
+            finally:
+                self.dialogo = False
+
+        def lanzar(self, orden, haciendo, hecho, nueva=None):
+            self.nota.setText(haciendo)
+            self.lista.setEnabled(False)
+            p = QtCore.QProcess(self)
+            p.setProcessChannelMode(QtCore.QProcess.MergedChannels)
+            self.proceso = p
+
+            def fin(codigo, _estado=None):
+                salida = bytes(p.readAllStandardOutput()).decode("utf-8", "replace")
+                self.proceso = None
+                self.lista.setEnabled(True)
+                if codigo == 0:
+                    self.nota.setText(hecho)
+                else:
+                    self.nota.setText(mensaje_error(salida))
+                    if nueva:                # una clave mala deja la red guardada a medias: se quita
+                        _nmcli("connection", "delete", "id", nueva)
+                self.refrescar()
+            p.finished.connect(fin)
+            p.errorOccurred.connect(lambda _e: fin(1) if self.proceso is p and p.state() == QtCore.QProcess.NotRunning else None)
+            p.start(orden[0], orden[1:])
+
+        def desconectar(self):
+            for linea in (_nmcli("-t", "-f", "DEVICE,TYPE,STATE", "device") or "").splitlines():
+                c = partir(linea)
+                if len(c) >= 3 and c[1] == "wifi" and c[2] == "connected":
+                    _nmcli("device", "disconnect", c[0])
+            self.nota.setText("Wifi desconectado.")
+            self.refrescar()
+
+        def olvidar(self):
+            r = self.elegida()
+            if not r or r["ssid"] not in self.guardadas:
+                return
+            self.dialogo = True
+            try:
+                si = QtWidgets.QMessageBox.question(self, "Olvidar la red",
+                                                    f"¿Olvidar «{r['ssid']}»? Tendrás que escribir su clave para volver a entrar.")
+            finally:
+                self.dialogo = False
+            if si == QtWidgets.QMessageBox.Yes:
+                _nmcli("connection", "delete", "id", r["ssid"])
+                self.nota.setText(f"Red «{r['ssid']}» olvidada.")
+                self.refrescar()
+
+        def avanzado(self):
+            subprocess.Popen(["leksso-term", "-T", "Redes (avanzado)", "-e", "leksso-redes-texto"], start_new_session=True,
+                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            self.close()
+
+        def keyPressEvent(self, ev):
+            if ev.key() == QtCore.Qt.Key_Escape:
+                self.close()
+            else:
+                super().keyPressEvent(ev)
+
+        def changeEvent(self, ev):
+            if ev.type() == QtCore.QEvent.ActivationChange and captura is None and not self.dialogo:
+                if self.tuvo_foco and not self.isActiveWindow() and self.proceso is None:
+                    self.close()
+                elif self.isActiveWindow():
+                    self.tuvo_foco = True
+            super().changeEvent(ev)
+
+    app = QtWidgets.QApplication(sys.argv)
+    app.setDesktopFileName("leksso-redes")
+    w = Redes()
+    w.resize(460, 560)
+    w.show()
+    if captura:
+        app.processEvents()
+        w.grab().save(captura)
+        return 0
+    return app.exec()
+
+
+def main(argv):
+    if argv[:1] == ["--captura"] and len(argv) == 2:
+        return ventana(argv[1])
+    if not argv:
+        return ventana()
+    print(__doc__)
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

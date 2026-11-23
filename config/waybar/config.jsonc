@@ -169,7 +169,7 @@
       "tooltip-format-ethernet": "Cable · {ifname}\nIP {ipaddr}\nPuerta de enlace {gwaddr}",
       "tooltip-format-wifi": "Wi-Fi: {essid}\nSeñal {signalStrength}%\nIP {ipaddr}",
       "tooltip-format-disconnected": "Sin conexión",
-      "on-click": "leksso-term -T \"Redes\" -e leksso-redes"
+      "on-click": "leksso-redes"
     },
     "clock": {
       "format": "{:%H:%M}",
