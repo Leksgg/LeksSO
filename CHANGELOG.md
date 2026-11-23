@@ -3,6 +3,10 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
+## Sin publicar
+
+* **La ventana «Discos» de Ajustes ya tiene botón de cerrar** (la X arriba a la derecha; Esc también la cierra).
+
 ## Beta 0.1.42 · 2026-11-23
 
 ~ **Raíl más limpio.** Nuevo botón de **Captura** (elige una zona; también con Imprimir). Se quita «Modelos de IA» (sigue en el terminal) y «Vista» pasa a Ajustes como «Vista del escritorio». «Flotantes» pasa a llamarse «Minimizar» en su aviso.
