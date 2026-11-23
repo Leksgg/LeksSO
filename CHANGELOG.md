@@ -3,7 +3,7 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
-## Sin publicar
+## 0.1.48 · 2026-11-23
 
 * **LeksSO sale de beta.** Desde esta versión el número va solo, sin «Beta» delante. No cambia nada más respecto a la Beta 0.1.47: es la misma, con su nombre definitivo.
 
