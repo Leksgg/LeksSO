@@ -59,7 +59,10 @@ function Nueva($tam, $tipo, $etiqueta) {
   Format-Volume -Partition $p -FileSystem FAT32 -NewFileSystemLabel $etiqueta -Confirm:$false | Out-Null
   (Get-Partition -DiskNumber $d.Number -PartitionNumber $p.PartitionNumber).DriveLetter
 }
-$l1 = Nueva $MBLeksso $tipoEfi 'LEKSSO'
+# La partición de arranque del pendrive va como «datos básicos», NO como «Sistema EFI»: con una partición EFI en el pendrive, el
+# instalador de Windows la confunde con la del equipo y falla («No se puede crear una partición nueva ni encontrar una que ya
+# exista» o «no puede preparar el equipo para la siguiente fase»). Comprobado en la VM con la ISO original (2026-11-23).
+$l1 = Nueva $MBLeksso $tipoDatos 'LEKSSO'
 $l2 = Nueva $MBWin10 $tipoDatos 'WIN10'
 $l3 = Nueva 0 $tipoDatos 'LIBRE'
 Write-Host ("Particiones: LEKSSO={0}:  WIN10={1}:  LIBRE={2}:" -f $l1, $l2, $l3)
