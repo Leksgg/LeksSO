@@ -19,186 +19,203 @@ for _ruta in ("/usr/local/lib/leksso-ui", os.path.join(os.path.dirname(os.path.a
     if _ruta not in sys.path:
         sys.path.insert(0, _ruta)
 
+# Dirección «reloj de estación»: columna a la izquierda con una regla de color y la hora a escala de cartel.
 # Colores del tema base (Marea); al escribir el archivo se pasan a los del tema activo.
 ESTILO = """
-window { background-color: #021012; color: #e3edef; font-family: "DejaVu Sans", sans-serif; }
-#sistema-label { font-size: 18px; color: #00c4bf; font-weight: bold; }
-#usuario-label { font-size: 16px; color: #94a1a3; }
-#clock-label { font-size: 72px; font-weight: bold; margin-top: 18px; }
-#date-label { font-size: 18px; color: #94a1a3; margin-bottom: 18px; }
-#input-label { font-size: 16px; }
-#input-field { font-size: 18px; padding: 10px 12px; background-color: #112123; color: #e3edef; border: 1px solid #25393c;
-               border-radius: 0; box-shadow: none; caret-color: #00c4bf; }
-#input-field:focus { border: 1px solid #00c4bf; }
-#unlock-button { font-size: 16px; padding: 8px 18px; background-image: none; background-color: #003635; color: #e3edef;
-                 border: 1px solid #00c4bf; border-radius: 0; box-shadow: none; text-shadow: none; }
-#ayuda-label { font-size: 13px; color: #94a1a3; }
-#error-label { color: #ff735a; }
-#warning-label { color: #fdc357; }
+window { background-color: #021012; color: #e3edef; font-family: "Montserrat", "DejaVu Sans", sans-serif; }
+#columna { border-left: 8px solid #00c4bf; padding: 0 0 0 48px; }
+#clock-label { font-size: 224px; font-weight: 700; color: #e3edef; margin: -24px 0 -8px 0; }
+#date-label { font-size: 32px; font-weight: 500; color: #e3edef; margin-bottom: 48px; }
+#input-label { font-size: 22px; font-weight: 500; color: #e3edef; }
+#input-field { font-size: 24px; min-height: 56px; padding: 0 16px; background-color: #112123; color: #e3edef;
+               border: 2px solid #25393c; border-radius: 0; box-shadow: none; caret-color: #00c4bf; }
+#input-field:focus { border: 2px solid #00c4bf; }
+#input-field image { color: #94a1a3; margin: 0 8px; -gtk-icon-transform: scale(1.5); }
+#input-field image:hover { color: #00c4bf; }
+#unlock-button { font-size: 20px; font-weight: 700; min-height: 56px; min-width: 160px; padding: 0 32px; margin-left: 8px; background-image: none;
+                 background-color: #00c4bf; color: #021012; border: 2px solid #00c4bf; border-radius: 0;
+                 box-shadow: none; text-shadow: none; }
+#unlock-button:hover { background-color: #e3edef; border-color: #e3edef; }
+#unlock-button label { color: #021012; }
+#ayuda-label { font-size: 18px; color: #94a1a3; margin-top: 8px; }
+#error-label { font-size: 18px; font-weight: 700; color: #ff735a; }
+#warning-label { font-size: 18px; font-weight: 700; color: #fdc357; }
+#sistema-label { font-size: 18px; color: #94a1a3; margin-top: 48px; }
 """
 
 
 def diseno(sistema, usuario):
-    """El diseño de la pantalla (GtkBuilder). Es el de gtklock con los textos en español, el nombre del sistema, el
-    usuario y una línea de ayuda. Los identificadores que usa gtklock se conservan todos."""
+    """El diseño de la pantalla (GtkBuilder): una columna a la izquierda con la hora a escala de cartel y, debajo, el
+    bloque para entrar; al pie, el sistema y su versión. Los identificadores que usa gtklock se conservan todos."""
     s, u = escape(sistema), escape(usuario)
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <object class="GtkBox" id="window-box">
     <property name="name">window-box</property>
-    <property name="margin">100</property>
-    <property name="halign">center</property>
-    <property name="valign">center</property>
+    <property name="margin">96</property>
+    <property name="halign">fill</property>
+    <property name="valign">fill</property>
     <property name="orientation">vertical</property>
-    <property name="spacing">10</property>
     <child>
-      <object class="GtkBox" id="info-box">
-        <property name="name">info-box</property>
-        <property name="halign">center</property>
+      <object class="GtkBox" id="columna">
+        <property name="name">columna</property>
+        <property name="visible">1</property>
+        <property name="halign">start</property>
+        <property name="valign">center</property>
+        <property name="vexpand">1</property>
         <property name="orientation">vertical</property>
-        <property name="spacing">5</property>
         <child>
-          <object class="GtkLabel" id="sistema-label">
-            <property name="name">sistema-label</property>
-            <property name="visible">1</property>
-            <property name="halign">center</property>
-            <property name="label">{s}</property>
-          </object>
-        </child>
-        <child>
-          <object class="GtkLabel" id="usuario-label">
-            <property name="name">usuario-label</property>
-            <property name="visible">1</property>
-            <property name="halign">center</property>
-            <property name="label">Usuario: {u}</property>
-          </object>
-        </child>
-        <child>
-          <object class="GtkBox" id="time-box">
-            <property name="name">time-box</property>
-            <property name="halign">center</property>
+          <object class="GtkBox" id="info-box">
+            <property name="name">info-box</property>
+            <property name="halign">start</property>
             <property name="orientation">vertical</property>
             <child>
-              <object class="GtkLabel" id="clock-label">
-                <property name="name">clock-label</property>
-                <property name="halign">center</property>
-              </object>
-            </child>
-            <child>
-              <object class="GtkLabel" id="date-label">
-                <property name="name">date-label</property>
-                <property name="halign">center</property>
+              <object class="GtkBox" id="time-box">
+                <property name="name">time-box</property>
+                <property name="halign">start</property>
+                <property name="orientation">vertical</property>
+                <child>
+                  <object class="GtkLabel" id="clock-label">
+                    <property name="name">clock-label</property>
+                    <property name="halign">start</property>
+                    <property name="xalign">0</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="date-label">
+                    <property name="name">date-label</property>
+                    <property name="halign">start</property>
+                    <property name="xalign">0</property>
+                  </object>
+                </child>
               </object>
             </child>
           </object>
         </child>
-      </object>
-    </child>
-    <child>
-      <object class="GtkRevealer" id="body-revealer">
-        <property name="transition-type">none</property>
-        <property name="reveal-child">0</property>
         <child>
-          <object class="GtkGrid" id="body-grid">
-            <property name="row-spacing">8</property>
-            <property name="column-spacing">8</property>
+          <object class="GtkRevealer" id="body-revealer">
+            <property name="transition-type">none</property>
+            <property name="reveal-child">0</property>
+            <property name="halign">start</property>
             <child>
-              <object class="GtkLabel" id="input-label">
-                <property name="name">input-label</property>
-                <property name="label">Contraseña:</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkEntry" id="input-field">
-                <property name="name">input-field</property>
-                <property name="width-request">380</property>
-                <property name="visibility">0</property>
-                <property name="caps-lock-warning">0</property>
-                <property name="input-purpose">password</property>
-                <property name="secondary-icon-name">view-reveal-symbolic</property>
-                <property name="secondary-icon-tooltip-text">Ver la contraseña</property>
-                <signal name="icon-release" handler="window_pw_toggle_vis"/>
-                <signal name="activate" handler="window_pw_check"/>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">0</property>
-                <property name="width">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkRevealer" id="message-revealer">
-                <property name="transition-type">none</property>
-                <property name="no-show-all">1</property>
+              <object class="GtkGrid" id="body-grid">
+                <property name="row-spacing">8</property>
+                <property name="column-spacing">8</property>
                 <child>
-                  <object class="GtkScrolledWindow" id="message-scrolled-window">
-                    <property name="hscrollbar-policy">never</property>
-                    <property name="max-content-height">256</property>
-                    <property name="propagate-natural-height">1</property>
+                  <object class="GtkLabel" id="input-label">
+                    <property name="name">input-label</property>
+                    <property name="halign">start</property>
+                    <property name="xalign">0</property>
+                    <property name="label">Contraseña de {u}</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">0</property>
+                    <property name="width">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="input-field">
+                    <property name="name">input-field</property>
+                    <property name="width-request">460</property>
+                    <property name="visibility">0</property>
+                    <property name="caps-lock-warning">0</property>
+                    <property name="input-purpose">password</property>
+                    <property name="secondary-icon-name">view-reveal-symbolic</property>
+                    <property name="secondary-icon-tooltip-text">Ver la contraseña</property>
+                    <signal name="icon-release" handler="window_pw_toggle_vis"/>
+                    <signal name="activate" handler="window_pw_check"/>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="unlock-button">
+                    <property name="name">unlock-button</property>
+                    <property name="label">Entrar</property>
+                    <signal name="clicked" handler="window_pw_check"/>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkBox">
+                    <property name="halign">start</property>
+                    <property name="spacing">16</property>
                     <child>
-                      <object class="GtkViewport">
+                      <object class="GtkLabel" id="error-label">
+                        <property name="name">error-label</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="warning-label">
+                        <property name="name">warning-label</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">3</property>
+                    <property name="width">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkRevealer" id="message-revealer">
+                    <property name="transition-type">none</property>
+                    <property name="no-show-all">1</property>
+                    <child>
+                      <object class="GtkScrolledWindow" id="message-scrolled-window">
+                        <property name="hscrollbar-policy">never</property>
+                        <property name="max-content-height">256</property>
+                        <property name="propagate-natural-height">1</property>
                         <child>
-                          <object class="GtkBox" id="message-box">
-                            <property name="orientation">vertical</property>
-                            <property name="homogeneous">1</property>
+                          <object class="GtkViewport">
+                            <child>
+                              <object class="GtkBox" id="message-box">
+                                <property name="orientation">vertical</property>
+                                <property name="homogeneous">1</property>
+                              </object>
+                            </child>
                           </object>
                         </child>
                       </object>
                     </child>
                   </object>
-                </child>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">1</property>
-                <property name="width">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkBox">
-                <property name="halign">end</property>
-                <property name="spacing">8</property>
-                <child>
-                  <object class="GtkLabel" id="warning-label">
-                    <property name="name">warning-label</property>
-                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">4</property>
+                    <property name="width">2</property>
+                  </packing>
                 </child>
                 <child>
-                  <object class="GtkLabel" id="error-label">
-                    <property name="name">error-label</property>
+                  <object class="GtkLabel" id="ayuda-label">
+                    <property name="name">ayuda-label</property>
+                    <property name="visible">1</property>
+                    <property name="halign">start</property>
+                    <property name="xalign">0</property>
+                    <property name="label">El ojo enseña lo que escribes.</property>
                   </object>
-                </child>
-                <child>
-                  <object class="GtkButton" id="unlock-button">
-                    <property name="name">unlock-button</property>
-                    <property name="label">Desbloquear</property>
-                    <signal name="clicked" handler="window_pw_check"/>
-                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">2</property>
+                    <property name="width">2</property>
+                  </packing>
                 </child>
               </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">2</property>
-                <property name="width">2</property>
-              </packing>
             </child>
-            <child>
-              <object class="GtkLabel" id="ayuda-label">
-                <property name="name">ayuda-label</property>
-                <property name="visible">1</property>
-                <property name="halign">start</property>
-                <property name="label">Pulsa el ojo para ver la contraseña mientras la escribes.</property>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">3</property>
-                <property name="width">2</property>
-              </packing>
-            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel" id="sistema-label">
+            <property name="name">sistema-label</property>
+            <property name="visible">1</property>
+            <property name="halign">start</property>
+            <property name="xalign">0</property>
+            <property name="label">{s}</property>
           </object>
         </child>
       </object>
@@ -236,9 +253,33 @@ def ya_bloqueado():
     return False
 
 
-def orden_gtklock(ruta_diseno, ruta_estilo):
-    return ["gtklock", "--daemonize", "--layout", ruta_diseno, "--style", ruta_estilo,
-            "--time-format", "%H:%M", "--date-format", "%A %d de %B"]
+def ventana_con_foco():
+    """El número (de sway) de la ventana que tiene el teclado ahora, o None."""
+    try:
+        import json
+        r = subprocess.run(["swaymsg", "-t", "get_tree"], capture_output=True, text=True, timeout=5)
+        arbol = json.loads(r.stdout)
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return None
+
+    def buscar(n):
+        if n.get("focused") and n.get("type") in ("con", "floating_con"):
+            return n.get("id")
+        for h in n.get("nodes", []) + n.get("floating_nodes", []):
+            r = buscar(h)
+            if r is not None:
+                return r
+        return None
+    return buscar(arbol)
+
+
+def orden_gtklock(ruta_diseno, ruta_estilo, foco=None):
+    orden = ["gtklock", "--daemonize", "--layout", ruta_diseno, "--style", ruta_estilo,
+             "--time-format", "%H:%M", "--date-format", "%A %d de %B"]
+    if isinstance(foco, int):
+        # al desbloquear, el teclado vuelve a la ventana que lo tenía (si no, a veces se queda sin ninguna)
+        orden += ["--unlock-command", f"swaymsg [con_id={foco}] focus"]
+    return orden
 
 
 def bloquear():
@@ -253,7 +294,7 @@ def bloquear():
                 f.write(diseno(nombre_sistema(), getpass.getuser()))
             with open(re_, "w", encoding="utf-8") as f:
                 f.write(estilo_del_tema())
-            if subprocess.run(orden_gtklock(rd, re_), timeout=20).returncode == 0:
+            if subprocess.run(orden_gtklock(rd, re_, ventana_con_foco()), timeout=20).returncode == 0:
                 return 0
         except (OSError, subprocess.SubprocessError):
             pass

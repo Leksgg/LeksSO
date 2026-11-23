@@ -34,11 +34,10 @@ class Diseno(unittest.TestCase):
     def test_ensena_sistema_usuario_y_el_ojo(self):
         t = blo.diseno("LeksSO Beta 0.1.45", "a01")
         self.assertIn(">LeksSO Beta 0.1.45<", t)
-        self.assertIn(">Usuario: a01<", t)
+        self.assertIn(">Contraseña de a01<", t)
         self.assertIn("view-reveal-symbolic", t)
         self.assertIn('<property name="visibility">0</property>', t)         # la contraseña empieza oculta
-        self.assertIn("Contraseña:", t)
-        self.assertIn("Desbloquear", t)
+        self.assertIn(">Entrar<", t)
 
     def test_nombres_raros_no_rompen_el_diseno(self):
         ET.fromstring(blo.diseno('LeksSO <b>&"x"', "usu<ario>&").encode("utf-8"))
