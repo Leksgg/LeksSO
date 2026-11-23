@@ -15,6 +15,7 @@ layer=overlay
 default-timeout=6000
 icons=1
 max-icon-size=40
+max-history=50
 
 [urgency=low]
 border-color=#25393c
@@ -32,3 +33,7 @@ on-button-left=exec leksso-actualizaciones
 border-color=#fdc357
 background-color=#2d1f05f2
 on-button-left=exec leksso-panel-ia
+
+# «No molestar» (botón de Notificaciones): los avisos no salen en pantalla pero quedan en el historial
+[mode=silencio]
+invisible=1

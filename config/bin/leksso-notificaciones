@@ -1,0 +1,192 @@
+#!/usr/bin/env python3
+"""Notificaciones de LeksSO: las que ya han salido en pantalla, para releerlas cuando se te pasaron.
+
+  leksso-notificaciones            abre la ventana (botón de la campana del raíl; otro clic la cierra)
+  leksso-notificaciones --captura F.png   guarda una imagen de la ventana y sale (para revisar el diseño)
+
+Usa el historial de mako (el programa que muestra los avisos). Botones: quitar de la pantalla las que siguen visibles, volver a
+enseñar la última y «No molestar» (los avisos siguen guardándose en el historial pero no salen en pantalla).
+Se cierra con la X, con Esc o al hacer clic fuera.
+"""
+import json
+import os
+import re
+import subprocess
+import sys
+
+AQUI = os.path.dirname(os.path.abspath(__file__))
+MODO_SILENCIO = "silencio"      # definido en ~/.config/mako/config ([mode=silencio] invisible=1)
+
+
+# ---------- lógica (sin ventana, para poder probarla) ----------
+def parse_historial(texto):
+    """Salida de `makoctl history` (texto) -> [{'id', 'resumen', 'app', 'cuerpo'}] en el orden en que viene."""
+    res, actual = [], None
+    for linea in (texto or "").splitlines():
+        m = re.match(r"^Notification (\d+):\s*(.*)$", linea)
+        if m:
+            actual = {"id": int(m.group(1)), "resumen": m.group(2).strip(), "app": "", "cuerpo": ""}
+            res.append(actual)
+            continue
+        if actual is None:
+            continue
+        m = re.match(r"^\s+App name:\s*(.*)$", linea)
+        if m:
+            actual["app"] = m.group(1).strip()
+            continue
+        m = re.match(r"^\s+Body:\s*(.*)$", linea)
+        if m:
+            actual["cuerpo"] = m.group(1).strip()
+    return res
+
+
+def modo_silencio_activo(texto):
+    """Salida de `makoctl mode`: un modo por línea. ¿Está «No molestar»?"""
+    return MODO_SILENCIO in [l.strip() for l in (texto or "").splitlines()]
+
+
+def resumen_para_lista(n, maximo=90):
+    """Una línea legible por notificación: «Aplicación · Título — texto»."""
+    partes = [n["app"], n["resumen"]]
+    linea = " · ".join(p for p in partes if p) or "(sin título)"
+    if n["cuerpo"]:
+        linea += " — " + n["cuerpo"]
+    return linea if len(linea) <= maximo else linea[: maximo - 1] + "…"
+
+
+def _makoctl(*args):
+    try:
+        r = subprocess.run(["makoctl", *args], capture_output=True, text=True, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return r.stdout if r.returncode == 0 else None
+
+
+def historial():
+    t = _makoctl("history")
+    return None if t is None else parse_historial(t)
+
+
+# ---------- ventana ----------
+def ventana(captura=None):
+    for ruta in ("/usr/local/lib/leksso-ui", os.path.join(AQUI, "..", "ui")):
+        if ruta not in sys.path:
+            sys.path.insert(0, ruta)
+    from PySide6 import QtCore, QtWidgets
+    from leksso_ui import ESTILO_BASE, alternar, estilo, pintar
+
+    if captura is None and alternar("leksso-notificaciones"):
+        return 0
+
+    class Notificaciones(QtWidgets.QWidget):
+        def __init__(self):
+            super().__init__()
+            self.setWindowTitle("Notificaciones")
+            estilo(self, ESTILO_BASE)
+            self.tuvo_foco = False
+            raiz = QtWidgets.QVBoxLayout(self)
+            raiz.setContentsMargins(14, 10, 14, 14)
+            raiz.setSpacing(8)
+            cab = QtWidgets.QHBoxLayout()
+            t = QtWidgets.QLabel("Notificaciones")
+            t.setObjectName("titulo")
+            cab.addWidget(t)
+            cab.addStretch()
+            x = QtWidgets.QPushButton("✕")
+            x.setObjectName("cerrar")
+            x.setToolTip("Cerrar (Esc)")
+            x.clicked.connect(self.close)
+            cab.addWidget(x)
+            raiz.addLayout(cab)
+            self.silencio = QtWidgets.QPushButton("")
+            self.silencio.setObjectName("accion")
+            self.silencio.setFocusPolicy(QtCore.Qt.NoFocus)
+            self.silencio.clicked.connect(self.alternar_silencio)
+            raiz.addWidget(self.silencio)
+            self.lista = QtWidgets.QListWidget()
+            self.lista.setFocusPolicy(QtCore.Qt.NoFocus)
+            self.lista.setWordWrap(True)
+            self.lista.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+            self.lista.setTextElideMode(QtCore.Qt.ElideNone)
+            raiz.addWidget(self.lista, 1)
+            fila = QtWidgets.QHBoxLayout()
+            for texto, accion in (("Quitar las de la pantalla", lambda: self.hacer("dismiss", "--all")),
+                                  ("Volver a mostrar la última", lambda: self.hacer("restore"))):
+                b = QtWidgets.QPushButton(texto)
+                b.setObjectName("accion")
+                b.setFocusPolicy(QtCore.Qt.NoFocus)
+                b.clicked.connect(lambda _=False, a=accion: a())
+                fila.addWidget(b)
+            raiz.addLayout(fila)
+            self.nota = QtWidgets.QLabel("")
+            self.nota.setObjectName("nota")
+            self.nota.setWordWrap(True)
+            raiz.addWidget(self.nota)
+            self.refrescar()
+            self.reloj = QtCore.QTimer(self)
+            self.reloj.timeout.connect(self.refrescar)
+            self.reloj.start(3000)
+
+        def hacer(self, *args):
+            _makoctl(*args)
+            self.refrescar()
+
+        def alternar_silencio(self):
+            _makoctl("mode", "-t", MODO_SILENCIO)
+            self.refrescar()
+
+        def refrescar(self):
+            activo = modo_silencio_activo(_makoctl("mode") or "")
+            self.silencio.setText("No molestar: ACTIVADO (pulsa para volver a ver los avisos)" if activo
+                                  else "No molestar: desactivado (pulsa para silenciar los avisos)")
+            self.silencio.setStyleSheet(pintar("QPushButton { background: #332305; border: 1px solid #fdc357; padding: 12px 14px; text-align: left; }")
+                                        if activo else "")
+            h = historial()
+            self.lista.clear()
+            if h is None:
+                self.lista.addItem("No puedo leer las notificaciones (¿está el programa de avisos en marcha?).")
+                self.nota.setText("")
+                return
+            if not h:
+                self.lista.addItem("No hay notificaciones guardadas.")
+            for n in h:
+                self.lista.addItem(resumen_para_lista(n))
+            self.nota.setText("Aquí salen las últimas 50. Al reiniciar la sesión se vacían." if h else "")
+
+        def keyPressEvent(self, ev):
+            if ev.key() == QtCore.Qt.Key_Escape:
+                self.close()
+            else:
+                super().keyPressEvent(ev)
+
+        def changeEvent(self, ev):
+            if ev.type() == QtCore.QEvent.ActivationChange and captura is None:
+                if self.tuvo_foco and not self.isActiveWindow():
+                    self.close()
+                elif self.isActiveWindow():
+                    self.tuvo_foco = True
+            super().changeEvent(ev)
+
+    app = QtWidgets.QApplication(sys.argv)
+    app.setDesktopFileName("leksso-notificaciones")
+    w = Notificaciones()
+    w.resize(460, 520)
+    w.show()
+    if captura:
+        app.processEvents()
+        w.grab().save(captura)
+        return 0
+    return app.exec()
+
+
+def main(argv):
+    if argv[:1] == ["--captura"] and len(argv) == 2:
+        return ventana(argv[1])
+    if not argv:
+        return ventana()
+    print(__doc__)
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

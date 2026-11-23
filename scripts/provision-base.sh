@@ -292,6 +292,15 @@ install -m 0755 "$RAIZ/config/bin/leksso-copias-ui" /usr/local/bin/leksso-copias
 install -m 0755 "$RAIZ/config/bin/leksso-barra-bateria" "$RAIZ/config/bin/leksso-barra-perfil" /usr/local/bin/
 # Calendario de consulta (clic en el reloj) y sus festivos de Madrid, año a año.
 install -m 0755 "$RAIZ/config/bin/leksso-calendario" /usr/local/bin/
+# Cámara y micrófono (botón del raíl y aviso de la barra) y Notificaciones (historial). El bloqueo de la cámara tiene una parte de
+# administrador: BLOQUEAR se permite sin contraseña (es el lado seguro) y PERMITIR la pide, para que un programa con tu usuario no
+# pueda destapar la cámara solo.
+install -m 0755 "$RAIZ/config/bin/leksso-dispositivos" "$RAIZ/config/bin/leksso-notificaciones" /usr/local/bin/
+install -m 0755 "$RAIZ/scripts/leksso-camara-raiz.sh" /usr/local/sbin/leksso-camara-raiz
+printf '%%sudo ALL=(root) NOPASSWD: /usr/local/sbin/leksso-camara-raiz on, /usr/local/sbin/leksso-camara-raiz estado
+' > /etc/sudoers.d/leksso-camara
+chmod 0440 /etc/sudoers.d/leksso-camara
+visudo -cf /etc/sudoers.d/leksso-camara >/dev/null || rm -f /etc/sudoers.d/leksso-camara
 install -d -m 0755 /usr/local/share/leksso
 install -m 0644 "$RAIZ/config/calendario/festivos.json" /usr/local/share/leksso/festivos.json
 # Apariencia base: Waves. Solo en una instalación nueva y si el usuario no eligió ya otro tema: un equipo que se actualiza conserva

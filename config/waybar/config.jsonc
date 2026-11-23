@@ -10,6 +10,8 @@
       "custom/archivos",
       "custom/seguridad",
       "custom/portapapeles",
+      "custom/camara",
+      "custom/notificaciones",
       "custom/modelos",
       "custom/asistente",
       "custom/juego",
@@ -37,6 +39,16 @@
       "interval": 30,
       "signal": 9,
       "on-click": "leksso-juego"
+    },
+    "custom/camara": {
+      "format": "",
+      "tooltip-format": "Cámara y micrófono",
+      "on-click": "leksso-dispositivos"
+    },
+    "custom/notificaciones": {
+      "format": "",
+      "tooltip-format": "Notificaciones",
+      "on-click": "leksso-notificaciones"
     },
     "custom/config": {
       "format": "",
@@ -94,6 +106,7 @@
       "custom/actualizacion",
       "custom/copias",
       "custom/ia",
+      "custom/dispositivos",
       "cpu",
       "memory",
       "pulseaudio",
@@ -168,6 +181,14 @@
       "format": "{:%H:%M}",
       "tooltip-format": "{:%A %d de %B de %Y}\nClic para ver el calendario y los festivos",
       "on-click": "leksso-calendario"
+    },
+    "custom/dispositivos": {
+      "exec": "leksso-dispositivos barra",
+      "return-type": "json",
+      "interval": 3,
+      "signal": 12,
+      "hide-empty-text": true,
+      "on-click": "leksso-dispositivos"
     },
     "custom/copias": {
       "exec": "leksso-copias barra",

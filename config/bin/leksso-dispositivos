@@ -1,0 +1,386 @@
+#!/usr/bin/env python3
+"""Cámara y micrófono de LeksSO: ver cómo están, probarlos, silenciarlos y bloquear la cámara de verdad.
+
+  leksso-dispositivos            abre la ventana (botón de la cámara del raíl; otro clic la cierra)
+  leksso-dispositivos barra      texto para la barra de abajo (JSON): solo enseña algo cuando importa
+  leksso-dispositivos estado     lo mismo que ve la ventana, en texto
+  leksso-dispositivos --captura F.png   guarda una imagen de la ventana y sale (para revisar el diseño)
+
+Cámara: se detecta con v4l2-ctl; «en uso» se mira en qué procesos tienen abierto el dispositivo. Probar abre una vista rápida
+con mpv. Bloquear quita el controlador (uvcvideo) con leksso-camara-raiz: es como la tapa de una cámara, ningún programa puede
+usarla hasta que la permitas de nuevo (bloquear no pide contraseña; permitir sí).
+Micrófono y altavoces: PipeWire (wpctl). Se cierra con la X, con Esc o al hacer clic fuera.
+"""
+import glob
+import json
+import os
+import re
+import subprocess
+import sys
+
+AQUI = os.path.dirname(os.path.abspath(__file__))
+AYUDANTE = "/usr/local/sbin/leksso-camara-raiz"
+CONF_BLOQUEO = "/etc/modprobe.d/leksso-camara-bloqueada.conf"
+# procesos del sistema de sonido y vídeo: si solo ellos tienen la cámara, algún programa la usa a través de PipeWire
+SISTEMA = ("wireplumber", "pipewire")
+ICONO_CAMARA, ICONO_MICRO_NO, ICONO_ALTAVOZ = "", "", ""
+
+
+# ---------- lógica (sin ventana ni dispositivos, para poder probarla) ----------
+def parse_camaras(texto):
+    """Salida de `v4l2-ctl --list-devices` -> [(nombre, ruta)]. De cada dispositivo se toma su primer /dev/videoN (el de imagen:
+    el siguiente suele ser de metadatos)."""
+    res = []
+    for bloque in re.split(r"\n\s*\n", texto.strip("\n")):
+        lineas = [l for l in bloque.splitlines() if l.strip()]
+        if not lineas or lineas[0][:1].isspace():
+            continue
+        nombre = re.sub(r"\s*\([^)]*\):?\s*$", "", lineas[0]).rstrip(": ").strip()
+        rutas = [l.strip() for l in lineas[1:] if re.match(r"^\s*/dev/video\d+\s*$", l)]
+        if rutas and not re.search(r"pipewire|loopback", lineas[0], re.I):
+            res.append((nombre, rutas[0]))
+    return res
+
+
+def parse_volumen(texto):
+    """Salida de `wpctl get-volume`: 'Volume: 0.45' o 'Volume: 0.45 [MUTED]' -> (porcentaje, silenciado) o None si no hay dispositivo."""
+    m = re.search(r"Volume:\s*([0-9.]+)(\s*\[MUTED\])?", texto or "")
+    if not m:
+        return None
+    return round(float(m.group(1)) * 100), bool(m.group(2))
+
+
+def descripcion_nodo(texto):
+    """Salida de `wpctl inspect`: la descripción legible del dispositivo (node.description) o ''."""
+    m = re.search(r'node\.description\s*=\s*"([^"]*)"', texto or "")
+    return m.group(1) if m else ""
+
+
+def conf_bloqueo(ruta=CONF_BLOQUEO):
+    """¿Está bloqueada la cámara? (existe el archivo que deja el bloqueo)."""
+    return os.path.exists(ruta)
+
+
+def estado_barra(camara_en_uso, camara_bloqueada, micro_silenciado):
+    """(texto, clases, aviso) para la barra: nada si todo está normal; un icono por cada cosa que merece verse."""
+    partes, clases, avisos = [], [], []
+    if camara_en_uso:
+        partes.append(f'<span foreground="#ff735a">{ICONO_CAMARA}</span>')
+        clases.append("camara-en-uso")
+        avisos.append("La cámara está en uso")
+    elif camara_bloqueada:
+        partes.append(f'<span foreground="#94a1a3">{ICONO_CAMARA}✕</span>')
+        clases.append("camara-bloqueada")
+        avisos.append("Cámara bloqueada")
+    if micro_silenciado:
+        partes.append(f'<span foreground="#fdc357">{ICONO_MICRO_NO}</span>')
+        clases.append("micro-silenciado")
+        avisos.append("Micrófono silenciado")
+    if not partes:
+        return "", [], ""
+    return " ".join(partes), clases, "\n".join(avisos) + "\nClic para abrir Cámara y micrófono"
+
+
+# ---------- lectura del equipo ----------
+def _salida(args, espera=3):
+    try:
+        r = subprocess.run(args, capture_output=True, text=True, timeout=espera)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return r.stdout if r.returncode == 0 else ""
+
+
+def camaras():
+    return parse_camaras(_salida(["v4l2-ctl", "--list-devices"]))
+
+
+def quien_la_usa(ruta):
+    """Nombres de los procesos que tienen abierto ese dispositivo (solo los que puede ver este usuario)."""
+    nombres = set()
+    propio = str(os.getpid())
+    for fd in glob.glob("/proc/[0-9]*/fd/*"):
+        pid = fd.split("/")[2]
+        if pid == propio:
+            continue
+        try:
+            if os.readlink(fd) != ruta:
+                continue
+            with open(f"/proc/{pid}/comm", encoding="utf-8") as f:
+                nombres.add(f.read().strip())
+        except OSError:
+            continue
+    return sorted(nombres)
+
+
+def driver_de(ruta):
+    """Nombre del controlador de esa cámara (uvcvideo en casi todas) o ''."""
+    try:
+        return os.path.basename(os.readlink(f"/sys/class/video4linux/{os.path.basename(ruta)}/device/driver"))
+    except OSError:
+        return ""
+
+
+def micro():
+    """(porcentaje, silenciado, descripción) del micrófono por defecto, o None si no hay."""
+    v = parse_volumen(_salida(["wpctl", "get-volume", "@DEFAULT_AUDIO_SOURCE@"]))
+    if v is None:
+        return None
+    return v[0], v[1], descripcion_nodo(_salida(["wpctl", "inspect", "@DEFAULT_AUDIO_SOURCE@"]))
+
+
+def altavoz():
+    v = parse_volumen(_salida(["wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@"]))
+    if v is None:
+        return None
+    return v[0], v[1], descripcion_nodo(_salida(["wpctl", "inspect", "@DEFAULT_AUDIO_SINK@"]))
+
+
+def foto_actual():
+    """Todo lo que enseña la ventana, de una vez."""
+    cams = camaras()
+    bloqueada = conf_bloqueo()
+    info = []
+    for nombre, ruta in cams:
+        usan = quien_la_usa(ruta)
+        info.append({"nombre": nombre, "ruta": ruta, "driver": driver_de(ruta), "usan": usan,
+                     "en_uso": bool(usan), "solo_sistema": bool(usan) and all(u.startswith(SISTEMA) for u in usan)})
+    return {"camaras": info, "bloqueada": bloqueada, "micro": micro(), "altavoz": altavoz()}
+
+
+def texto_estado(f):
+    lineas = []
+    if f["bloqueada"]:
+        lineas.append("Cámara: bloqueada (ningún programa puede usarla)")
+    elif not f["camaras"]:
+        lineas.append("Cámara: no se encuentra ninguna")
+    for c in f["camaras"]:
+        lineas.append(f"Cámara: {c['nombre']} ({c['ruta']}) · " + ("en uso por " + ", ".join(c["usan"]) if c["en_uso"] else "libre"))
+    m = f["micro"]
+    lineas.append("Micrófono: no hay ninguno" if m is None else f"Micrófono: {m[2] or 'por defecto'} · " + ("SILENCIADO" if m[1] else f"activo {m[0]}%"))
+    a = f["altavoz"]
+    lineas.append("Sonido: no hay salida" if a is None else f"Sonido: {a[2] or 'por defecto'} · " + ("silenciado" if a[1] else f"{a[0]}%"))
+    return "\n".join(lineas)
+
+
+def barra():
+    f = foto_actual()
+    en_uso = any(c["en_uso"] for c in f["camaras"])
+    m = f["micro"]
+    texto, clases, aviso = estado_barra(en_uso, f["bloqueada"], bool(m and m[1]))
+    print(json.dumps({"text": texto, "class": clases, "tooltip": aviso}, ensure_ascii=False))
+    return 0
+
+
+# ---------- acciones ----------
+def alternar_micro():
+    subprocess.run(["leksso-medios", "micro-silencio"], capture_output=True, timeout=10)
+
+
+def alternar_altavoz():
+    subprocess.run(["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"], capture_output=True, timeout=10)
+
+
+def probar_camara(ruta):
+    subprocess.Popen(["mpv", f"av://v4l2:{ruta}", "--profile=low-latency", "--untimed", "--no-terminal", "--title=Probar cámara",
+                      "--geometry=640x480"], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                     start_new_session=True)
+
+
+# ---------- ventana ----------
+def ventana(captura=None):
+    for ruta in ("/usr/local/lib/leksso-ui", os.path.join(AQUI, "..", "ui")):
+        if ruta not in sys.path:
+            sys.path.insert(0, ruta)
+    from PySide6 import QtCore, QtWidgets
+    from leksso_ui import ESTILO_BASE, alternar, estilo, pedir_permiso, pintar, sudo_cmd
+
+    if captura is None and alternar("leksso-dispositivos"):
+        return 0
+
+    def titulo(texto):
+        e = QtWidgets.QLabel(texto)
+        e.setStyleSheet(pintar("font-size: 15px; font-weight: bold; color: #00c4bf; margin-top: 6px;"))
+        return e
+
+    class Dispositivos(QtWidgets.QWidget):
+        def __init__(self):
+            super().__init__()
+            self.setWindowTitle("Cámara y micrófono")
+            estilo(self, ESTILO_BASE)
+            self.tuvo_foco = False
+            raiz = QtWidgets.QVBoxLayout(self)
+            raiz.setContentsMargins(14, 10, 14, 14)
+            raiz.setSpacing(6)
+            cab = QtWidgets.QHBoxLayout()
+            t = QtWidgets.QLabel("Cámara y micrófono")
+            t.setObjectName("titulo")
+            cab.addWidget(t)
+            cab.addStretch()
+            x = QtWidgets.QPushButton("✕")
+            x.setObjectName("cerrar")
+            x.setToolTip("Cerrar (Esc)")
+            x.clicked.connect(self.close)
+            cab.addWidget(x)
+            raiz.addLayout(cab)
+
+            raiz.addWidget(titulo("Cámara"))
+            self.t_camara = self.texto()
+            raiz.addWidget(self.t_camara)
+            fila = QtWidgets.QHBoxLayout()
+            self.b_probar = self.boton("Probar", self.probar)
+            self.b_bloquear = self.boton("Bloquear", self.bloquear_o_permitir)
+            fila.addWidget(self.b_probar)
+            fila.addWidget(self.b_bloquear)
+            raiz.addLayout(fila)
+
+            raiz.addWidget(titulo("Micrófono"))
+            self.t_micro = self.texto()
+            raiz.addWidget(self.t_micro)
+            fila = QtWidgets.QHBoxLayout()
+            self.b_micro = self.boton("Silenciar", lambda: self.accion(alternar_micro))
+            fila.addWidget(self.b_micro)
+            fila.addWidget(self.boton("Elegir otro…", lambda: subprocess.Popen(["pavucontrol-qt", "-t", "4"], start_new_session=True)))
+            raiz.addLayout(fila)
+
+            raiz.addWidget(titulo("Sonido (altavoces o auriculares)"))
+            self.t_altavoz = self.texto()
+            raiz.addWidget(self.t_altavoz)
+            fila = QtWidgets.QHBoxLayout()
+            self.b_altavoz = self.boton("Silenciar", lambda: self.accion(alternar_altavoz))
+            fila.addWidget(self.b_altavoz)
+            fila.addWidget(self.boton("Elegir otra salida…", lambda: subprocess.Popen(["pavucontrol-qt", "-t", "3"], start_new_session=True)))
+            raiz.addLayout(fila)
+
+            raiz.addStretch(1)
+            self.aviso = QtWidgets.QLabel("")
+            self.aviso.setObjectName("nota")
+            self.aviso.setWordWrap(True)
+            raiz.addWidget(self.aviso)
+            self.foto = None
+            self.refrescar()
+            self.reloj = QtCore.QTimer(self)
+            self.reloj.timeout.connect(self.refrescar)
+            self.reloj.start(2000)
+
+        def texto(self):
+            e = QtWidgets.QLabel("")
+            e.setWordWrap(True)
+            return e
+
+        def boton(self, texto, accion):
+            b = QtWidgets.QPushButton(texto)
+            b.setObjectName("accion")
+            b.setFocusPolicy(QtCore.Qt.NoFocus)
+            b.clicked.connect(lambda _=False: accion())
+            return b
+
+        def accion(self, f):
+            f()
+            self.refrescar()
+
+        def refrescar(self):
+            f = self.foto = foto_actual()
+            c = f["camaras"]
+            if f["bloqueada"]:
+                self.t_camara.setText("<b>Bloqueada.</b> Ningún programa puede usarla.")
+                self.b_bloquear.setText("Permitir la cámara")
+                self.b_bloquear.setEnabled(True)
+                self.b_probar.setEnabled(False)
+            else:
+                self.b_bloquear.setText("Bloquear la cámara")
+                if not c:
+                    self.t_camara.setText("No se encuentra ninguna cámara.")
+                    self.b_probar.setEnabled(False)
+                    self.b_bloquear.setEnabled(False)
+                else:
+                    lineas = []
+                    for cam in c:
+                        if cam["en_uso"]:
+                            quien = "algún programa" if cam["solo_sistema"] else ", ".join(cam["usan"])
+                            lineas.append(f"{cam['nombre']}: <span style='color:#ff735a'><b>en uso</b></span> ({quien})")
+                        else:
+                            lineas.append(f"{cam['nombre']}: libre")
+                    self.t_camara.setText(pintar("<br>".join(lineas)))
+                    self.b_probar.setEnabled(True)
+                    self.b_bloquear.setEnabled(all(cam["driver"] == "uvcvideo" for cam in c))
+                    if not self.b_bloquear.isEnabled():
+                        self.b_bloquear.setToolTip("Esta cámara no usa el controlador estándar: no se puede bloquear desde aquí.")
+            m = f["micro"]
+            if m is None:
+                self.t_micro.setText("No hay ningún micrófono conectado.")
+                self.b_micro.setEnabled(False)
+            else:
+                self.b_micro.setEnabled(True)
+                self.t_micro.setText(pintar(f"{m[2] or 'Micrófono por defecto'}: " + ("<span style='color:#fdc357'><b>silenciado</b></span>" if m[1] else f"activo ({m[0]} %)")))
+                self.b_micro.setText("Activar el micrófono" if m[1] else "Silenciar el micrófono")
+            a = f["altavoz"]
+            if a is None:
+                self.t_altavoz.setText("No hay ninguna salida de sonido.")
+                self.b_altavoz.setEnabled(False)
+            else:
+                self.b_altavoz.setEnabled(True)
+                self.t_altavoz.setText(pintar(f"{a[2] or 'Salida por defecto'}: " + ("silenciada" if a[1] else f"{a[0]} %")))
+                self.b_altavoz.setText("Activar el sonido" if a[1] else "Silenciar el sonido")
+
+        def probar(self):
+            c = self.foto["camaras"] if self.foto else []
+            if c:
+                probar_camara(c[0]["ruta"])
+
+        def bloquear_o_permitir(self):
+            if self.foto and self.foto["bloqueada"]:
+                if not pedir_permiso(self, "Para volver a permitir la cámara hace falta tu permiso, para que ningún programa pueda destaparla por su cuenta."):
+                    return
+                rc, _, err = sudo_cmd([AYUDANTE, "off"])
+                self.aviso.setText("" if rc == 0 else "No se pudo permitir la cámara: " + (err.strip() or "error desconocido"))
+            else:
+                rc = subprocess.run(["sudo", "-n", AYUDANTE, "on"], capture_output=True, text=True, timeout=30)
+                if rc.returncode == 0:
+                    self.aviso.setText("")
+                else:
+                    self.aviso.setText((rc.stderr.strip() or "No se pudo bloquear la cámara.").splitlines()[-1])
+            subprocess.run(["pkill", "-RTMIN+12", "waybar"], capture_output=True)      # la barra se refresca al momento
+            self.refrescar()
+
+        def keyPressEvent(self, ev):
+            if ev.key() == QtCore.Qt.Key_Escape:
+                self.close()
+            else:
+                super().keyPressEvent(ev)
+
+        def changeEvent(self, ev):
+            if ev.type() == QtCore.QEvent.ActivationChange and captura is None:
+                if self.tuvo_foco and not self.isActiveWindow():
+                    self.close()
+                elif self.isActiveWindow():
+                    self.tuvo_foco = True
+            super().changeEvent(ev)
+
+    app = QtWidgets.QApplication(sys.argv)
+    app.setDesktopFileName("leksso-dispositivos")
+    w = Dispositivos()
+    w.resize(420, 520)
+    w.show()
+    if captura:
+        app.processEvents()
+        w.grab().save(captura)
+        return 0
+    return app.exec()
+
+
+def main(argv):
+    if argv[:1] == ["barra"]:
+        return barra()
+    if argv[:1] == ["estado"]:
+        print(texto_estado(foto_actual()))
+        return 0
+    if argv[:1] == ["--captura"] and len(argv) == 2:
+        return ventana(argv[1])
+    if not argv:
+        return ventana()
+    print(__doc__)
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
