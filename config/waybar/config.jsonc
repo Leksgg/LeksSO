@@ -13,6 +13,7 @@
       "custom/camara",
       "custom/notificaciones",
       "custom/captura",
+      "custom/actualizaciones",
       "custom/asistente",
       "custom/juego",
       "custom/config"
@@ -49,6 +50,13 @@
       "format": "",
       "tooltip-format": "Captura de pantalla: elige una zona (Imprimir)",
       "on-click": "leksso-captura region"
+    },
+    "custom/actualizaciones": {
+      "exec": "leksso-actualizar riel",
+      "return-type": "json",
+      "interval": 300,
+      "signal": 13,
+      "on-click": "leksso-actualizaciones"
     },
     "custom/config": {
       "format": "",

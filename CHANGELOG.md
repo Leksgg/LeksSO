@@ -3,6 +3,10 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
+## Sin publicar
+
++ **Botón de actualizaciones en el raíl.** Siempre visible (flechas en círculo); abre Actualizaciones. Cuando hay una versión nueva se pone en ámbar, igual que el aviso de la barra de abajo, y al pasar el ratón dice cuál es.
+
 ## Beta 0.1.46 · 2026-11-23
 
 ~ **Pantalla de bloqueo rediseñada.** Ahora es una columna a la izquierda con una regla de color: la hora muy grande, la fecha, «Contraseña de (tu usuario)», el campo con el ojo y el botón «Entrar» en la misma línea, y al pie el sistema y su versión. Letra Montserrat (se añade a la base) y los colores de tu apariencia. Pasó dos rondas de crítica de diseño independiente.

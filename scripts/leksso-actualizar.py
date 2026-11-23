@@ -111,6 +111,7 @@ def comprobar(avisar=False):
         json.dump({"actual": actual, "disponible": disponible, "comprobado": int(time.time())}, f)
     # la barra solo lee esta caché: se le avisa al momento (si no, al iniciar sesión se quedaba con la caché vieja hasta el siguiente ciclo)
     subprocess.run(["pkill", "-RTMIN+11", "waybar"], capture_output=True)
+    subprocess.run(["pkill", "-RTMIN+13", "waybar"], capture_output=True)      # el botón del raíl
     if not disponible:
         print(f"Estás al día: LeksSO {bonita(actual)}.")
         return 0
@@ -138,6 +139,22 @@ def barra():
                           "tooltip": f"Versión nueva: LeksSO {bonita(c['disponible'])}\nInstalada: {bonita(c['actual'])}\nClic para ver qué cambia."}))
     else:
         print(json.dumps({"text": "", "class": "al-dia"}))
+    return 0
+
+
+def riel():
+    """El botón del raíl: siempre visible; se marca cuando hay una versión nueva."""
+    c = leer_cache()
+    icono = chr(0xF021)                 # flechas en círculo (Font Awesome)
+    hay = bool(c.get("disponible") and clave(c["disponible"]) and c.get("actual") and clave(c["actual"])
+               and clave(c["disponible"]) > clave(c["actual"]))
+    if hay:
+        ayuda = ["Versión nueva: LeksSO " + bonita(c["disponible"]), "Clic para ver qué cambia e instalarla."]
+    else:
+        ayuda = ["Actualizaciones"]
+        if c.get("actual") and clave(c["actual"]):
+            ayuda.append("Tienes LeksSO " + bonita(c["actual"]) + ".")
+    print(json.dumps({"text": icono, "class": "hay" if hay else "al-dia", "tooltip": chr(10).join(ayuda)}))
     return 0
 
 
@@ -356,6 +373,8 @@ def main(a):
             return comprobar("--avisar" in a)
         if c == "barra":
             return barra()
+        if c == "riel":
+            return riel()
         if c == "cambios":
             return cambios(a[1] if len(a) > 1 else None)
         if c == "aplicar":
