@@ -80,7 +80,7 @@ chroot "$BASE" env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-instal
   -o Dir::Cache::archives=/var/cache/leksso-descargas $TODOS
 rm -f "$SALIDA/lock"; rm -rf "$SALIDA/partial"
 
-# 3c. Si se indica la imagen de Debian, se quitan los paquetes que ella ya trae en otra versión (mezclarlas rompe GRUB: ver el script).
+# 3c. Si se indica la imagen de Debian, se sustituyen los paquetes que ella ya trae en otra versión por la de la imagen (mezclarlas rompe GRUB: ver el script).
 if [ -n "$ISO_DEBIAN" ]; then
   python3 "$(dirname "${BASH_SOURCE[0]}")/filtrar-repo-offline.py" "$SALIDA" "$ISO_DEBIAN"
 else
