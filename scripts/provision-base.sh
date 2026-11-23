@@ -290,6 +290,10 @@ install -m 0755 "$RAIZ/scripts/leksso-tema.py" /usr/local/bin/leksso-tema
 install -m 0755 "$RAIZ/config/bin/leksso-apariencia" /usr/local/bin/leksso-apariencia
 install -m 0755 "$RAIZ/config/bin/leksso-copias-ui" /usr/local/bin/leksso-copias-ui
 install -m 0755 "$RAIZ/config/bin/leksso-barra-bateria" "$RAIZ/config/bin/leksso-barra-perfil" /usr/local/bin/
+# Calendario de consulta (clic en el reloj) y sus festivos de Madrid, año a año.
+install -m 0755 "$RAIZ/config/bin/leksso-calendario" /usr/local/bin/
+install -d -m 0755 /usr/local/share/leksso
+install -m 0644 "$RAIZ/config/calendario/festivos.json" /usr/local/share/leksso/festivos.json
 # Apariencia base: Waves. Solo en una instalación nueva y si el usuario no eligió ya otro tema: un equipo que se actualiza conserva
 # el aspecto que tenía. La configuración base está pintada con Marea y `reaplicar` la repinta con el tema anotado en ~/.config/leksso/tema.
 if [ "$PRIMERA_INSTALACION" = 1 ] && [ ! -e "$HOME_USR/.config/leksso/tema" ]; then

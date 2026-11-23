@@ -15,7 +15,9 @@ from leksso_ui import ESTILO_BASE, alternar, pintar, tema_activo, tokens  # noqa
 
 NOMBRES = {"marea": ("Marea", "Petróleo oscuro con acento turquesa"), "pizarra": ("Pizarra", "Grafito cálido con acento azul"),
            "waves": ("Waves", "Azul marino con acento celeste"),
-           "alba": ("Alba", "Claro: papel cálido con acento azul")}
+           "alba": ("Alba", "Claro: papel cálido con acento azul"),
+           "grisrosa": ("Gris y rosa", "Gris suave con acento rosa"),
+           "blancorosa": ("Blanco y rosa", "Claro: blanco con acento rosa")}
 MUESTRA = ("bg", "s2", "line", "acc", "sec", "ok", "warn", "bad")
 
 

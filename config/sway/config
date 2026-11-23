@@ -53,6 +53,7 @@ for_window [app_id="^leksso-asistente$"] move container to mark panel-ia, focus
 for_window [app_id="leksso-asistentes"] floating enable
 for_window [app_id="leksso-energia"] floating enable, resize set 380 680, move position center
 for_window [app_id="leksso-modo"] floating enable, resize set 400 300, move position center
+for_window [app_id="leksso-calendario"] floating enable, resize set 380 520, move position center
 for_window [app_id="leksso-portapapeles"] floating enable, resize set 520 560, move position center
 for_window [app_id="leksso-ajustes"] floating enable, resize set 600 540, move position center
 for_window [app_id="leksso-actualizaciones"] floating enable, resize set 620 520, move position center

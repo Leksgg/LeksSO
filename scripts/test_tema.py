@@ -78,8 +78,8 @@ class PruebasTema(unittest.TestCase):
         base = {d: open(os.path.join(RAIZ, "config", o), "rb").read() for o, d in COPIAS.items()}
         self.assertEqual(base, self.contenido())
 
-    def test_hay_cuatro_temas(self):
-        self.assertEqual(set(self.tema("listar").stdout.split()), {"marea", "pizarra", "waves", "alba"})
+    def test_hay_seis_temas(self):
+        self.assertEqual(set(self.tema("listar").stdout.split()), {"marea", "pizarra", "waves", "alba", "grisrosa", "blancorosa"})
 
     def test_waves_ida_y_vuelta_identica(self):
         antes = self.contenido()
@@ -88,6 +88,23 @@ class PruebasTema(unittest.TestCase):
         self.assertIn(leksso_ui.tokens("waves")["bg"], texto)
         self.assertNotIn("021012", texto)
         self.assertEqual(self.tema("aplicar", "pizarra").returncode, 0)  # de un tema a otro sin pasar por Marea
+        self.assertEqual(self.tema("aplicar", "marea").returncode, 0)
+        self.assertEqual(antes, self.contenido())
+
+    def test_temas_rosas_se_aplican_y_se_deshacen(self):
+        """Gris y rosa (oscuro) y Blanco y rosa (claro): se pintan todos los archivos y se vuelve a Marea sin diferencias."""
+        antes = self.contenido()
+        for nombre, claro in (("grisrosa", False), ("blancorosa", True)):
+            self.assertEqual(self.tema("aplicar", nombre).returncode, 0)
+            t = leksso_ui.tokens(nombre)
+            texto = open(os.path.join(self.casa, ".config", "waybar", "style.css"), encoding="utf-8").read().lower()
+            self.assertIn(t["bg"], texto)
+            self.assertNotIn("021012", texto)                 # no queda el fondo de Marea
+            kitty = open(os.path.join(self.casa, ".config", "kitty", "kitty.conf"), encoding="utf-8").read().lower()
+            self.assertIn("background #" + t["bg"], kitty)
+            self.assertEqual(leksso_ui.es_claro(nombre), claro)
+            if claro:
+                self.assertIn("color15 #" + t["text"], kitty)
         self.assertEqual(self.tema("aplicar", "marea").returncode, 0)
         self.assertEqual(antes, self.contenido())
 

@@ -1,0 +1,31 @@
+{
+  "tema": "grisrosa",
+  "modo": "oscuro",
+  "colores": {
+    "bg": "#100c0e",
+    "s1": "#191516",
+    "s2": "#211d1f",
+    "line": "#393336",
+    "off": "#141012",
+    "alt": "#161113",
+    "base2": "#181315",
+    "mid": "#282426",
+    "dark": "#070405",
+    "text": "#edeaeb",
+    "faint": "#757072",
+    "soft": "#481d30",
+    "muted": "#a19d9f",
+    "acc": "#fb78b0",
+    "acc_hi": "#ffa5c8",
+    "acc_dim": "#9b5b74",
+    "sec": "#b6a3f0",
+    "magenta": "#c89bea",
+    "ok": "#6dd17f",
+    "warn": "#e9cd56",
+    "bad": "#ff735a",
+    "ok_soft": "#142d18",
+    "warn_soft": "#2e2605",
+    "warn_soft2": "#282105",
+    "bad_soft": "#3f1a13"
+  }
+}

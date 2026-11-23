@@ -6,7 +6,7 @@ calculan en OKLCH para que acentos y estados tengan el mismo peso visual en todo
 matices. Este script cambia, en cada archivo, los colores del tema activo por los del
 nuevo tema, y apunta cuál queda activo en config/tema/activo.
 
-Temas: marea (por defecto), pizarra, waves (oscuros) y alba (claro).
+Temas: marea (por defecto), pizarra, waves y grisrosa (oscuros), alba y blancorosa (claros).
 
 Uso:
   python3 aplicar-tema.py marea            aplica y deja los .json de tokens al día
@@ -42,6 +42,9 @@ TEMAS = {
     "waves":   {"nh": 265, "nc": .050, "ah": 240, "sh": 200, "magenta": 320},
     # claro: neutros casi blancos con un punto cálido, texto oscuro; los acentos bajan de luminosidad en vez de subir
     "alba":    {"nh": 85,  "nc": .012, "ah": 250, "sh": 195, "magenta": 320, "claro": True},
+    # rosa: neutros grises con un punto rosado y acento rosa; el secundario va hacia el lila para no confundirse con el acento
+    "grisrosa":   {"nh": 350, "nc": .008, "ah": 355, "sh": 295, "magenta": 310},
+    "blancorosa": {"nh": 355, "nc": .008, "ah": 355, "sh": 295, "magenta": 310, "claro": True},
 }
 ESTADOS = {"ok": (138, 148, 158), "warn": (80, 88, 96), "bad": (20, 26, 32)}
 

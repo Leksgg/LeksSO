@@ -166,7 +166,8 @@
     },
     "clock": {
       "format": "{:%H:%M}",
-      "tooltip-format": "{:%A %d de %B de %Y}"
+      "tooltip-format": "{:%A %d de %B de %Y}\nClic para ver el calendario y los festivos",
+      "on-click": "leksso-calendario"
     },
     "custom/copias": {
       "exec": "leksso-copias barra",

@@ -1,0 +1,47 @@
+{
+  "lugar": "Madrid",
+  "como_se_actualiza": "Cada otoño se publican los festivos del año siguiente: las fiestas de la Comunidad de Madrid en el BOCM (decreto del Consejo de Gobierno), las nacionales en el BOE (resolución de la Dirección General de Trabajo) y las dos fiestas locales de cada municipio en una resolución del BOCM de diciembre. Añadir el año nuevo a este archivo; si un año no está, el calendario lo avisa en vez de enseñar un mes sin festivos.",
+  "anios": {
+    "2026": {
+      "completo": true,
+      "revisado": "2026-11-23",
+      "fuente": "BOE de 28-10-2025 (Resolución de 17 de octubre de 2025, BOE-A-2025-21667), anexo, columna de la Comunidad de Madrid. Las dos locales de Madrid capital: BOCM de 12-12-2025 (BOCM-20251212-34), según cuestioneslaborales.es; el texto del BOCM no se ha leído.",
+      "festivos": [
+        {"fecha": "2026-01-01", "nombre": "Año Nuevo", "ambito": "nacional"},
+        {"fecha": "2026-01-06", "nombre": "Epifanía del Señor", "ambito": "nacional"},
+        {"fecha": "2026-04-02", "nombre": "Jueves Santo", "ambito": "nacional"},
+        {"fecha": "2026-04-03", "nombre": "Viernes Santo", "ambito": "nacional"},
+        {"fecha": "2026-05-01", "nombre": "Fiesta del Trabajo", "ambito": "nacional"},
+        {"fecha": "2026-05-02", "nombre": "Fiesta de la Comunidad de Madrid", "ambito": "comunidad"},
+        {"fecha": "2026-05-15", "nombre": "San Isidro", "ambito": "local"},
+        {"fecha": "2026-08-15", "nombre": "Asunción de la Virgen", "ambito": "nacional"},
+        {"fecha": "2026-10-12", "nombre": "Fiesta Nacional de España", "ambito": "nacional"},
+        {"fecha": "2026-11-02", "nombre": "Día siguiente a Todos los Santos", "ambito": "nacional"},
+        {"fecha": "2026-11-09", "nombre": "La Almudena", "ambito": "local"},
+        {"fecha": "2026-12-07", "nombre": "Lunes siguiente al Día de la Constitución", "ambito": "nacional"},
+        {"fecha": "2026-12-08", "nombre": "Inmaculada Concepción", "ambito": "nacional"},
+        {"fecha": "2026-12-25", "nombre": "Natividad del Señor", "ambito": "nacional"}
+      ]
+    },
+    "2027": {
+      "completo": false,
+      "revisado": "2026-11-23",
+      "nota": "Faltan las dos fiestas locales de Madrid capital, que aún no se han publicado.",
+      "fuente": "Las 12 fiestas de la Comunidad de Madrid coinciden en dos webs de divulgación (Time Out Madrid, cuestioneslaborales.es). El decreto del BOCM no se ha leído.",
+      "festivos": [
+        {"fecha": "2027-01-01", "nombre": "Año Nuevo", "ambito": "nacional"},
+        {"fecha": "2027-01-06", "nombre": "Epifanía del Señor", "ambito": "nacional"},
+        {"fecha": "2027-03-19", "nombre": "San José", "ambito": "comunidad"},
+        {"fecha": "2027-03-25", "nombre": "Jueves Santo", "ambito": "nacional"},
+        {"fecha": "2027-03-26", "nombre": "Viernes Santo", "ambito": "nacional"},
+        {"fecha": "2027-05-01", "nombre": "Fiesta del Trabajo", "ambito": "nacional"},
+        {"fecha": "2027-08-16", "nombre": "Lunes siguiente a la Asunción de la Virgen", "ambito": "nacional"},
+        {"fecha": "2027-10-12", "nombre": "Fiesta Nacional de España", "ambito": "nacional"},
+        {"fecha": "2027-11-01", "nombre": "Todos los Santos", "ambito": "nacional"},
+        {"fecha": "2027-12-06", "nombre": "Día de la Constitución Española", "ambito": "nacional"},
+        {"fecha": "2027-12-08", "nombre": "Inmaculada Concepción", "ambito": "nacional"},
+        {"fecha": "2027-12-25", "nombre": "Natividad del Señor", "ambito": "nacional"}
+      ]
+    }
+  }
+}

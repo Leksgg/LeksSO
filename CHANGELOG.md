@@ -5,6 +5,10 @@ Lo más reciente, arriba.
 
 ## Sin publicar
 
++ **Calendario en el reloj, con los festivos de Madrid.** Un clic en la hora de la barra abre un calendario de consulta (no guarda nada): el mes con el día de hoy marcado, los festivos en ámbar y debajo la lista del mes con su ámbito (nacional, Comunidad de Madrid o Madrid capital). Cambia de mes con los botones o con las flechas del teclado, «Hoy» (o Inicio) vuelve al mes actual, y se cierra con la X, con Esc o al hacer clic fuera. Los festivos están cargados para **2026** (contrastados con el BOE) y **2027** (las 12 fiestas de la Comunidad; las dos locales de Madrid capital aún no se han publicado y la ventana lo avisa). Si se abre un año sin datos, lo dice en vez de enseñar un mes sin festivos. Cada otoño hay que añadir el año siguiente a `festivos.json`.
+
++ **Dos apariencias nuevas: «Gris y rosa» y «Blanco y rosa».** La primera es oscura (gris suave con un punto rosado y acento rosa); la segunda, clara (blanco con acento rosa). Se eligen en Ajustes, Apariencia, como las demás, y cambian todo el escritorio.
+
 ~ **La apariencia base de una instalación nueva es Waves.** Hasta ahora todo equipo recién instalado salía en Marea (verde azulado) y había que cambiarlo en Ajustes, Apariencia. Ahora, en la primera instalación de un usuario y solo si no ha elegido ya otro tema, se anota Waves como su tema y se repinta todo el escritorio (barra, ventanas, iconos, bloqueo). Los equipos que ya estaban instalados **conservan su aspecto** al actualizarse, y Marea, Pizarra y Alba siguen disponibles en Apariencia.
 
 ## Beta 0.1.41 · 2026-11-23
