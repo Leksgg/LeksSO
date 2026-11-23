@@ -40,7 +40,7 @@ install -d /etc/apt/apt.conf.d
 install -m 0644 "$RAIZ/config/apt/99leksso-auditoria" /etc/apt/apt.conf.d/99leksso-auditoria
 
 # Paquetes por capa. Todos existen en Debian 13 (trixie); winetricks necesita la sección contrib.
-ESCRITORIO=(labwc sway swaybg waybar kitty fuzzel grim pcmanfm-qt qt6-wayland qt6-svg-plugins qt6ct xwayland fonts-font-awesome seatd xdg-desktop-portal-wlr micro imv zathura zathura-pdf-poppler mpv vlc xarchiver udisks2 udiskie gvfs gvfs-backends polkitd ntfs-3g exfatprogs usbutils v4l-utils bluez pavucontrol-qt swaylock gtklock wl-clipboard mako-notifier libnotify-bin swayidle brightnessctl slurp cliphist wdisplays blueman cups avahi-daemon libnss-mdns system-config-printer fonts-noto-color-emoji fonts-liberation fonts-montserrat ffmpegthumbnailer power-profiles-daemon playerctl wlr-randr network-manager streamdeck-ui python3-pyside6.qtwidgets python3-pyside6.qtgui python3-pyside6.qtcore python3-pyside6.qtsvg)
+ESCRITORIO=(labwc sway swaybg waybar kitty fuzzel grim pcmanfm-qt qt6-wayland qt6-svg-plugins qt6ct xwayland fonts-font-awesome seatd xdg-desktop-portal-wlr micro imv zathura zathura-pdf-poppler mpv vlc xarchiver udisks2 udiskie gvfs gvfs-backends polkitd ntfs-3g exfatprogs usbutils v4l-utils bluez pavucontrol-qt swaylock gtklock wayvnc tigervnc-viewer wl-clipboard mako-notifier libnotify-bin swayidle brightnessctl slurp cliphist wdisplays blueman cups avahi-daemon libnss-mdns system-config-printer fonts-noto-color-emoji fonts-liberation fonts-montserrat ffmpegthumbnailer power-profiles-daemon playerctl wlr-randr network-manager streamdeck-ui python3-pyside6.qtwidgets python3-pyside6.qtgui python3-pyside6.qtcore python3-pyside6.qtsvg)
 AUDIO=(pipewire pipewire-pulse wireplumber alsa-ucm-conf alsa-utils libspa-0.2-bluetooth)   # ucm: micrófono y altavoz del portátil; bluetooth: auriculares
 AISLAMIENTO=(bubblewrap firejail python3-seccomp passt)
 HERRAMIENTAS=(git curl btop lm-sensors python3 bc pciutils mokutil fwupd plocate restic efibootmgr)   # plocate: búsqueda de archivos; restic: copias de seguridad
@@ -276,6 +276,9 @@ install -m 0755 "$RAIZ/scripts/asociar-archivos.py" /usr/local/bin/leksso-asocia
 install -m 0755 "$RAIZ/scripts/leksso-apps.py" /usr/local/bin/leksso-apps
 # Solicitudes de conexión por SSH: pedir (cliente), recibir (lo arranca systemd, solo con el acceso remoto en modo local) y la ventana.
 install -m 0755 "$RAIZ/scripts/leksso-solicitud.py" /usr/local/bin/leksso-solicitud
+# Ver la pantalla de otro equipo (con permiso cada vez) y la ventana «Acceso remoto» del raíl.
+install -m 0755 "$RAIZ/scripts/leksso-pantalla.py" /usr/local/bin/leksso-pantalla
+install -m 0755 "$RAIZ/config/bin/leksso-remoto" /usr/local/bin/leksso-remoto
 install -m 0755 "$RAIZ/scripts/leksso-ts3-instalar.sh" /usr/local/bin/leksso-ts3-instalar
 # Navegador por defecto: Brave. Si el repositorio local de la imagen lo lleva, sale de ahí (instalación sin red); si no, de su
 # repositorio firmado, con red. Un fallo no detiene la instalación: se instala después con `leksso-apps instalar brave`.

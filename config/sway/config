@@ -45,6 +45,8 @@ exec leksso-disco primer-arranque
 exec leksso-hora
 # Solicitudes de conexión por SSH: espera y abre la ventana de permitir (solo llegan con el acceso remoto en modo local)
 exec leksso-solicitud vigilar
+# Pantalla compartida: ventana de permiso, botón PARAR y corte por tiempo o al bloquear
+exec leksso-pantalla vigilar
 exec udiskie --no-tray --no-notify --automount
 
 # El menú de aplicaciones flota en el centro de la pantalla
@@ -58,6 +60,9 @@ for_window [app_id="leksso-modo"] floating enable, resize set 400 300, move posi
 for_window [app_id="leksso-calendario"] floating enable, resize set 380 520, move position center
 for_window [app_id="leksso-dispositivos"] floating enable, resize set 420 520, move position center
 for_window [app_id="leksso-solicitud"] floating enable, resize set 480 330, move position center, sticky enable
+for_window [app_id="leksso-remoto"] floating enable, resize set 520 640, move position center
+for_window [app_id="leksso-pantalla"] floating enable, sticky enable, move position center, focus
+for_window [app_id="leksso-pantalla-parar"] floating enable, sticky enable, resize set 280 170, move position 78 ppt 3 ppt
 for_window [app_id="leksso-redes"] floating enable, resize set 460 560, move position center
 for_window [app_id="leksso-notificaciones"] floating enable, resize set 460 520, move position center
 for_window [app_id="leksso-portapapeles"] floating enable, resize set 520 560, move position center
@@ -108,6 +113,8 @@ bindsym $mod+Print exec leksso-captura ventana
 bindsym $mod+v exec leksso-portapapeles
 bindsym $mod+i exec leksso-ajustes
 bindsym $mod+l exec leksso-bloquear
+# Dejar de compartir la pantalla al instante
+bindsym $mod+Escape exec leksso-pantalla cortar
 
 # Ajustes locales de este equipo (por ejemplo, la resolución en una máquina virtual).
 include ~/.config/sway/local.conf

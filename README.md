@@ -7,7 +7,7 @@ Está en uso diario en equipos reales. Las versiones normales son solo un númer
 ## Qué te encuentras al encender
 
 - **Un escritorio en tres zonas.** A la izquierda, una barra de botones (el raíl). En el centro, el explorador de archivos y tus programas, en pestañas. A la derecha, el panel de la IA. Los tamaños se guardan solos.
-- **El raíl.** Aplicaciones, archivos, seguridad, portapapeles, cámara y micrófono, notificaciones, captura de pantalla, actualizaciones, asistentes de IA, modo juego y ajustes. Abajo: minimizar y apagar.
+- **El raíl.** Aplicaciones, archivos, seguridad, portapapeles, cámara y micrófono, notificaciones, acceso remoto, captura de pantalla, actualizaciones, asistentes de IA, modo juego y ajustes. Abajo: minimizar y apagar.
 - **La barra de abajo.** Programas abiertos, uso del procesador y la memoria, volumen, red, batería con su modo de energía, y la hora. Un clic en la hora abre un calendario con los festivos; un clic en la red, una ventana para elegir wifi.
 - **Seis apariencias.** Waves (la de serie), Marea, Pizarra, Alba, Gris y rosa y Blanco y rosa. Cambian todo el escritorio a la vez, también la pantalla de bloqueo.
 - **Pantalla de bloqueo** con la hora en grande, de quién es la sesión y un ojo para ver la contraseña mientras la escribes.
@@ -28,6 +28,7 @@ Está en uso diario en equipos reales. Las versiones normales son solo un númer
 - **Cámara y micrófono.** Un panel para silenciar el micrófono y **bloquear la cámara de verdad** (se descarga su controlador: ningún programa puede usarla). Bloquear no pide contraseña; volver a permitirla, sí.
 - **Actualizaciones firmadas.** Solo se instalan versiones firmadas con la clave de LeksSO, cuando tú pulsas «Actualizar». Se puede volver a la anterior.
 - **Acceso remoto apagado de serie.** Al encenderlo en «solo red local», otro equipo de tu red puede **pedir entrar** (`leksso-solicitud pedir DIRECCIÓN`): en tu pantalla sale una ventana con un código de dos palabras que debe coincidir en los dos equipos, y solo entra si pulsas «Permitir».
+- **Ayuda a distancia con permiso.** Quien tiene acceso puede pedir ver tu pantalla (`leksso-pantalla pedir`): sale una ventana para permitirlo cada vez, un aviso rojo mientras dura y un botón PARAR. El botón «Acceso remoto» del raíl enseña quién puede entrar y deja quitarlo.
 - **Disco cifrado** opcional, con clave al arrancar o desbloqueo con el TPM del equipo. Cortafuegos activo y arranque seguro (Secure Boot) compatible.
 
 ## Instalar

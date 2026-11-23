@@ -1,0 +1,282 @@
+#!/usr/bin/env python3
+"""Acceso remoto de LeksSO: quién puede entrar en este equipo, y cómo ayudar a otro.
+
+  leksso-remoto                    abre la ventana (botón del raíl; otro clic la cierra)
+  leksso-remoto --captura F.png    guarda una imagen de la ventana y sale (para revisar el diseño)
+
+Tres partes:
+  - Este equipo: si el acceso remoto (SSH) está apagado o encendido para tu red, con botones para cambiarlo.
+  - Quién puede entrar: los equipos que tienen permiso (su clave está autorizada), con «Quitar acceso».
+  - Ayudar a otro equipo: pedirle acceso (sale una ventana en su pantalla con un código) y ver su pantalla (con su
+    permiso cada vez).
+Se cierra con la X o con Esc.
+"""
+import os
+import re
+import subprocess
+import sys
+
+AQUI = os.path.dirname(os.path.abspath(__file__))
+TIPOS = ("ssh-ed25519", "ssh-rsa", "ecdsa-sha2-nistp256", "ecdsa-sha2-nistp384", "ecdsa-sha2-nistp521",
+         "sk-ssh-ed25519@openssh.com", "sk-ecdsa-sha2-nistp256@openssh.com")
+
+
+# ---------- lógica (sin ventana, para poder probarla) ----------
+def parse_autorizadas(texto):
+    """~/.ssh/authorized_keys -> [{'linea', 'nombre', 'detalle', 'solo_local'}], una por clave, en su orden."""
+    res = []
+    for linea in (texto or "").splitlines():
+        l = linea.strip()
+        if not l or l.startswith("#"):
+            continue
+        p = l.split()
+        i = next((k for k, x in enumerate(p) if x in TIPOS), None)
+        if i is None or i + 1 >= len(p):
+            continue
+        comentario = " ".join(p[i + 2:])
+        m = re.fullmatch(r"solicitud:([A-Za-z0-9._-]+):(\d{4}-\d{2}-\d{2})", comentario)
+        if m:
+            nombre, detalle = m.group(1), f"permitido en pantalla el {m.group(2)}"
+        else:
+            nombre, detalle = (comentario or "Equipo sin nombre"), "añadido a mano"
+        res.append({"linea": linea, "nombre": nombre[:60], "detalle": detalle,
+                    "solo_local": i > 0 and "from=" in " ".join(p[:i])})
+    return res
+
+
+def texto_de_lista(a):
+    return f"{a['nombre']}   ·   {a['detalle']}" + ("   ·   solo desde tu red" if a["solo_local"] else "   ·   desde cualquier sitio")
+
+
+def quitar(texto, linea):
+    """El archivo sin esa línea (una sola vez, la primera que coincida). El resto queda tal cual."""
+    lineas, hecho = [], False
+    for l in (texto or "").splitlines():
+        if not hecho and l == linea:
+            hecho = True
+            continue
+        lineas.append(l)
+    return ("\n".join(lineas) + "\n") if lineas else ""
+
+
+def frase_estado(estado, cuantos):
+    """Lo que se lee arriba: qué pasa ahora, en una frase."""
+    if estado == "apagado":
+        return "Apagado. Nadie puede entrar en este equipo desde fuera."
+    donde = "desde tu red" if estado == "local" else "desde tu red y desde internet"
+    if cuantos == 0:
+        return f"Encendido {donde}. Todavía no tiene permiso ningún equipo."
+    return f"Encendido {donde}. " + ("Tiene permiso 1 equipo." if cuantos == 1 else f"Tienen permiso {cuantos} equipos.")
+
+
+def destino_valido(texto):
+    """usuario@dirección o solo dirección, sin espacios ni nada raro. Nunca empieza por guion: ssh lo leería como una opción."""
+    return bool(re.fullmatch(r"([A-Za-z0-9_][A-Za-z0-9._-]*@)?[A-Za-z0-9][A-Za-z0-9.:_-]*", (texto or "").strip()))
+
+
+def solo_direccion(destino):
+    return destino.strip().split("@")[-1]
+
+
+def ruta_autorizadas():
+    return os.path.join(os.path.expanduser("~"), ".ssh", "authorized_keys")
+
+
+def leer_autorizadas():
+    try:
+        with open(ruta_autorizadas(), encoding="utf-8") as f:
+            return f.read()
+    except OSError:
+        return ""
+
+
+def guardar_autorizadas(texto):
+    r = ruta_autorizadas()
+    os.makedirs(os.path.dirname(r), mode=0o700, exist_ok=True)
+    with open(r + ".nuevo", "w", encoding="utf-8", opener=lambda p, f: os.open(p, f, 0o600)) as f:
+        f.write(texto)
+    os.replace(r + ".nuevo", r)
+
+
+def estado_ssh():
+    try:
+        r = subprocess.run(["leksso-acceso-remoto", "estado"], capture_output=True, text=True, timeout=10)
+        return r.stdout.strip() if r.stdout.strip() in ("local", "publico") else "apagado"
+    except (OSError, subprocess.SubprocessError):
+        return "apagado"
+
+
+# ---------- ventana ----------
+def ventana(captura=None):
+    for ruta in ("/usr/local/lib/leksso-ui", os.path.join(AQUI, "..", "ui")):
+        if ruta not in sys.path:
+            sys.path.insert(0, ruta)
+    from PySide6 import QtCore, QtWidgets
+    from leksso_ui import ESTILO_BASE, alternar, estilo
+
+    if captura is None and alternar("leksso-remoto"):
+        return 0
+
+    class Remoto(QtWidgets.QWidget):
+        def __init__(self):
+            super().__init__()
+            self.setWindowTitle("Acceso remoto")
+            estilo(self, ESTILO_BASE)
+            raiz = QtWidgets.QVBoxLayout(self)
+            raiz.setContentsMargins(14, 10, 14, 14)
+            raiz.setSpacing(8)
+            cab = QtWidgets.QHBoxLayout()
+            t = QtWidgets.QLabel("Acceso remoto")
+            t.setObjectName("titulo")
+            cab.addWidget(t)
+            cab.addStretch()
+            x = QtWidgets.QPushButton("✕")
+            x.setObjectName("cerrar")
+            x.setToolTip("Cerrar (Esc)")
+            x.clicked.connect(self.close)
+            cab.addWidget(x)
+            raiz.addLayout(cab)
+
+            raiz.addWidget(self.titulo("Este equipo"))
+            self.estado = QtWidgets.QLabel("")
+            self.estado.setWordWrap(True)
+            raiz.addWidget(self.estado)
+            fila = QtWidgets.QHBoxLayout()
+            self.b_on = self.boton("Encender para mi red", lambda: self.terminal("Acceso remoto", "sudo leksso-acceso-remoto on local"))
+            self.b_off = self.boton("Apagar", lambda: self.terminal("Acceso remoto", "sudo leksso-acceso-remoto off"))
+            fila.addWidget(self.b_on)
+            fila.addWidget(self.b_off)
+            raiz.addLayout(fila)
+
+            raiz.addWidget(self.titulo("Quién puede entrar"))
+            self.lista = QtWidgets.QListWidget()
+            self.lista.setWordWrap(True)
+            self.lista.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+            self.lista.currentItemChanged.connect(lambda *_: self.botones())
+            raiz.addWidget(self.lista, 1)
+            self.b_quitar = self.boton("Quitar acceso al equipo elegido", self.quitar)
+            raiz.addWidget(self.b_quitar)
+            nota = QtWidgets.QLabel("Quien está en esta lista puede entrar en tu cuenta. Para ver tu pantalla te pide permiso "
+                                    "cada vez y sale un aviso rojo en la barra; eso no protege frente a quien ya tiene acceso "
+                                    "total a tu cuenta. Si no reconoces un equipo, quítalo.")
+            nota.setObjectName("nota")
+            nota.setWordWrap(True)
+            raiz.addWidget(nota)
+
+            raiz.addWidget(self.titulo("Ayudar a otro equipo"))
+            self.destino = QtWidgets.QLineEdit()
+            self.destino.setPlaceholderText("usuario@dirección   (por ejemplo ana@192.168.1.40)")
+            self.destino.textChanged.connect(lambda *_: self.botones())
+            raiz.addWidget(self.destino)
+            fila2 = QtWidgets.QHBoxLayout()
+            self.b_pedir = self.boton("Pedir acceso", self.pedir_acceso)
+            self.b_ver = self.boton("Ver su pantalla", self.ver_pantalla)
+            fila2.addWidget(self.b_pedir)
+            fila2.addWidget(self.b_ver)
+            raiz.addLayout(fila2)
+            nota2 = QtWidgets.QLabel("«Pedir acceso» se hace una vez: en su pantalla sale un código que debe coincidir con el tuyo. "
+                                     "«Ver su pantalla» pide su permiso cada vez.")
+            nota2.setObjectName("nota")
+            nota2.setWordWrap(True)
+            raiz.addWidget(nota2)
+            self.refrescar()
+            self.reloj = QtCore.QTimer(self)
+            self.reloj.timeout.connect(self.refrescar)
+            self.reloj.start(5000)
+
+        def titulo(self, texto):
+            t = QtWidgets.QLabel(texto)
+            t.setStyleSheet("font-weight: bold; margin-top: 6px;")
+            return t
+
+        def boton(self, texto, accion):
+            b = QtWidgets.QPushButton(texto)
+            b.setObjectName("accion")
+            b.setFocusPolicy(QtCore.Qt.NoFocus)
+            b.clicked.connect(lambda _=False: accion())
+            return b
+
+        def elegida(self):
+            it = self.lista.currentItem()
+            return it.data(QtCore.Qt.UserRole) if it else None
+
+        def botones(self):
+            self.b_quitar.setEnabled(bool(self.elegida()))
+            ok = destino_valido(self.destino.text())
+            self.b_pedir.setEnabled(ok)
+            self.b_ver.setEnabled(ok and "@" in self.destino.text())
+
+        def refrescar(self):
+            e = estado_ssh()
+            claves = parse_autorizadas(leer_autorizadas())
+            self.estado.setText(frase_estado(e, len(claves)))
+            self.b_on.setEnabled(e != "local")
+            self.b_off.setEnabled(e != "apagado")
+            antes = (self.elegida() or {}).get("linea")
+            self.lista.clear()
+            if not claves:
+                self.lista.addItem("Ningún equipo tiene permiso para entrar.")
+            for a in claves:
+                it = QtWidgets.QListWidgetItem(texto_de_lista(a))
+                it.setData(QtCore.Qt.UserRole, a)
+                self.lista.addItem(it)
+                if a["linea"] == antes:
+                    self.lista.setCurrentItem(it)
+            self.botones()
+
+        def quitar(self):
+            a = self.elegida()
+            if not a:
+                return
+            r = QtWidgets.QMessageBox.question(self, "Quitar acceso",
+                                               f"¿Quitar el acceso a «{a['nombre']}»? Dejará de poder entrar en este equipo. "
+                                               "Para volver a entrar tendrá que pedirlo de nuevo.",
+                                               QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No)
+            if r == QtWidgets.QMessageBox.Yes:
+                guardar_autorizadas(quitar(leer_autorizadas(), a["linea"]))
+                self.refrescar()
+
+        def terminal(self, titulo, orden):
+            subprocess.Popen(["leksso-term", "-T", titulo, "-e", "sh", "-c",
+                              orden + '; printf "\\n\\nPulsa Intro para cerrar."; read -r _'],
+                             start_new_session=True, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+        def pedir_acceso(self):
+            d = self.destino.text().strip()
+            if destino_valido(d):
+                self.terminal("Pedir acceso", "leksso-solicitud pedir " + solo_direccion(d))
+
+        def ver_pantalla(self):
+            d = self.destino.text().strip()
+            if destino_valido(d) and "@" in d:
+                self.terminal("Ver su pantalla", "leksso-pantalla pedir " + d)
+
+        def keyPressEvent(self, ev):
+            if ev.key() == QtCore.Qt.Key_Escape:
+                self.close()
+            else:
+                super().keyPressEvent(ev)
+
+    app = QtWidgets.QApplication(sys.argv)
+    app.setDesktopFileName("leksso-remoto")
+    w = Remoto()
+    w.resize(520, 640)
+    w.show()
+    if captura:
+        app.processEvents()
+        w.grab().save(captura)
+        return 0
+    return app.exec()
+
+
+def main(argv):
+    if argv[:1] == ["--captura"] and len(argv) == 2:
+        return ventana(argv[1])
+    if not argv:
+        return ventana()
+    print(__doc__)
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

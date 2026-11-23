@@ -12,6 +12,7 @@
       "custom/portapapeles",
       "custom/camara",
       "custom/notificaciones",
+      "custom/remoto",
       "custom/captura",
       "custom/actualizaciones",
       "custom/asistente",
@@ -57,6 +58,11 @@
       "interval": 300,
       "signal": 13,
       "on-click": "leksso-actualizaciones"
+    },
+    "custom/remoto": {
+      "format": "\uf108",
+      "tooltip-format": "Acceso remoto: quién puede entrar y ayudar a otro equipo",
+      "on-click": "leksso-remoto"
     },
     "custom/config": {
       "format": "",
@@ -108,6 +114,7 @@
       "custom/actualizacion",
       "custom/copias",
       "custom/ia",
+      "custom/pantalla",
       "custom/dispositivos",
       "cpu",
       "memory",
@@ -183,6 +190,14 @@
       "format": "{:%H:%M}",
       "tooltip-format": "{:%A %d de %B de %Y}\nClic para ver el calendario y los festivos",
       "on-click": "leksso-calendario"
+    },
+    "custom/pantalla": {
+      "exec": "leksso-pantalla barra",
+      "return-type": "json",
+      "interval": 5,
+      "signal": 14,
+      "hide-empty-text": true,
+      "on-click": "leksso-pantalla cortar"
     },
     "custom/dispositivos": {
       "exec": "leksso-dispositivos barra",

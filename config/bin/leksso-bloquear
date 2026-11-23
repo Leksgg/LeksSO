@@ -285,6 +285,10 @@ def orden_gtklock(ruta_diseno, ruta_estilo, foco=None):
 def bloquear():
     if ya_bloqueado():
         return 0
+    try:                                # con la pantalla bloqueada no se comparte: se corta antes de bloquear
+        subprocess.run(["leksso-pantalla", "cortar", "--silencio"], capture_output=True, timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        pass
     if shutil.which("gtklock"):
         try:
             carpeta = os.path.join(os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}", "leksso-bloqueo")

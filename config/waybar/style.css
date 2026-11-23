@@ -66,7 +66,7 @@ window#waybar.raiz {
   border-right: 1px solid #25393c;
   border-top: none;
 }
-#custom-juego, #custom-seguridad, #custom-portapapeles, #custom-camara, #custom-notificaciones, #custom-captura, #custom-actualizaciones, #custom-apps, #custom-asistente, #custom-archivos, #custom-config, #custom-vista, #custom-flotantes, #custom-energia {
+#custom-juego, #custom-seguridad, #custom-portapapeles, #custom-camara, #custom-notificaciones, #custom-remoto, #custom-captura, #custom-actualizaciones, #custom-apps, #custom-asistente, #custom-archivos, #custom-config, #custom-vista, #custom-flotantes, #custom-energia {
   font-family: "FontAwesome", "DejaVu Sans";
   font-size: 20px;
   padding: 14px 0;
@@ -74,7 +74,7 @@ window#waybar.raiz {
   color: #94a1a3;
   background: transparent;
 }
-#custom-juego:hover, #custom-seguridad:hover, #custom-portapapeles:hover, #custom-camara:hover, #custom-notificaciones:hover, #custom-captura:hover, #custom-actualizaciones:hover, #custom-apps:hover, #custom-asistente:hover, #custom-archivos:hover, #custom-config:hover, #custom-vista:hover, #custom-flotantes:hover {
+#custom-juego:hover, #custom-seguridad:hover, #custom-portapapeles:hover, #custom-camara:hover, #custom-notificaciones:hover, #custom-remoto:hover, #custom-captura:hover, #custom-actualizaciones:hover, #custom-apps:hover, #custom-asistente:hover, #custom-archivos:hover, #custom-config:hover, #custom-vista:hover, #custom-flotantes:hover {
   color: #00c4bf;
   background: #003635;
 }
@@ -98,6 +98,7 @@ window#waybar.raiz {
 #custom-actualizacion:hover { background: #332305; }
 #custom-copias { padding: 0 12px; color: #fdc357; font-weight: bold; }
 #custom-copias:hover { background: #332305; }
+#custom-pantalla { padding: 0 12px; font-weight: bold; background: #3f1a13; }
 #custom-actualizaciones.hay { color: #fdc357; background: #332305; box-shadow: inset 2px 0 #fdc357; }
 #custom-seguridad.novedad { color: #fdc357; background: #332305; box-shadow: inset 2px 0 #fdc357; }
 

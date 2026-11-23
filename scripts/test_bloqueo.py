@@ -56,7 +56,8 @@ class Respaldo(unittest.TestCase):
         with mock.patch.object(blo, "ya_bloqueado", lambda: False), mock.patch("shutil.which", lambda _p: None), \
                 mock.patch("subprocess.run", run):
             self.assertEqual(blo.bloquear(), 0)
-        self.assertEqual(llamadas, [["swaylock", "-f"]])
+        self.assertEqual([o for o in llamadas if o[0] != "leksso-pantalla"], [["swaylock", "-f"]])
+        self.assertEqual(llamadas[0][:2], ["leksso-pantalla", "cortar"])      # antes de bloquear se deja de compartir
 
     def test_si_gtklock_falla_usa_el_bloqueo_de_antes(self):
         llamadas = []
