@@ -5,7 +5,7 @@
 # de ese sistema base y descarga solo esos paquetes (los de Debian, con las firmas de Debian comprobadas por apt).
 # Deja una carpeta con los .deb y un índice (Packages.gz) que el instalador usa como fuente de apt local.
 #
-# Uso (en un Debian 13 con internet, como root): construir-repo-offline.sh SALIDA [RAIZ_REPO_LEKSSO]
+# Uso (en un Debian 13 con internet, como root): construir-repo-offline.sh SALIDA [RAIZ_REPO_LEKSSO] [IMAGEN_DEBIAN.iso]
 #   SALIDA            carpeta donde quedará el repositorio (por ejemplo /var/tmp/leksso-offline)
 #   RAIZ_REPO_LEKSSO   copia del repositorio de LeksSO de la que leer las listas de paquetes (por defecto, la de este script)
 set -euo pipefail
@@ -13,6 +13,7 @@ set -euo pipefail
 [ "$(id -u)" -eq 0 ] || { echo "Ejecuta como root." >&2; exit 1; }
 SALIDA="${1:?Indica la carpeta de salida}"
 RAIZ="${2:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+ISO_DEBIAN="${3:-}"   # imagen «netinst» de Debian con la que se usará este repositorio (para no mezclar versiones, ver abajo)
 MIRROR="${LEKSSO_MIRROR:-http://deb.debian.org/debian}"
 # Carpeta de trabajo nueva y privada (no una ruta predecible que otra cuenta pueda preparar de antemano).
 BASE="$(mktemp -d /var/tmp/leksso-base.XXXXXXXX)"
@@ -78,6 +79,13 @@ TODOS="$TODOS brave-browser"
 chroot "$BASE" env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --download-only \
   -o Dir::Cache::archives=/var/cache/leksso-descargas $TODOS
 rm -f "$SALIDA/lock"; rm -rf "$SALIDA/partial"
+
+# 3c. Si se indica la imagen de Debian, se quitan los paquetes que ella ya trae en otra versión (mezclarlas rompe GRUB: ver el script).
+if [ -n "$ISO_DEBIAN" ]; then
+  python3 "$(dirname "${BASH_SOURCE[0]}")/filtrar-repo-offline.py" "$SALIDA" "$ISO_DEBIAN"
+else
+  echo "AVISO: sin la imagen de Debian como tercer argumento no se filtran versiones repetidas; pasa la ISO para evitar fallos al instalar GRUB." >&2
+fi
 
 # 4. Índice del repositorio local.
 ( cd "$SALIDA" && dpkg-scanpackages --multiversion . /dev/null 2>/dev/null | gzip -9 > Packages.gz )
