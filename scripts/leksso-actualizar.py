@@ -135,12 +135,22 @@ def comprobar(avisar=False):
     return 0
 
 
-def barra():
+def pendiente():
+    """(versión nueva o None, versión instalada). La instalada se lee AHORA, no de la caché: tras actualizar, la caché
+    aún guarda la versión de antes y el aviso se quedaba puesto aunque ya estuvieras por delante."""
     c = leer_cache()
-    if c.get("disponible") and clave(c["disponible"]) and c.get("actual") and clave(c["actual"]) \
-            and clave(c["disponible"]) > clave(c["actual"]):
-        print(json.dumps({"text": f"↑ {bonita(c['disponible'])}", "class": "hay",
-                          "tooltip": f"Versión nueva: LeksSO {bonita(c['disponible'])}\nInstalada: {bonita(c['actual'])}\nClic para ver qué cambia."}))
+    actual = version_actual() or c.get("actual")
+    nueva = c.get("disponible")
+    if nueva and clave(nueva) and actual and clave(actual) and clave(nueva) > clave(actual):
+        return nueva, actual
+    return None, actual
+
+
+def barra():
+    nueva, actual = pendiente()
+    if nueva:
+        print(json.dumps({"text": f"↑ {bonita(nueva)}", "class": "hay",
+                          "tooltip": f"Versión nueva: LeksSO {bonita(nueva)}\nInstalada: {bonita(actual)}\nClic para ver qué cambia."}))
     else:
         print(json.dumps({"text": "", "class": "al-dia"}))
     return 0
@@ -148,17 +158,15 @@ def barra():
 
 def riel():
     """El botón del raíl: siempre visible; se marca cuando hay una versión nueva."""
-    c = leer_cache()
+    nueva, actual = pendiente()
     icono = chr(0xF021)                 # flechas en círculo (Font Awesome)
-    hay = bool(c.get("disponible") and clave(c["disponible"]) and c.get("actual") and clave(c["actual"])
-               and clave(c["disponible"]) > clave(c["actual"]))
-    if hay:
-        ayuda = ["Versión nueva: LeksSO " + bonita(c["disponible"]), "Clic para ver qué cambia e instalarla."]
+    if nueva:
+        ayuda = ["Versión nueva: LeksSO " + bonita(nueva), "Clic para ver qué cambia e instalarla."]
     else:
         ayuda = ["Actualizaciones"]
-        if c.get("actual") and clave(c["actual"]):
-            ayuda.append("Tienes LeksSO " + bonita(c["actual"]) + ".")
-    print(json.dumps({"text": icono, "class": "hay" if hay else "al-dia", "tooltip": chr(10).join(ayuda)}))
+        if actual and clave(actual):
+            ayuda.append("Tienes LeksSO " + bonita(actual) + ".")
+    print(json.dumps({"text": icono, "class": "hay" if nueva else "al-dia", "tooltip": chr(10).join(ayuda)}))
     return 0
 
 

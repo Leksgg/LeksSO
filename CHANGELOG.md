@@ -3,6 +3,10 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
+## Sin publicar
+
+* **El aviso de versión nueva ya no se queda puesto después de actualizar.** La barra y el botón del raíl comparaban con la versión que había cuando se comprobó por última vez, no con la instalada: tras actualizar podían seguir anunciando una versión más antigua que la que ya tenías.
+
 ## 0.1.48 · 2026-11-23
 
 * **LeksSO sale de beta.** Desde esta versión el número va solo, sin «Beta» delante. No cambia nada más respecto a la Beta 0.1.47: es la misma, con su nombre definitivo.
