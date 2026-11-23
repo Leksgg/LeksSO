@@ -146,6 +146,21 @@ def pendiente():
     return None, actual
 
 
+def sistema_pendiente(ruta="/var/lib/leksso/hardware.json"):
+    """Cuántas cosas del sistema hay por instalar según la última comprobación diaria: paquetes de apt, NVIDIA y
+    firmware de dispositivos. 0 si no hay nada o no se ha comprobado."""
+    try:
+        est = json.load(open(ruta, encoding="utf-8"))
+    except (OSError, ValueError):
+        return 0
+    if not isinstance(est, dict):
+        return 0
+    n = est.get("paquetes") if isinstance(est.get("paquetes"), int) else len(est.get("seguro") or [])
+    if (est.get("nvidia") or {}).get("accion"):
+        n += 1
+    return max(0, n) + len(est.get("firmware") or [])
+
+
 def barra():
     nueva, actual = pendiente()
     if nueva:
@@ -166,7 +181,10 @@ def riel():
         ayuda = ["Actualizaciones"]
         if actual and clave(actual):
             ayuda.append("Tienes LeksSO " + bonita(actual) + ".")
-    print(json.dumps({"text": icono, "class": "hay" if nueva else "al-dia", "tooltip": chr(10).join(ayuda)}))
+    del_sistema = sistema_pendiente()
+    if del_sistema:
+        ayuda.append(f"Sistema y controladores: {del_sistema} por instalar.")
+    print(json.dumps({"text": icono, "class": "hay" if (nueva or del_sistema) else "al-dia", "tooltip": chr(10).join(ayuda)}))
     return 0
 
 

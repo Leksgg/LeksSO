@@ -62,7 +62,7 @@ for_window [app_id="leksso-redes"] floating enable, resize set 460 560, move pos
 for_window [app_id="leksso-notificaciones"] floating enable, resize set 460 520, move position center
 for_window [app_id="leksso-portapapeles"] floating enable, resize set 520 560, move position center
 for_window [app_id="leksso-ajustes"] floating enable, resize set 600 540, move position center
-for_window [app_id="leksso-actualizaciones"] floating enable, resize set 620 520, move position center
+for_window [app_id="leksso-actualizaciones"] floating enable, resize set 620 600, move position center
 
 # Atajos básicos (Mod = tecla Windows)
 bindsym $mod+Return exec leksso-term -T Terminal

@@ -5,6 +5,7 @@ Se usa desde `leksso-actualizar hardware ...` (no hay otra herramienta que apren
   leksso-actualizar hardware detectar          qué hardware hay y qué controlador le corresponde
   leksso-actualizar hardware comprobar         mira si hay novedades (no instala nada)
   sudo leksso-actualizar hardware aplicar      instala NVIDIA y firmware de dispositivos, con confirmación
+  sudo leksso-actualizar hardware sistema      pone al día TODO: los paquetes del sistema (apt) y después lo de «aplicar»
   sudo leksso-actualizar hardware quitar-nvidia  vuelve al controlador libre (nouveau)
   leksso-actualizar hardware auto              (lo lanza el temporizador, como root) instala solo
                                               microcódigo y firmware de apt, y avisa del resto
@@ -220,13 +221,39 @@ def datos_bios():
     return f"{placa} · BIOS {bios}" + (f" ({fecha})" if fecha else "") if (placa or bios) else ""
 
 
+def parsear_bios_fwupd(salida):
+    """Salida de `fwupdmgr get-devices --json` -> True si el fabricante publica la BIOS de este equipo por fwupd,
+    False si fwupd contesta y no la lista, None si no se sabe."""
+    try:
+        datos = json.loads(salida)
+    except ValueError:
+        return None
+    disp = datos.get("Devices") if isinstance(datos, dict) else None
+    if not isinstance(disp, list):
+        return None
+    for d in disp:
+        nombre = str(d.get("Name", "")).lower()
+        if "system firmware" in nombre or "uefi" in nombre and "dbx" not in nombre:
+            return "updatable" in [str(x).lower() for x in d.get("Flags", [])] or None
+    return False
+
+
+def bios_por_fwupd():
+    if not shutil.which("fwupdmgr"):
+        return None
+    rc, sal = ejecutar(["fwupdmgr", "get-devices", "--json", "--no-metadata-check"], 60)
+    return parsear_bios_fwupd(sal) if rc == 0 else None
+
+
 def estado_actual():
     """Foto de lo que hay y lo que está pendiente. Solo lectura."""
     g = gpus()
     pend = pendientes_apt()
     est = {"comprobado": int(time.time()), "virtual": es_maquina_virtual(), "secure_boot": secure_boot(),
            "gpus": g, "seguro": [p for p in pend if SEGURO.match(p["nombre"])], "nvidia": None,
-           "firmware": firmware_pendiente()}
+           "firmware": firmware_pendiente(),
+           # todo lo que apt tiene pendiente (no solo firmware), y la BIOS: qué hay y si llega por fwupd
+           "paquetes": len(pend), "bios": {"texto": datos_bios(), "por_fwupd": bios_por_fwupd()}}
     if any(x["vendedor"] == "nvidia" for x in g):
         paq = paquete_nvidia()
         inst, cand = version_instalada(paq), version_candidata(paq)
@@ -609,6 +636,25 @@ def aplicar(args):
     return 0
 
 
+def sistema(args):
+    """Pone al día todo: paquetes del sistema (apt, de todos los repositorios configurados) y después NVIDIA y firmware."""
+    raiz_o_salir()
+    print("Buscando actualizaciones del sistema…", flush=True)
+    subprocess.run(["apt-get", "update", "-o", "DPkg::Lock::Timeout=120"])
+    print("\nInstalando las actualizaciones del sistema…", flush=True)
+    env = dict(os.environ, DEBIAN_FRONTEND="noninteractive")
+    rc = subprocess.run(["apt-get", "-y", "--with-new-pkgs", "-o", "DPkg::Lock::Timeout=120",
+                         "-o", "Dpkg::Options::=--force-confdef", "-o", "Dpkg::Options::=--force-confold", "upgrade"], env=env).returncode
+    if rc != 0:
+        print("\nAVISO: apt ha terminado con errores; mira las líneas de arriba.", flush=True)
+    print("\nControladores y firmware:", flush=True)
+    r = aplicar(args)
+    subprocess.run(["pkill", "-RTMIN+13", "waybar"], capture_output=True)      # el botón del raíl
+    if os.path.exists("/var/run/reboot-required"):
+        print("\nHay que REINICIAR el equipo para terminar (se ha actualizado el núcleo u otra pieza base).")
+    return r or (1 if rc else 0)
+
+
 def quitar_nvidia(args):
     raiz_o_salir()
     rc, sal = ejecutar(["dpkg-query", "-W", "-f", "${Package}\\n", "nvidia-*", "libnvidia-*"])
@@ -638,6 +684,8 @@ def main(a):
         return auto()
     if c == "aplicar":
         return aplicar(a[1:])
+    if c == "sistema":
+        return sistema(a[1:])
     if c == "quitar-nvidia":
         return quitar_nvidia(a[1:])
     if c == "mok":

@@ -2,8 +2,9 @@
 """Actualizaciones de LeksSO: qué versión tienes, si hay una nueva y qué cambia.
 
 Instalar pide tu contraseña en una terminal, para que veas lo que pasa. LeksSO solo se instala con tu permiso.
-Los controladores y el firmware: el microcódigo y el firmware de Debian se actualizan solos (a diario, a los
-3 minutos de arrancar); el controlador de NVIDIA y el firmware de dispositivos se instalan con un clic.
+Sistema y controladores: los paquetes de Debian, el microcódigo y el firmware se actualizan solos una vez al día; con
+«Actualizar sistema y controladores» se pone todo al día en el momento (también NVIDIA y el firmware de dispositivos,
+que piden confirmación). De la BIOS dice qué versión hay y si el equipo admite actualizarla desde aquí.
 Se cierra con la X o con Esc.
 """
 import json
@@ -57,8 +58,21 @@ def resumen_hw(est):
     for f in est.get("firmware", []):
         lineas.append(f"Actualización de firmware: {f.get('dispositivo', '')} {f.get('version', '')}.")
         pendiente = True
+    paquetes = est.get("paquetes") if isinstance(est.get("paquetes"), int) else 0
+    if paquetes:
+        lineas.insert(0, f"Hay {paquetes} actualizaciones del sistema por instalar." if paquetes != 1
+                      else "Hay 1 actualización del sistema por instalar.")
+        pendiente = True
     if not lineas:
-        lineas.append("Controladores y firmware al día. El microcódigo y el firmware de Debian se actualizan solos.")
+        lineas.append("Sistema, controladores y firmware al día. Se comprueba solo una vez al día.")
+    b = est.get("bios") or {}
+    if b.get("texto"):
+        if b.get("por_fwupd") is True:
+            lineas.append(f"BIOS: {b['texto']}. Este equipo admite actualizarla desde aquí, pero hoy el fabricante no ofrece ninguna más nueva por esta vía. Para confirmarlo, mira su web de soporte.")
+        elif b.get("por_fwupd") is False:
+            lineas.append(f"BIOS: {b['texto']}. Este equipo no la recibe por aquí: se mira en la web de soporte del fabricante.")
+        else:
+            lineas.append(f"BIOS: {b['texto']}.")
     return "\n".join(lineas), pendiente
 
 
@@ -112,13 +126,13 @@ class Ventana(QtWidgets.QWidget):
         self.cambios.setReadOnly(True)
         self.cambios.setPlaceholderText("Aquí aparece lo que trae la versión nueva.")
         raiz.addWidget(self.cambios, 1)
-        t_hw = QtWidgets.QLabel("Controladores y firmware")
+        t_hw = QtWidgets.QLabel("Sistema y controladores")
         t_hw.setObjectName("titulo")
         raiz.addWidget(t_hw)
         self.hw = QtWidgets.QLabel()
         self.hw.setWordWrap(True)
         raiz.addWidget(self.hw)
-        self.b_hw = QtWidgets.QPushButton("Instalar controladores y firmware")
+        self.b_hw = QtWidgets.QPushButton("Actualizar sistema y controladores")
         self.b_hw.setObjectName("accion")
         self.b_hw.clicked.connect(self.instalar_hw)
         raiz.addWidget(self.b_hw)
@@ -209,15 +223,16 @@ class Ventana(QtWidgets.QWidget):
                 "Secure Boot. Nada se instala hasta que termines ese paso.\n\n¿Continuar?",
                 QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No)
             if r == QtWidgets.QMessageBox.Yes:
-                self.terminal("Controladores y firmware", "sudo leksso-actualizar hardware aplicar --si-mok")
+                self.terminal("Sistema y controladores", "sudo leksso-actualizar hardware sistema --si-mok")
             return
         r = QtWidgets.QMessageBox.question(
-            self, "Controladores y firmware",
-            "Se te pedirá confirmar cada paso en una terminal. El controlador de NVIDIA necesita reiniciar, y el firmware "
-            "de dispositivos no se puede deshacer: no apagues el equipo mientras se instala. ¿Continuar?",
+            self, "Sistema y controladores",
+            "Se abre una terminal que pide tu contraseña e instala las actualizaciones del sistema. Si hay controlador de "
+            "NVIDIA o firmware de dispositivos, te preguntará antes: NVIDIA necesita reiniciar y el firmware no se puede "
+            "deshacer (no apagues el equipo mientras se instala). ¿Continuar?",
             QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No)
         if r == QtWidgets.QMessageBox.Yes:
-            self.terminal("Controladores y firmware", "sudo leksso-actualizar hardware aplicar")
+            self.terminal("Sistema y controladores", "sudo leksso-actualizar hardware sistema")
 
     def volver(self):
         r = QtWidgets.QMessageBox.question(self, "Volver", "¿Volver a la versión anterior de LeksSO?",
@@ -238,7 +253,7 @@ def main():
     app = QtWidgets.QApplication(sys.argv)
     app.setDesktopFileName("leksso-actualizaciones")
     w = Ventana()
-    w.resize(620, 520)
+    w.resize(620, 600)
     w.show()
     return app.exec()
 

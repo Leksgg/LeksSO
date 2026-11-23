@@ -3,6 +3,14 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
+## Sin publicar
+
++ **Actualizaciones → «Sistema y controladores»: todo al día con un botón.** La ventana dice ahora cuántas actualizaciones del sistema hay pendientes (los paquetes de Debian y de los programas instalados), además del controlador de NVIDIA y el firmware. El botón «Actualizar sistema y controladores» abre una terminal que lo instala todo en el momento; NVIDIA y el firmware de dispositivos siguen preguntando antes. Si hace falta reiniciar, lo dice. Lo de siempre sigue igual: el sistema se actualiza solo una vez al día; el botón es para no esperar.
+
++ **La BIOS, a la vista.** En esa misma sección sale la versión y la fecha de la BIOS del equipo, y si admite actualizarse desde LeksSO o hay que mirarlo en la web del fabricante. LeksSO no puede saber si el fabricante tiene una más nueva fuera de este canal, y lo dice así.
+
+~ **El botón de actualizaciones del raíl avisa también del sistema.** Se pone en ámbar cuando hay paquetes, controladores o firmware por instalar, no solo con una versión nueva de LeksSO; al pasar el ratón dice cuántos.
+
 ## 0.1.49 · 2026-11-23
 
 * **Al cambiar de apariencia, el explorador ya no se queda con los iconos de la anterior.** Las carpetas seguían con el color del tema de antes (por ejemplo rosas en Pizarra) hasta cerrar y abrir el explorador. Ahora se cierra y se vuelve a abrir solo, en su sitio; el resto de programas no se tocan.
