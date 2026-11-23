@@ -3,7 +3,7 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
-## Sin publicar
+## Beta 0.1.40 · 2026-11-23
 
 + **Plugins de audio LSP, en el catálogo.** `leksso-apps instalar lsp-plugins` instala los plugins LSP (gratuitos y de código abierto): compresor, gate, ecualizadores paramétricos, multibanda y limitador, en formato VST 2 (el que carga el filtro «VST 2.x» de OBS en el micrófono) y LV2 (para Easy Effects y otros programas de audio). No vienen en la base: se instalan a petición.
 
