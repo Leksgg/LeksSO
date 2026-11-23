@@ -3,7 +3,7 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
-## Sin publicar
+## Beta 0.1.39 · 2026-11-23
 
 ~ **Brave viene instalado con el sistema y es el navegador por defecto.** Antes era una aplicación del catálogo que había que instalar aparte. Ahora la instalación lo deja puesto y como predeterminado para enlaces y archivos web. En la imagen de instalación sin internet va dentro del repositorio local (su clave se comprueba por huella al construirla, y solo se acepta la esperada); instalando con red, sale de su repositorio firmado. Si no se pudiera instalar, la instalación continúa y se hace después con `leksso-apps instalar brave`.
 
