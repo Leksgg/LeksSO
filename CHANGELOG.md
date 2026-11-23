@@ -3,7 +3,7 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
-## Sin publicar
+## Beta 0.1.45 · 2026-11-23
 
 ~ **Pantalla de bloqueo nueva: dice quién eres y deja ver la contraseña.** Al bloquear (Súper+L, Apagar → Bloquear o tras el tiempo sin tocar el equipo) la pantalla enseña el nombre y la versión del sistema, el usuario de la sesión, la hora y el campo de la contraseña con un **icono de ojo** para verla mientras la escribes (empieza oculta). Usa `gtklock`, que se añade a la base; si no está o no arranca, se usa el bloqueo de antes, para que el equipo nunca se quede sin bloquear.
 
