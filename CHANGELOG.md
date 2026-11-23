@@ -5,6 +5,10 @@ Lo más reciente, arriba.
 
 ## Sin publicar
 
+~ **El actualizador ya entiende las versiones normales, que son solo un número (0.1.48).** Hasta ahora todas llevaban «-alpha» o «-beta» y un equipo no veía ninguna otra. Esta versión es el puente: hay que pasar por ella para recibir las siguientes, que ya no llevan «beta». Las de prueba (-alpha, -beta, -rc) siguen existiendo y van por debajo de la normal del mismo número.
+
+* **README puesto al día:** qué es LeksSO hoy, qué trae el escritorio, la seguridad, cómo se instala y cómo se actualiza.
+
 + **Botón de actualizaciones en el raíl.** Siempre visible (flechas en círculo); abre Actualizaciones. Cuando hay una versión nueva se pone en ámbar, igual que el aviso de la barra de abajo, y al pasar el ratón dice cuál es.
 
 ## Beta 0.1.46 · 2026-11-23

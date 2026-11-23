@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 # Publica una versión de LeksSO: etiqueta firmada y subida. Solo para quien mantiene el repositorio.
 #
-# Uso: scripts/publicar-version.sh 0.1.2-alpha     una versión concreta (VERSION y CHANGELOG ya preparados)
+# Uso: scripts/publicar-version.sh 0.1.48           una versión concreta (VERSION y CHANGELOG ya preparados)
+#      Las versiones normales son solo números (0.1.48). Las de prueba llevan -alpha, -beta o -rc y van por debajo.
 #      añade --sin-subir para preparar y firmar en local sin publicar (por ejemplo, para probar el instalador)
 #      añade --sin-firma para publicar SIN firmar (fase de pruebas): solo la instalan los equipos que tienen
 #      /etc/leksso/sin-firma; los demás la rechazan. Una imagen de instalación sigue necesitando una versión firmada.
 #      scripts/publicar-version.sh --auto          la siguiente versión (+1 en el último número), con lo que haya
 #                                                  bajo «## Sin publicar» en CHANGELOG.md
+#      añade --estable a --auto para pasar de una versión de prueba (0.1.47-beta) a la normal siguiente (0.1.48)
 #
 # Antes de publicar comprueba: que VERSION y CHANGELOG.md dicen lo mismo, que no hay cambios sin subir
 # y que la etiqueta no existe. La etiqueta se firma con la clave de LEKSSO_CLAVE_FIRMA (por defecto
@@ -24,7 +26,7 @@ SOCK="${LEKSSO_AGENTE:-$HOME/.ssh/leksso-agent.sock}"
 [ "$FIRMAR" = 0 ] || [ -f "$CLAVE" ] || { echo "No encuentro la clave de firma: $CLAVE" >&2; exit 1; }
 cd "$(dirname "$0")/.."
 
-patron='^([0-9]+)\.([0-9]+)\.([0-9]+)-(alpha|beta|rc)$'
+patron='^([0-9]+)\.([0-9]+)\.([0-9]+)(-(alpha|beta|rc))?$'
 nombre_bonito() { echo "$1" | sed -E 's/^([0-9.]+)-alpha$/Alpha \1/; s/^([0-9.]+)-beta$/Beta \1/; s/^([0-9.]+)-rc$/RC \1/'; }
 
 # Clave: con agente desbloqueado se firma sin preguntar; si no, se usa el archivo (pide la contraseña si la tiene).
@@ -50,7 +52,8 @@ V="${1:-}"
 if [ "$V" = "--auto" ]; then
   ACT="$(tr -d '[:space:]' < VERSION)"
   [[ "$ACT" =~ $patron ]] || { echo "VERSION no es una versión válida: $ACT" >&2; exit 1; }
-  V="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.$((BASH_REMATCH[3] + 1))-${BASH_REMATCH[4]}"
+  V="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.$((BASH_REMATCH[3] + 1))${BASH_REMATCH[4]}"
+  for a in "$@"; do [ "$a" = "--estable" ] && V="${V%%-*}"; done
   grep -q '^## Sin publicar' CHANGELOG.md || { echo "CHANGELOG.md no tiene «## Sin publicar» con los cambios de esta versión." >&2; exit 1; }
   # debe haber algo escrito debajo de «Sin publicar»
   awk '/^## Sin publicar/{d=1;next} /^## /{d=0} d && NF{n++} END{exit n?0:1}' CHANGELOG.md \
@@ -64,7 +67,7 @@ if [ "$V" = "--auto" ]; then
   echo "Preparada la versión $BONITA."
 fi
 
-[[ "$V" =~ $patron ]] || { echo "Uso: $0 X.Y.Z-alpha | --auto   (también -beta o -rc)" >&2; exit 2; }
+[[ "$V" =~ $patron ]] || { echo "Uso: $0 X.Y.Z | --auto [--estable]   (de prueba: X.Y.Z-alpha, -beta o -rc)" >&2; exit 2; }
 BONITA="$(nombre_bonito "$V")"
 [ "$(tr -d '[:space:]' < VERSION)" = "$V" ] || { echo "VERSION no dice $V" >&2; exit 1; }
 grep -qE "^## .*(${V}|${BONITA})" CHANGELOG.md || { echo "CHANGELOG.md no tiene una sección «## $BONITA»" >&2; exit 1; }

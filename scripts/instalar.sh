@@ -34,7 +34,7 @@ if [ "${LEKSSO_INSTALAR_PRUEBAS:-}" = "1" ]; then
   CLAVE_PUBLICA="${LEKSSO_PRUEBA_CLAVE:-$CLAVE_PUBLICA}"; HUELLA_ESPERADA="${LEKSSO_PRUEBA_HUELLA:-$HUELLA_ESPERADA}"
   RAMA="${LEKSSO_PRUEBA_RAMA:-$RAMA}"; OSRELEASE="${LEKSSO_PRUEBA_OSRELEASE:-$OSRELEASE}"
 fi
-ETIQUETA='^v[0-9]+\.[0-9]+\.[0-9]+-(alpha|beta|rc)$'
+ETIQUETA='^v[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc))?$'
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 info() { printf '\n==> %s\n' "$*"; }
@@ -59,17 +59,17 @@ instalar_requisitos() {
 elegir_version() {
   local pedida="${1:-}" tags
   if [ -n "$pedida" ]; then
-    [[ "$pedida" =~ $ETIQUETA ]] || die "Versión no válida: $pedida (debe ser como v0.1.4-alpha)"
+    [[ "$pedida" =~ $ETIQUETA ]] || die "Versión no válida: $pedida (debe ser como v0.1.48)"
     echo "$pedida"; return
   fi
   tags="$(git ls-remote --tags --refs "$REPO" 'refs/tags/v*' 2>/dev/null | sed 's#.*refs/tags/##' | grep -E "$ETIQUETA" || true)"
   [ -n "$tags" ] || die "No encuentro versiones publicadas en $REPO (¿hay conexión?)."
-  # orden por número de versión: 0.9.0 < 0.10.0; a igual número, alpha < beta < rc
+  # orden por número de versión: 0.9.0 < 0.10.0; a igual número, alpha < beta < rc < la normal (sin sufijo)
   echo "$tags" | python3 -I -c '
 import re, sys
-rango = {"alpha": 0, "beta": 1, "rc": 2}
+rango = {"alpha": 0, "beta": 1, "rc": 2, None: 3}
 def clave(t):
-    m = re.match(r"^v(\d+)\.(\d+)\.(\d+)-(alpha|beta|rc)$", t)
+    m = re.match(r"^v(\d+)\.(\d+)\.(\d+)(?:-(alpha|beta|rc))?$", t)
     return (int(m[1]), int(m[2]), int(m[3]), rango[m[4]])
 print(sorted((l.strip() for l in sys.stdin if l.strip()), key=clave)[-1])'
 }

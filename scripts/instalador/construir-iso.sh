@@ -19,7 +19,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 for v in ISO OFFLINE VERSION SALIDA; do [ -n "${!v}" ] || { echo "Falta --${v,,}" >&2; exit 2; }; done
-[[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-(alpha|beta|rc)$ ]] || { echo "Versión no válida: $VERSION" >&2; exit 2; }
+[[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc))?$ ]] || { echo "Versión no válida: $VERSION" >&2; exit 2; }
 [ -f "$ISO" ] && [ -f "$OFFLINE/Packages.gz" ] || { echo "No encuentro la ISO o el repositorio local." >&2; exit 1; }
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$RAIZ"

@@ -9,7 +9,7 @@
   sudo leksso-actualizar volver          vuelve a la versión anterior
   leksso-actualizar hardware ...         controladores y firmware (detectar, comprobar, aplicar...): ver `hardware`
 
-Seguridad: solo se instalan versiones con etiqueta (vX.Y.Z-alpha) firmadas con la clave de LeksSO que
+Seguridad: solo se instalan versiones con etiqueta (vX.Y.Z, o vX.Y.Z-alpha/-beta/-rc las de prueba) firmadas con la clave de LeksSO que
 ya está instalada en /etc/leksso/allowed_signers. Sin firma válida no se toca nada. Una subida normal
 al repositorio nunca llega a un equipo: solo las versiones publicadas.
 """
@@ -34,13 +34,14 @@ BLOQUEO = "/run/leksso-actualizar.lock"       # /run solo lo escribe root (en /r
 CACHE = os.path.expanduser("~/.cache/leksso/actualizacion.json")
 AVISADO = os.path.expanduser("~/.cache/leksso/avisado")
 
-ETIQUETA = re.compile(r"^v(\d+)\.(\d+)\.(\d+)-(alpha|beta|rc)\Z")   # \Z: sin salto de línea final
-RANGO = {"alpha": 0, "beta": 1, "rc": 2}
+# Sin sufijo es una versión normal (la de todos los días); -alpha, -beta y -rc son las de prueba y van por debajo.
+ETIQUETA = re.compile(r"^v(\d+)\.(\d+)\.(\d+)(?:-(alpha|beta|rc))?\Z")   # \Z: sin salto de línea final
+RANGO = {"alpha": 0, "beta": 1, "rc": 2, None: 3}
 NOMBRE = {"alpha": "Alpha", "beta": "Beta", "rc": "RC"}
 
 
 def clave(v):
-    """'0.1.1-alpha' → tupla ordenable. None si no es una versión válida."""
+    """'0.1.1-alpha' o '0.1.48' → tupla ordenable. None si no es una versión válida."""
     m = ETIQUETA.match("v" + v) if v and not v.startswith("v") else ETIQUETA.match(v or "")
     if not m:
         return None
@@ -48,9 +49,12 @@ def clave(v):
 
 
 def bonita(v):
-    """'0.1.0-alpha' → 'Alpha 0.1.0'."""
+    """'0.1.0-alpha' → 'Alpha 0.1.0'; '0.1.48' → '0.1.48'."""
     m = ETIQUETA.match("v" + v) if v and not v.startswith("v") else ETIQUETA.match(v or "")
-    return f"{NOMBRE[m[4]]} {m[1]}.{m[2]}.{m[3]}" if m else (v or "desconocida")
+    if not m:
+        return v or "desconocida"
+    numero = f"{m[1]}.{m[2]}.{m[3]}"
+    return f"{NOMBRE[m[4]]} {numero}" if m[4] else numero
 
 
 def version_actual():

@@ -35,9 +35,15 @@ class Versiones(unittest.TestCase):
         self.assertLess(act.clave("0.1.0-alpha"), act.clave("0.1.1-alpha"))
         self.assertLess(act.clave("0.9.9-rc"), act.clave("0.10.0-alpha"))
         self.assertLess(act.clave("1.0.0-alpha"), act.clave("1.0.0-beta"))
+        # sin sufijo es la versión normal: por encima de las de prueba del mismo número y por debajo del siguiente
+        self.assertLess(act.clave("1.0.0-rc"), act.clave("1.0.0"))
+        self.assertLess(act.clave("0.1.47-beta"), act.clave("0.1.48"))
+        self.assertLess(act.clave("0.1.48"), act.clave("0.1.49-alpha"))
+        self.assertEqual(act.bonita("0.1.48"), "0.1.48")
+        self.assertEqual(act.bonita("v0.1.48"), "0.1.48")
 
     def test_nombres_hostiles_no_son_versiones(self):
-        for malo in ("v1.0.0-alpha; rm -rf /", "v1.0.0", "../../etc", "v1.0.0-alpha\n", "v01.0.0-evil", "", None, "v1.0.0-alpha$(id)"):
+        for malo in ("v1.0.0-alpha; rm -rf /", "v1.0.0-", "v1.0", "v1.0.0.0", "v1.0.0-final", "../../etc", "v1.0.0-alpha\n", "v01.0.0-evil", "", None, "v1.0.0-alpha$(id)"):
             self.assertIsNone(act.clave(malo) if malo is not None else act.clave(""), repr(malo))
             self.assertIsNone(act.ETIQUETA.match(malo or ""), repr(malo))
 
