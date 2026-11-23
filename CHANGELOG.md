@@ -3,7 +3,7 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
-## Sin publicar
+## 0.1.52 · 2026-11-23
 
 * **Las solicitudes de conexión ya no dejan de funcionar tras actualizar.** Cada actualización rehacía el cortafuegos y cerraba el puerto de las solicitudes (el de SSH sí se conservaba); había que apagar y encender el acceso remoto para recuperarlo.
 
