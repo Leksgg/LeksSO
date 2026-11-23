@@ -3,7 +3,7 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
-## Sin publicar
+## Beta 0.1.41 · 2026-11-23
 
 + **Instalador: entrada EXPERIMENTAL «junto a Windows» con particionado manual.** Todas las entradas anteriores borran el disco entero que elijas. Esta no: abre el particionador del propio Debian para que elijas tú el **espacio libre** que dejó Windows, y no toca las particiones de Windows. Es sin cifrar y de momento manual (no detecta el espacio por ti). Pasos: instala Windows dejando espacio sin asignar; arranca el pendrive; elige «[EXPERIMENTAL] Instalar LeksSO JUNTO a Windows»; en el particionador selecciona el espacio libre, créale una partición para `/` (ext4) y, sin formatearla, marca la partición de arranque de Windows (la «EFI», ~100 MB) para usarla como `/boot/efi`. Sin probar todavía en hardware real. La versión guiada (que detecta el espacio y pregunta con textos cortos) queda para más adelante.
 
