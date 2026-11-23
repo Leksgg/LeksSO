@@ -3,7 +3,7 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
-## Sin publicar
+## 0.1.51 · 2026-11-23
 
 + **Ver la pantalla de otro equipo, para ayudar a distancia.** Desde el equipo que ayuda: `leksso-pantalla pedir usuario@dirección` (o el botón «Ver su pantalla» de Acceso remoto; también vale en Windows con Python y TigerVNC). En el otro equipo sale al frente «(equipo) quiere ver tu pantalla», con «No, ahora no» por defecto, «Sí, que mire» y «Sí, que mire y me ayude a manejar». Mientras dura hay un aviso rojo en la barra, un botón **PARAR** siempre encima y el atajo **Súper+Esc**. Dura 30 minutos (avisa dos minutos antes y deja seguir), se corta al bloquear la pantalla y no se puede pedir con ella bloqueada. Viaja por dentro del SSH ya autorizado: no abre ningún puerto. El aviso sale de comprobar que el programa está en marcha, no de que se dio permiso. Lo que no puede garantizar, y la ventana lo dice: quien ya tiene acceso total a tu cuenta podría mirar por otros medios. Probado el camino completo entre dos equipos (arrancar, llegar por SSH y cortar); la ventana de permiso y el visor, todavía no en un equipo real.
 
