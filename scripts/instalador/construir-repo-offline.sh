@@ -53,6 +53,27 @@ mkdir -p "$BASE/var/cache/leksso-descargas"
 mount --bind "$SALIDA" "$BASE/var/cache/leksso-descargas"
 trap 'umount "$BASE/var/cache/leksso-descargas" 2>/dev/null || true; rm -rf "$BASE"' EXIT
 chroot "$BASE" apt-get update -qq
+
+# 3b. Brave (navegador por defecto) viene de su propio repositorio, no de Debian. Su clave se descarga y SOLO se acepta si todas
+# las huellas están en esta lista (la misma que HUELLAS["brave-browser"] de leksso-apps.py: si Brave rota su clave, se cambian las dos).
+HUELLAS_BRAVE="DBF1A116C220B8C7164F98230686B78420038257 47D32A74E9A9E013A4B4926C68D513D36A73CD96 B2A3DCA350E67256740DF904DE4EC67BE4B0DCA0"
+apt-get install -y -qq curl gnupg >/dev/null
+CLAVE_BRAVE="$(mktemp)"
+curl -fsSL https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg -o "$CLAVE_BRAVE"
+FPR_BRAVE="$(gpg --show-keys --with-colons --fingerprint "$CLAVE_BRAVE" | awk -F: '/^pub/{p=1;next} p&&/^fpr/{print $10;p=0}')"
+[ -n "$FPR_BRAVE" ] || { echo "ERROR: no se pudo leer la clave de Brave." >&2; exit 1; }
+for f in $FPR_BRAVE; do
+  case " $HUELLAS_BRAVE " in *" $f "*) ;; *) echo "ERROR: la clave de Brave no es la esperada ($f). No se descarga nada de Brave." >&2; exit 1 ;; esac
+done
+# (ca-certificates se instala con la misma carpeta de descargas, para que su .deb quede también en el repositorio local)
+chroot "$BASE" env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+  -o Dir::Cache::archives=/var/cache/leksso-descargas ca-certificates >/dev/null
+install -d "$BASE/usr/share/keyrings"
+install -m 0644 "$CLAVE_BRAVE" "$BASE/usr/share/keyrings/brave-browser.gpg"; rm -f "$CLAVE_BRAVE"
+echo "deb [signed-by=/usr/share/keyrings/brave-browser.gpg] https://brave-browser-apt-release.s3.brave.com/ stable main" \
+  > "$BASE/etc/apt/sources.list.d/brave-browser.list"
+chroot "$BASE" apt-get update -qq
+TODOS="$TODOS brave-browser"
 # shellcheck disable=SC2086
 chroot "$BASE" env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --download-only \
   -o Dir::Cache::archives=/var/cache/leksso-descargas $TODOS

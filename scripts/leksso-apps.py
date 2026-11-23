@@ -392,7 +392,12 @@ def hacer(item, simular, si):
     if tipo == "steam":
         sudo(["dpkg", "--add-architecture", "i386"], simular)
         sudo(["apt-get", "update"], simular)
-        return apt(objetivo, simular)
+        r = apt(objetivo, simular)
+        # Con el controlador de NVIDIA, Steam necesita también sus librerías de 32 bits: sin ellas falta libGL.so.1 (i386) y los
+        # juegos no arrancan (código 127, «reaper: libGL.so.1: cannot open shared object file»).
+        if r == 0 and subprocess.run(["dpkg", "-s", "libglx-nvidia0"], capture_output=True).returncode == 0:
+            r = apt("nvidia-driver-libs:i386", simular)
+        return r
     if tipo == "deb-url":
         return instalar_deb(objetivo, simular)
     if tipo == "deb-github":

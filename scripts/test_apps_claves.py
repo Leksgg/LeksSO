@@ -62,5 +62,20 @@ class Claves(unittest.TestCase):
                 self.assertRegex(h, r"^[0-9A-F]{40}$")
 
 
+class BraveEnElInstalador(unittest.TestCase):
+    """Brave va en el repositorio sin red: la lista de huellas del constructor debe ser la misma que la de leksso-apps."""
+
+    def test_huellas_del_constructor_iguales_a_las_de_leksso_apps(self):
+        sh = open(os.path.join(AQUI, "instalador", "construir-repo-offline.sh"), encoding="utf-8").read()
+        import re
+        m = re.search(r'HUELLAS_BRAVE="([^"]+)"', sh)
+        self.assertIsNotNone(m)
+        self.assertEqual(set(m.group(1).split()), apps.HUELLAS["brave-browser"])
+
+    def test_provision_instala_brave_antes_de_asociar_archivos(self):
+        sh = open(os.path.join(AQUI, "provision-base.sh"), encoding="utf-8").read()
+        self.assertLess(sh.index("brave-browser"), sh.index('sudo -u "$USUARIO" leksso-asociar'))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -3,6 +3,12 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
+## Sin publicar
+
+~ **Brave viene instalado con el sistema y es el navegador por defecto.** Antes era una aplicación del catálogo que había que instalar aparte. Ahora la instalación lo deja puesto y como predeterminado para enlaces y archivos web. En la imagen de instalación sin internet va dentro del repositorio local (su clave se comprueba por huella al construirla, y solo se acepta la esperada); instalando con red, sale de su repositorio firmado. Si no se pudiera instalar, la instalación continúa y se hace después con `leksso-apps instalar brave`.
+
+~ **Steam en equipos con NVIDIA: los juegos ya arrancan.** Con el controlador propietario de NVIDIA, Steam necesita también las librerías de 32 bits de NVIDIA; sin ellas falta `libGL.so.1` de 32 bits y el juego se cierra al instante sin mostrar nada (en el registro de Steam, «reaper: error while loading shared libraries: libGL.so.1» y código de salida 127). Ahora, al instalar Steam desde el catálogo en un equipo con NVIDIA, se instala también `nvidia-driver-libs:i386`. Si ya tienes Steam y los juegos no abren: `sudo apt install nvidia-driver-libs:i386`. Comprobado en `a01` con Dead by Daylight.
+
 ## Beta 0.1.38 · 2026-11-22
 
 ~ **El botón de «versión nueva» ya aparece al iniciar sesión.** La barra leía el resultado de la comprobación antes de que esta terminara y no volvía a mirar hasta 15 minutos después, así que al arrancar no salía el botón aunque hubiera una versión nueva. Ahora la comprobación avisa a la barra al terminar, y la barra además se refresca cada 5 minutos.

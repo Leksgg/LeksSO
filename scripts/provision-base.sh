@@ -269,6 +269,14 @@ install -m 0644 "$RAIZ"/config/applications/*.desktop /usr/share/applications/
 install -m 0755 "$RAIZ/scripts/asociar-archivos.py" /usr/local/bin/leksso-asociar
 install -m 0755 "$RAIZ/scripts/leksso-apps.py" /usr/local/bin/leksso-apps
 install -m 0755 "$RAIZ/scripts/leksso-ts3-instalar.sh" /usr/local/bin/leksso-ts3-instalar
+# Navegador por defecto: Brave. Si el repositorio local de la imagen lo lleva, sale de ahí (instalación sin red); si no, de su
+# repositorio firmado, con red. Un fallo no detiene la instalación: se instala después con `leksso-apps instalar brave`.
+# Va antes de leksso-asociar, que lo deja como predeterminado para los enlaces y los archivos web.
+if ! dpkg -s brave-browser >/dev/null 2>&1; then
+  apt-get install -y --no-install-recommends brave-browser >/dev/null 2>&1 \
+    || python3 /usr/local/bin/leksso-apps instalar brave --si \
+    || echo "AVISO: sin Brave (¿sin conexión?); se instala después con: leksso-apps instalar brave"
+fi
 sudo -u "$USUARIO" leksso-asociar
 
 # Temas de color: los archivos de colores por papel, el comando que los aplica y la ventana de Apariencia.
