@@ -62,6 +62,8 @@ CATALOGO = [
     ("Notas", "obsidian", "Obsidian", "deb-github", "obsidianmd/obsidian-releases|amd64\\.deb$", "obsidian", ""),
     # Multimedia y directo
     ("Multimedia", "obs", "OBS Studio", "apt", "obs-studio", "obs-studio", "El plugin move-transition se instala dentro de OBS."),
+    ("Multimedia", "lsp-plugins", "Plugins de audio LSP", "apt", "lsp-plugins-vst lsp-plugins-lv2", "lsp-plugins-vst",
+     "Gratis y de código abierto: compresor, gate, ecualizadores, multibanda, limitador. Sirven en OBS (filtro «VST 2.x» del micrófono), en Easy Effects (audio de todo el sistema) y en otros programas de audio."),
     ("Multimedia", "audacity", "Audacity", "apt", "audacity", "audacity", ""),
     ("Multimedia", "vlc", "VLC media player", "apt", "vlc", "vlc", ""),
     ("Multimedia", "streamdeck", "Elgato Stream Deck", "apt", "streamdeck-ui", "streamdeck-ui", "Ya viene con LeksSO."),
