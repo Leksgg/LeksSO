@@ -3,7 +3,7 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
-## Sin publicar
+## 0.1.50 · 2026-11-23
 
 + **Actualizaciones → «Sistema y controladores»: todo al día con un botón.** La ventana dice ahora cuántas actualizaciones del sistema hay pendientes (los paquetes de Debian y de los programas instalados), además del controlador de NVIDIA y el firmware. El botón «Actualizar sistema y controladores» abre una terminal que lo instala todo en el momento; NVIDIA y el firmware de dispositivos siguen preguntando antes. Si hace falta reiniciar, lo dice. Lo de siempre sigue igual: el sistema se actualiza solo una vez al día; el botón es para no esperar.
 
