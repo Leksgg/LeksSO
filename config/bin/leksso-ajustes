@@ -124,12 +124,17 @@ def preparar_cuenta(parent, modo_publico=False):
     caja.setText("Esta cuenta no tiene contraseña")
     caja.setInformativeText("Sin contraseña ni clave, nadie podría entrar por SSH. Elige cómo quieres entrar:\n\n"
                             "Contraseña para SSH: solo se pide al entrar por SSH; tu inicio de sesión no cambia.\n"
-                            "Clave pública: la más segura; pegas la clave del equipo desde el que entrarás.")
+                            "Clave pública: la más segura; pegas la clave del equipo desde el que entrarás.\n"
+                            "Esperar una solicitud: lo más fácil; el otro equipo pide entrar (leksso-solicitud pedir) y aquí "
+                            "sale una ventana con un código para permitirlo.")
+    espera = caja.addButton("Esperar una solicitud", QtWidgets.QMessageBox.AcceptRole)
     pw = caja.addButton("Poner contraseña para SSH", QtWidgets.QMessageBox.AcceptRole)
     clave = caja.addButton("Autorizar una clave", QtWidgets.QMessageBox.AcceptRole)
     caja.addButton("Cancelar", QtWidgets.QMessageBox.RejectRole)
     caja.exec()
     sel = caja.clickedButton()
+    if sel is espera:
+        return True
     if sel is pw:
         return poner_contrasena(parent)
     if sel is clave:

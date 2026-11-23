@@ -43,6 +43,8 @@ exec wl-paste --type image --watch cliphist store
 exec leksso-reposo iniciar
 exec leksso-disco primer-arranque
 exec leksso-hora
+# Solicitudes de conexión por SSH: espera y abre la ventana de permitir (solo llegan con el acceso remoto en modo local)
+exec leksso-solicitud vigilar
 exec udiskie --no-tray --no-notify --automount
 
 # El menú de aplicaciones flota en el centro de la pantalla
@@ -55,6 +57,7 @@ for_window [app_id="leksso-energia"] floating enable, resize set 380 680, move p
 for_window [app_id="leksso-modo"] floating enable, resize set 400 300, move position center
 for_window [app_id="leksso-calendario"] floating enable, resize set 380 520, move position center
 for_window [app_id="leksso-dispositivos"] floating enable, resize set 420 520, move position center
+for_window [app_id="leksso-solicitud"] floating enable, resize set 480 330, move position center, sticky enable
 for_window [app_id="leksso-redes"] floating enable, resize set 460 560, move position center
 for_window [app_id="leksso-notificaciones"] floating enable, resize set 460 520, move position center
 for_window [app_id="leksso-portapapeles"] floating enable, resize set 520 560, move position center

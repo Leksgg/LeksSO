@@ -273,6 +273,8 @@ install -m 0644 "$RAIZ/config/ui/leksso_ui.py" "$RAIZ/config/ui/leksso_conexione
 install -m 0644 "$RAIZ"/config/applications/*.desktop /usr/share/applications/
 install -m 0755 "$RAIZ/scripts/asociar-archivos.py" /usr/local/bin/leksso-asociar
 install -m 0755 "$RAIZ/scripts/leksso-apps.py" /usr/local/bin/leksso-apps
+# Solicitudes de conexión por SSH: pedir (cliente), recibir (lo arranca systemd, solo con el acceso remoto en modo local) y la ventana.
+install -m 0755 "$RAIZ/scripts/leksso-solicitud.py" /usr/local/bin/leksso-solicitud
 install -m 0755 "$RAIZ/scripts/leksso-ts3-instalar.sh" /usr/local/bin/leksso-ts3-instalar
 # Navegador por defecto: Brave. Si el repositorio local de la imagen lo lleva, sale de ahí (instalación sin red); si no, de su
 # repositorio firmado, con red. Un fallo no detiene la instalación: se instala después con `leksso-apps instalar brave`.

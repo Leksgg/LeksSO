@@ -17,6 +17,8 @@
 set -euo pipefail
 MARCA=/etc/leksso/acceso-remoto          # su contenido es el modo: local o publico
 LOCAL='ip saddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } tcp dport 22 accept comment "leksso-acceso-remoto"'
+# Solicitudes de conexión (leksso-solicitud): solo en modo local, solo desde redes privadas y con ritmo limitado.
+SOLICITUD='ip saddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } tcp dport 22222 ct state new limit rate 12/minute burst 6 packets accept comment "leksso-acceso-remoto solicitud"'
 PUBLICO='tcp dport 22 ct state new limit rate 20/minute burst 10 packets accept comment "leksso-acceso-remoto"'
 
 estado() {
@@ -34,6 +36,52 @@ quitar_regla() {
   sed -i '/leksso-acceso-remoto/d' /etc/nftables.conf
 }
 usuario() { echo "${SUDO_USER:-$(id -un)}"; }
+quitar_solicitudes() {   # deja de escuchar solicitudes de conexión (las unidades solo existen en modo local)
+  systemctl disable -q --now leksso-solicitud.socket 2>/dev/null || true
+  rm -f /etc/systemd/system/leksso-solicitud.socket /etc/systemd/system/leksso-solicitud@.service
+  systemctl daemon-reload 2>/dev/null || true
+  rm -rf /run/user/*/leksso-solicitudes/*.json 2>/dev/null || true
+}
+poner_solicitudes() {    # escucha solicitudes de conexión para el usuario que enciende el acceso
+  local u uid; u="$(usuario)"; [ "$u" != root ] || return 0
+  [ -x /usr/local/bin/leksso-solicitud ] || return 0
+  uid="$(id -u "$u")"
+  cat > /etc/systemd/system/leksso-solicitud.socket <<UNIDAD
+[Unit]
+Description=LeksSO: solicitudes de conexion por SSH (solo red local)
+[Socket]
+ListenStream=22222
+Accept=yes
+MaxConnections=4
+MaxConnectionsPerSource=2
+[Install]
+WantedBy=sockets.target
+UNIDAD
+  cat > /etc/systemd/system/leksso-solicitud@.service <<UNIDAD
+[Unit]
+Description=LeksSO: atender una solicitud de conexion
+[Service]
+ExecStart=/usr/local/bin/leksso-solicitud recibir
+User=$u
+Environment=XDG_RUNTIME_DIR=/run/user/$uid
+StandardInput=socket
+StandardOutput=socket
+StandardError=journal
+RuntimeMaxSec=20
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=-/run/user/$uid/leksso-solicitudes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX
+MemoryMax=64M
+UNIDAD
+  systemctl daemon-reload
+  systemctl enable -q --now leksso-solicitud.socket
+}
 claves_autorizadas() {   # ¿tiene claves SSH el usuario? (el que ejecuta sudo, o el actual)
   local u h; u="$(usuario)"
   [ "$u" != root ] || return 1
@@ -72,13 +120,10 @@ case "${1:-estado}" in
     MODO="${2:-local}"
     case "$MODO" in local|publico) ;; *) echo "Modo desconocido: $MODO (usa local o publico)" >&2; exit 2 ;; esac
     # Sin contraseña ni clave, nadie podría entrar: no se enciende nada (Ajustes ofrece ponerlas).
-    if [ "$MODO" = local ] && ! con_contrasena && ! claves_autorizadas; then
-      cat >&2 <<MSG
-ERROR: la cuenta ${SUDO_USER:-actual} no tiene contraseña ni ninguna clave SSH autorizada, así que nadie podría entrar. No se enciende nada.
-Pon una contraseña (passwd) o autoriza una clave: leksso-acceso-remoto clave 'ssh-ed25519 ...'. Ajustes, Acceso remoto lo hace por ti.
-MSG
-      exit 3
-    fi
+    # Sin contraseña ni clave todavía no puede entrar nadie, pero el modo local sí sirve: otro equipo puede enviar una
+    # solicitud de conexión y, si la permites en pantalla, su clave queda autorizada.
+    SIN_ENTRADA=0
+    if [ "$MODO" = local ] && ! con_contrasena && ! claves_autorizadas; then SIN_ENTRADA=1; fi
     if [ "$MODO" = publico ] && ! claves_autorizadas; then
       cat >&2 <<MSG
 ERROR: el modo público solo admite clave SSH y tu usuario no tiene ninguna autorizada, así que no se abre nada.
@@ -112,6 +157,12 @@ MSG
     quitar_regla
     if [ "$MODO" = publico ]; then REGLA="$PUBLICO"; else REGLA="$LOCAL"; fi
     nft add rule inet leksso entrada $REGLA
+    quitar_solicitudes
+    if [ "$MODO" = local ]; then
+      nft add rule inet leksso entrada $SOLICITUD
+      sed -i "/udp sport 547 udp dport 546 accept/a\    $SOLICITUD" /etc/nftables.conf
+      poner_solicitudes
+    fi
     # que sobreviva al reinicio: la misma regla en el archivo del cortafuegos, dentro de la cadena de entrada
     sed -i "/udp sport 547 udp dport 546 accept/a\    $REGLA" /etc/nftables.conf
     printf '%s\n' "$MODO" > "$MARCA"
@@ -124,11 +175,17 @@ MSG
       echo "Acceso remoto ENCENDIDO (solo red local). Dirección de este equipo:"
     fi
     ip -4 -o addr show scope global | awk '{print "  ssh '"${SUDO_USER:-usuario}"'@" $4}' | sed 's#/[0-9]*$##'
+    if [ "$MODO" = local ]; then
+      echo "Otro equipo de tu red puede pedir entrar con: leksso-solicitud pedir <dirección de este equipo>"
+      echo "Te saldrá una ventana con un código de dos palabras; solo entra si pulsas «Permitir»."
+      [ "$SIN_ENTRADA" -eq 0 ] || echo "AVISO: esta cuenta no tiene contraseña ni claves: hasta que permitas una solicitud, nadie puede entrar."
+    fi
     echo "Para apagarlo: sudo leksso-acceso-remoto off"
     ;;
   off)
     [ "$(id -u)" -eq 0 ] || { echo "Ejecuta con sudo: sudo leksso-acceso-remoto off" >&2; exit 1; }
     systemctl disable -q --now ssh ssh.socket 2>/dev/null || true
+    quitar_solicitudes
     quitar_regla
     rm -f "$MARCA" /etc/ssh/sshd_config.d/leksso.conf
     echo "Acceso remoto APAGADO."

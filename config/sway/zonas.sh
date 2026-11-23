@@ -136,7 +136,7 @@ montar() {
     # de X11 (Steam y otros antiguos, por XWayland), que NO tienen app_id y antes se saltaban la regla: caían donde estuviera el foco
     # (debajo del centro o dentro del panel de la IA). Quedan fuera las zonas propias (panel de la IA, asistentes, centro, terminal)
     # y las ventanas flotantes de LeksSO. Así el panel de la IA solo recibe IA.
-    swaymsg 'for_window [app_id="^(?!leksso-(ia|asistente|asistentes|centro|terminal|menu|energia|modo|calendario|dispositivos|notificaciones|redes|portapapeles|ajustes|actualizaciones)).*"] move container to mark centro' >/dev/null
+    swaymsg 'for_window [app_id="^(?!leksso-(ia|asistente|asistentes|centro|terminal|menu|energia|modo|calendario|dispositivos|notificaciones|redes|solicitud|portapapeles|ajustes|actualizaciones)).*"] move container to mark centro' >/dev/null
     swaymsg 'for_window [shell="xwayland"] move container to mark centro' >/dev/null
     : > "$marca"
   fi

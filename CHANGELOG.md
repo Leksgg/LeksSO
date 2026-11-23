@@ -3,6 +3,12 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
+## Sin publicar
+
++ **Solicitud de conexión: otro equipo de tu red pide entrar y tú lo permites en pantalla.** Hasta ahora, para entrar por SSH con clave había que pegar la clave a mano en Ajustes, y tras reinstalar un equipo se perdía el acceso. Ahora, desde el equipo que quiere entrar se ejecuta `leksso-solicitud pedir DIRECCIÓN` (vale en LeksSO y en Windows con Python); en el equipo de destino sale una ventana «Alguien quiere entrar en este equipo» con el nombre, la dirección y un **código de dos palabras** que debe ser el mismo en los dos equipos. «No permitir» es el botón por defecto e Intro nunca permite. Al permitir, la clave queda autorizada **solo para entrar desde la red local**. Solo funciona con el acceso remoto encendido en «Solo red local»: apagado o en modo público no se escucha nada. Límites: tres solicitudes pendientes como mucho, una por equipo, caducan a los 5 minutos, y tras dos «No permitir» se ignora a ese equipo 10 minutos. Probado el intercambio y el código en los dos lados; sin probar todavía entre dos equipos reales.
+
+~ **El acceso remoto «Solo red local» ya se puede encender sin contraseña ni claves.** Antes se negaba porque nadie habría podido entrar; ahora sirve para recibir una solicitud de conexión (Ajustes lo ofrece como «Esperar una solicitud»). Mientras no permitas ninguna, sigue sin poder entrar nadie.
+
 ## Beta 0.1.44 · 2026-11-23
 
 ~ **Redes: ventana propia en vez del menú de texto.** El clic en la red de la barra (y Ajustes, Red) abre ahora una ventana que se maneja con el ratón: dice a qué estás conectado, lista las redes wifi con su señal y un clic te conecta (pide la clave si la red es nueva). Tiene botones para encender o apagar el wifi, buscar de nuevo, desconectar y olvidar una red, y se cierra con la X, con Esc o al hacer clic fuera. El menú de texto de antes, donde «Back» no se podía pulsar con el ratón, sigue en «Avanzado…» para IP fija y casos raros. Sin probar todavía con un wifi real.
