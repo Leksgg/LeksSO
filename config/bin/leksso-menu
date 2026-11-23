@@ -1,22 +1,27 @@
 #!/usr/bin/env python3
 """Menú de aplicaciones de LeksSO: lista con iconos, buscador y botón de cerrar.
 
+Dos pestañas: «Instaladas» (lo que ya tienes; un clic lo abre) y «Para instalar» (lo del catálogo de LeksSO que aún
+no tienes, como OBS o Steam; un clic abre una terminal que lo instala, pidiendo confirmación y contraseña).
 No se cierra solo al mover el ratón. Se cierra con la X, con Esc o al abrir una app.
 Uso: leksso-menu
 """
 import configparser
 import glob
+import importlib.machinery
+import importlib.util
 import locale
 import os
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
 sys.path.insert(0, "/usr/local/lib/leksso-ui")
-from leksso_ui import ESTILO_BASE, alternar, estilo  # noqa: E402
+from leksso_ui import ESTILO_BASE, alternar, estilo, pintar  # noqa: E402
 
 DIRS = ["/usr/share/applications", "/usr/local/share/applications",
         os.path.expanduser("~/.local/share/applications")]  # el último manda (puede ocultar)
@@ -58,6 +63,46 @@ def leer_apps():
     return apps
 
 
+CATALOGOS = ["/usr/local/bin/leksso-apps",
+             os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "scripts", "leksso-apps.py")]
+
+
+def cargar_catalogo(rutas=CATALOGOS):
+    """El módulo de leksso-apps (catálogo y comprobación de lo instalado), o None si no está."""
+    for ruta in rutas:
+        if os.path.isfile(ruta):
+            try:
+                l = importlib.machinery.SourceFileLoader("leksso_apps_catalogo", ruta)
+                m = importlib.util.module_from_spec(importlib.util.spec_from_loader(l.name, l))
+                l.exec_module(m)
+                return m
+            except Exception:
+                continue
+    return None
+
+
+def para_instalar(catalogo, alternativas, instalado, hay_code=True):
+    """Lo del catálogo que aún no está instalado -> [(grupo, id, nombre, nota, es_alternativa)], en el orden del catálogo.
+    Fuera: lo que no se instala con un comando («manual») y las extensiones de VS Code si no hay VS Code."""
+    res = []
+    for grupo, ident, nombre, tipo, _obj, comprobar, nota in catalogo:
+        if tipo == "manual" or (tipo == "vscode-ext" and not hay_code):
+            continue
+        try:
+            if instalado(tipo, comprobar):
+                continue
+        except Exception:
+            pass
+        res.append((grupo, ident, nombre, alternativas.get(ident) or nota, ident in alternativas))
+    return res
+
+
+def orden_instalar(ident):
+    """La terminal que instala una app del catálogo (leksso-apps pregunta antes y pide la contraseña)."""
+    return ["leksso-term", "-T", "Instalar", "-e", "sh", "-c",
+            f"leksso-apps instalar {shlex.quote(ident)}; printf '\nPulsa Intro para cerrar.'; read -r _"]
+
+
 def lanzar(comando, terminal):
     comando = re.sub(r"%[fFuUdDnNickvm]", "", comando.replace("%%", "\0")).replace("\0", "%").strip()
     try:
@@ -89,6 +134,19 @@ class Menu(QtWidgets.QWidget):
         x.clicked.connect(self.close)
         cab.addWidget(x)
         raiz.addLayout(cab)
+        self.pestana = "instaladas"
+        self.catalogo = None            # se lee la primera vez que se abre «Para instalar»
+        fila = QtWidgets.QHBoxLayout()
+        self.botones = {}
+        for clave, texto in (("instaladas", "Instaladas"), ("instalar", "Para instalar")):
+            b = QtWidgets.QPushButton(texto)
+            b.setObjectName("accion")
+            b.setCheckable(True)
+            b.setFocusPolicy(QtCore.Qt.NoFocus)
+            b.clicked.connect(lambda _=False, c=clave: self.cambiar(c))
+            fila.addWidget(b)
+            self.botones[clave] = b
+        raiz.addLayout(fila)
         self.busca = QtWidgets.QLineEdit()
         self.busca.setPlaceholderText("Buscar…")
         self.busca.textChanged.connect(self.filtrar)
@@ -99,12 +157,66 @@ class Menu(QtWidgets.QWidget):
         self.lista.itemActivated.connect(self.abrir)
         self.lista.itemClicked.connect(self.abrir)
         raiz.addWidget(self.lista)
-        self.filtrar("")
+        self.nota = QtWidgets.QLabel("")
+        self.nota.setObjectName("nota")
+        self.nota.setWordWrap(True)
+        raiz.addWidget(self.nota)
+        self.cambiar("instaladas")
         self.busca.setFocus()
+
+    def cambiar(self, pestana):
+        self.pestana = pestana
+        for clave, b in self.botones.items():
+            b.setChecked(clave == pestana)
+            b.setStyleSheet(pintar("QPushButton { background: #003635; border: 1px solid #00c4bf; padding: 12px 14px; text-align: left; }")
+                            if clave == pestana else "")
+        if pestana == "instalar" and self.catalogo is None:
+            m = cargar_catalogo()
+            self.catalogo = [] if m is None else para_instalar(
+                m.CATALOGO, m.ALTERNATIVAS, m.instalado, shutil.which("code") is not None)
+            self.sin_catalogo = m is None
+        self.nota.setText("Un clic abre una terminal que lo instala: te pregunta antes y pide tu contraseña. Hace falta internet."
+                          if pestana == "instalar" else "")
+        self.nota.setVisible(pestana == "instalar")
+        self.filtrar(self.busca.text())
+
+    def filtrar_catalogo(self, q):
+        if getattr(self, "sin_catalogo", False):
+            self.lista.addItem("No encuentro el catálogo de aplicaciones (leksso-apps).")
+            return
+        grupo, hay = None, False
+        for g, ident, nombre, nota, alt in self.catalogo:
+            if q and q not in nombre.lower() and q not in ident.lower() and q not in g.lower():
+                continue
+            if g != grupo:
+                grupo = g
+                cab = QtWidgets.QListWidgetItem(g.upper())
+                cab.setFlags(QtCore.Qt.NoItemFlags)
+                letra = cab.font()
+                letra.setBold(True)
+                letra.setPointSizeF(letra.pointSizeF() * 0.85)
+                cab.setFont(letra)
+                cab.setSizeHint(QtCore.QSize(0, 30))
+                self.lista.addItem(cab)
+            it = QtWidgets.QListWidgetItem(nombre + (f"  ·  alternativa: {ident}" if alt else ""))
+            if nota:
+                it.setToolTip(nota)
+            it.setData(QtCore.Qt.UserRole, ("__instalar__", ident))
+            self.lista.addItem(it)
+            hay = True
+        if not hay:
+            self.lista.addItem("Ya tienes todo lo del catálogo." if not q else "Nada del catálogo coincide.")
 
     def filtrar(self, texto):
         self.lista.clear()
         q = texto.strip().lower()
+        if self.pestana == "instalar":
+            self.filtrar_catalogo(q)
+            for i in range(self.lista.count()):
+                if self.lista.item(i).data(QtCore.Qt.UserRole):
+                    self.lista.setCurrentRow(i)
+                    break
+            return
         for nombre, comando, icono, term in self.apps:
             if q and q not in nombre.lower():
                 continue
@@ -118,7 +230,15 @@ class Menu(QtWidgets.QWidget):
             self.lista.setCurrentRow(0)
 
     def abrir(self, item):
-        comando, term = item.data(QtCore.Qt.UserRole)
+        dato = item.data(QtCore.Qt.UserRole)
+        if not dato:
+            return                      # un título de grupo o un mensaje
+        comando, term = dato
+        if comando == "__instalar__":
+            subprocess.Popen(orden_instalar(term), start_new_session=True, stdin=subprocess.DEVNULL,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            self.close()
+            return
         lanzar(comando, term)
         self.close()
 

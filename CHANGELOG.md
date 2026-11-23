@@ -5,6 +5,10 @@ Lo más reciente, arriba.
 
 ## Sin publicar
 
++ **Aplicaciones: pestaña «Para instalar».** El menú de aplicaciones tiene ahora dos pestañas: «Instaladas» (como hasta ahora) y «Para instalar», con lo del catálogo de LeksSO que aún no tienes (OBS, Steam, Discord…), por grupos y con buscador. Un clic abre una terminal que lo instala: pregunta antes y pide tu contraseña. Hace falta internet.
+
++ **Impresoras por wifi.** La base trae ahora la detección de impresoras de la red (avahi) y una ventana para añadirlas (Ajustes, Impresoras), y tu usuario puede añadir impresoras sin más permisos. Antes solo estaba la página web de CUPS y había que saber la dirección de la impresora. Sin probar todavía con una impresora real.
+
 * **La ventana «Discos» de Ajustes ya tiene botón de cerrar** (la X arriba a la derecha; Esc también la cierra).
 
 ## Beta 0.1.42 · 2026-11-23
