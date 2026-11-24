@@ -35,6 +35,11 @@ def lanzar(n):
     """Cada asistente en su propia ventana de terminal, en la zona del panel de la IA."""
     titulo = f"Asistente · {asistentes.NOMBRES[n]}"
     fin = 'printf "\\n\\nSesion terminada. Pulsa Intro para cerrar esta ventana.\\n"; read -r _'
+    try:      # la zona del panel de la IA solo existe mientras haya un asistente: se crea al abrir el primero
+        subprocess.run(["leksso-zonas", "--zona-ia", "--auto"], timeout=20, stdin=subprocess.DEVNULL,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except (OSError, subprocess.SubprocessError):
+        pass
     subprocess.Popen(["leksso-term", "-T", titulo, "--app-id", f"leksso-asistente-{n}", "-e", "sh", "-c",
                       f"leksso-{n}; {fin}"], start_new_session=True, stdin=subprocess.DEVNULL,
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

@@ -7,5 +7,5 @@ fi
 if swaymsg -t get_tree 2>/dev/null | grep -q '"app_id": "leksso-ia"'; then
   swaymsg '[app_id="leksso-ia"] focus' >/dev/null
 else
-  exec leksso-term -T "Panel de la IA" --app-id leksso-ia -e python3 /usr/local/lib/leksso-ia/panel.py
+  exec leksso-zonas --zona-ia      # crea la zona de la derecha con el panel (ya no está siempre montada)
 fi

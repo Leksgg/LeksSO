@@ -3,6 +3,16 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
+## 0.1.59 · 2026-11-24
+
+~ **El botón de carpetas del raíl (y Súper+E) vuelve a funcionar.** Escondía una ventana «Carpetas» aparte que ya no existe desde que el explorador es PCManFM-Qt dentro de la zona central; ahora muestra u oculta su panel lateral de carpetas (F9, enviado con `wtype`, que se instala). Probado en la máquina virtual.
+~ **El panel de la IA solo existe cuando hace falta.** Ya no se monta al arrancar: la zona de la derecha se crea al abrir un asistente (y se cierra sola con el último) o al abrir el panel a mano (Súper+A, la barra o un aviso; esa se queda hasta que la cierres). Sin asistente, el explorador y las apps ocupan todo el ancho. Orden nueva `leksso-zonas --zona-ia [--auto]`.
+
+## Sin publicar
+
+~ **El botón de carpetas del raíl (y Súper+E) vuelve a funcionar.** Escondía una ventana «Carpetas» aparte que ya no existe desde que el explorador es el centro; ahora muestra u oculta el panel de carpetas del explorador (le manda F9 con `wtype`, que se instala con el sistema). Si falta `wtype`, avisa y trae el explorador al frente.
+~ **El panel de la IA solo existe cuando hace falta.** Ya no se monta al iniciar sesión: la zona de la derecha se crea al abrir un asistente (y se cierra sola al cerrar el último) o al abrir el panel a mano (Súper+A, la barra o el aviso de la IA), que se queda hasta que lo cierres. Sin asistentes, el explorador y las apps ocupan todo el ancho. Nueva orden `leksso-zonas --zona-ia [--auto]`.
+
 ## 0.1.58 · 2026-11-24
 
 ~ **Revisión de la interfaz (cuatro revisores independientes), primeras correcciones.**

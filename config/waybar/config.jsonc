@@ -27,7 +27,7 @@
     },
     "custom/archivos": {
       "format": "",
-      "tooltip-format": "Plegar o desplegar las carpetas (Súper+E)",
+      "tooltip-format": "Mostrar u ocultar las carpetas (Súper+E)",
       "on-click": "leksso-zonas --plegar"
     },
     "custom/juego": {
