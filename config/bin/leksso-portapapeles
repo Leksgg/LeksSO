@@ -11,7 +11,7 @@ import sys
 from PySide6 import QtCore, QtWidgets
 
 sys.path.insert(0, "/usr/local/lib/leksso-ui")
-from leksso_ui import ESTILO_BASE, alternar, estilo  # noqa: E402
+from leksso_ui import ESTILO_BASE, alternar, confirmar, estilo  # noqa: E402
 
 
 def ruta_config():
@@ -81,7 +81,7 @@ class Historial(QtWidgets.QWidget):
         aviso.setObjectName("dato")
         aviso.setWordWrap(True)
         raiz.addWidget(aviso)
-        borrar = QtWidgets.QPushButton("Borrar historial")
+        borrar = QtWidgets.QPushButton("Borrar todo lo copiado")
         borrar.setObjectName("accion")
         borrar.clicked.connect(self.borrar)
         raiz.addWidget(borrar)
@@ -119,6 +119,9 @@ class Historial(QtWidgets.QWidget):
         subprocess.Popen(["leksso-portapapeles-guardar", "caducar"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def borrar(self):
+        if not confirmar(self, "Borrar todo lo copiado", "Se borra todo lo que has copiado. No se puede recuperar.",
+                         "Borrar todo lo copiado", peligro=True):
+            return
         subprocess.run(["cliphist", "wipe"])
         self.todo = []
         self.llenar("")

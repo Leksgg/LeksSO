@@ -15,7 +15,7 @@ import sys
 from PySide6 import QtCore, QtWidgets
 
 sys.path.insert(0, "/usr/local/lib/leksso-ui")
-from leksso_ui import ESTILO_BASE, alternar, estilo  # noqa: E402
+from leksso_ui import ESTILO_BASE, alternar, confirmar, estilo  # noqa: E402
 
 
 def sal(*cmd, tiempo=40):
@@ -122,7 +122,7 @@ class Ventana(QtWidgets.QWidget):
         self.estado = QtWidgets.QLabel()
         self.estado.setWordWrap(True)
         raiz.addWidget(self.estado)
-        self.cambios = QtWidgets.QPlainTextEdit()
+        self.cambios = QtWidgets.QTextBrowser()      # las notas vienen en Markdown: se enseñan con formato
         self.cambios.setReadOnly(True)
         self.cambios.setPlaceholderText("Aquí aparece lo que trae la versión nueva.")
         raiz.addWidget(self.cambios, 1)
@@ -141,10 +141,10 @@ class Ventana(QtWidgets.QWidget):
         self.b_comprobar.setObjectName("accion")
         self.b_comprobar.clicked.connect(self.comprobar)
         self.b_instalar = QtWidgets.QPushButton("Actualizar ahora")
-        self.b_instalar.setObjectName("accion")
+        self.b_instalar.setObjectName("principal")
         self.b_instalar.clicked.connect(self.instalar)
         self.b_volver = QtWidgets.QPushButton("Volver a la anterior")
-        self.b_volver.setObjectName("accion")
+        self.b_volver.setObjectName("peligro")
         self.b_volver.clicked.connect(self.volver)
         for b in (self.b_comprobar, self.b_instalar, self.b_volver):
             fila.addWidget(b)
@@ -162,7 +162,8 @@ class Ventana(QtWidgets.QWidget):
         self.actual.setText(sal("leksso-actualizar", "version"))
         try:
             d = json.load(open("/var/lib/leksso/instalada.json", encoding="utf-8"))
-            self.huella.setText(f"Commit {d.get('commit', '')[:7]} · firma {d.get('firma', '')}" if d.get("commit") else "")
+            self.huella.setText("Firma comprobada ✓" if d.get("commit") and d.get("firma") else "")
+            self.huella.setToolTip(f"Commit {d.get('commit', '')[:7]} · firma {d.get('firma', '')}" if d.get("commit") else "")
         except (OSError, ValueError):
             self.huella.setText("")
         texto_hw, hay_hw = resumen_hw(estado_hw())
@@ -209,7 +210,7 @@ class Ventana(QtWidgets.QWidget):
             if cache().get("disponible"):
                 self.ver_cambios()
         else:
-            self.cambios.setPlainText(texto)
+            self.cambios.setMarkdown(texto)
 
     def terminal(self, titulo, orden):
         subprocess.Popen(["leksso-term", "-T", titulo, "-e", "sh", "-c",
@@ -225,33 +226,30 @@ class Ventana(QtWidgets.QWidget):
         est = estado_hw()
         n = est.get("nvidia") or {}
         if est.get("secure_boot") and n.get("accion") == "instalar" and clave_secure_boot() != "registrada":
-            r = QtWidgets.QMessageBox.question(
+            if confirmar(
                 self, "Secure Boot",
                 "Tu equipo tiene Secure Boot. Para usar el controlador de NVIDIA hay que registrar una clave de firma "
                 "en este equipo, una sola vez. Se crea sola, con una contraseña corta que verás en pantalla: la "
                 "escribirás en una pantalla azul al reiniciar, y después quedará guardada (oculta) en Ajustes → "
-                "Secure Boot. Nada se instala hasta que termines ese paso.\n\n¿Continuar?",
-                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No)
-            if r == QtWidgets.QMessageBox.Yes:
+                "Secure Boot. Nada se instala hasta que termines ese paso.",
+                    "Registrar la clave y seguir"):
                 self.terminal("Sistema y controladores", "sudo leksso-actualizar hardware sistema --si-mok")
             return
-        r = QtWidgets.QMessageBox.question(
+        if confirmar(
             self, "Sistema y controladores",
             "Se abre una terminal que pide tu contraseña e instala las actualizaciones del sistema. Si hay controlador de "
             "NVIDIA o firmware de dispositivos, te preguntará antes: NVIDIA necesita reiniciar y el firmware no se puede "
-            "deshacer (no apagues el equipo mientras se instala). ¿Continuar?",
-            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No)
-        if r == QtWidgets.QMessageBox.Yes:
+            "deshacer (no apagues el equipo mientras se instala).",
+                "Abrir la terminal e instalar"):
             self.terminal("Sistema y controladores", "sudo leksso-actualizar hardware sistema")
 
     def volver(self):
-        r = QtWidgets.QMessageBox.question(self, "Volver", "¿Volver a la versión anterior de LeksSO?\n\n"
-                                           "Se reinstala esa versión (con su firma comprobada, sin necesitar red) y se apartan a un respaldo "
+        if confirmar(self, "Volver a la versión anterior",
+                                           "Se reinstala la versión anterior de LeksSO (con su firma comprobada, sin necesitar red) y se apartan a un respaldo "
                                            "los archivos que añadió la versión actual. Tus ajustes y tus archivos no se tocan.\n\n"
                                            "Si el escritorio no arrancara, también puedes hacerlo desde el menú de arranque: "
                                            "«LeksSO: volver a la versión anterior».",
-                                           QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No)
-        if r == QtWidgets.QMessageBox.Yes:
+                                           "Volver a la versión anterior", peligro=True):
             self.terminal("Volver a la versión anterior", "sudo leksso-actualizar volver")
 
     def keyPressEvent(self, ev):

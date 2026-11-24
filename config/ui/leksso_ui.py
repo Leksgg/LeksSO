@@ -80,7 +80,15 @@ QPushButton#cerrar { background: transparent; color: #94a1a3; border: none; font
 QPushButton#cerrar:hover { background: #3f1a13; color: #ff735a; }
 QPushButton#accion { background: #112123; border: 1px solid #25393c; padding: 12px 14px; text-align: left; }
 QPushButton#accion:hover { background: #003635; border: 1px solid #00c4bf; }
-QPushButton#accion:disabled { color: #667576; background: #051416; }
+QPushButton#accion:disabled { color: #7f8f91; background: #051416; }
+QPushButton#activo { background: #003635; border: 1px solid #00c4bf; padding: 12px 14px; text-align: left; }
+QPushButton:focus { border: 1px solid #00c4bf; }
+QPushButton#cerrar:focus { border: 1px solid #00c4bf; }
+QPushButton:disabled { color: #7f8f91; border: 1px dashed #25393c; }
+QPushButton#principal { background: #00c4bf; color: #021012; border: 1px solid #00c4bf; padding: 10px 18px; font-weight: bold; }
+QPushButton#principal:hover { background: #003635; color: #e3edef; }
+QPushButton#principal:focus { border: 2px solid #e3edef; }
+QPushButton#principal:disabled { background: #051416; color: #7f8f91; border: 1px dashed #25393c; }
 QPushButton#peligro { background: #112123; border: 1px solid #25393c; padding: 12px 14px; text-align: left; }
 QPushButton#peligro:hover { background: #3f1a13; border: 1px solid #ff735a; }
 QListWidget { background: #021012; border: none; outline: none; }
@@ -153,6 +161,20 @@ def estilo(widget, base):
         v.directoryChanged.connect(cambio)
         v.fileChanged.connect(cambio)
         _VIGILANTE.append(v)
+
+
+def confirmar(padre, titulo, texto, si, no="Cancelar", peligro=False):
+    """Pregunta de confirmación cuyo botón dice lo que va a pasar («Borrar el historial», no «Sí»). Devuelve True si se
+    acepta. Por defecto y con Esc se cancela. `peligro` pinta el botón como acción destructiva."""
+    from PySide6 import QtWidgets
+    m = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Question, titulo, texto, QtWidgets.QMessageBox.NoButton, padre)
+    b_si = m.addButton(si, QtWidgets.QMessageBox.AcceptRole)
+    b_si.setObjectName("peligro" if peligro else "principal")
+    b_no = m.addButton(no, QtWidgets.QMessageBox.RejectRole)
+    m.setDefaultButton(b_no)
+    m.setEscapeButton(b_no)
+    m.exec()
+    return m.clickedButton() is b_si
 
 
 def alternar(nombre):

@@ -66,9 +66,13 @@ for_window [app_id="leksso-solicitud"] floating enable, resize set 480 330, move
 for_window [app_id="leksso-remoto"] floating enable, resize set 520 640, move position center
 for_window [app_id="leksso-pantalla"] floating enable, sticky enable, move position center, focus
 for_window [app_id="leksso-pantalla-parar"] floating enable, sticky enable, resize set 280 170, move position 78 ppt 3 ppt
-for_window [app_id="leksso-redes"] floating enable, resize set 460 560, move position center
-for_window [app_id="leksso-notificaciones"] floating enable, resize set 460 520, move position center
-for_window [app_id="leksso-portapapeles"] floating enable, resize set 520 560, move position center
+for_window [app_id="leksso-redes"] floating enable, resize set 460 480, move position center
+for_window [app_id="leksso-notificaciones"] floating enable, resize set 460 440, move position center
+for_window [app_id="leksso-portapapeles"] floating enable, resize set 520 460, move position center
+# Como el resto de las ventanas de LeksSO: flotantes y con un tamaño que no estira los controles (antes ocupaban toda la pantalla)
+for_window [app_id="leksso-seguridad"] floating enable, resize set 960 640, move position center
+for_window [app_id="leksso-copias-ui"] floating enable, resize set 560 620, move position center
+for_window [app_id="leksso-apariencia"] floating enable, resize set 520 620, move position center
 for_window [app_id="leksso-ajustes"] floating enable, resize set 600 540, move position center
 for_window [app_id="leksso-actualizaciones"] floating enable, resize set 620 600, move position center
 

@@ -146,7 +146,7 @@ def ventana(captura=None):
         if ruta not in sys.path:
             sys.path.insert(0, ruta)
     from PySide6 import QtCore, QtGui, QtWidgets
-    from leksso_ui import ESTILO_BASE, alternar, estilo
+    from leksso_ui import ESTILO_BASE, alternar, confirmar, estilo
 
     if captura is None and alternar("leksso-redes"):
         return 0
@@ -180,7 +180,7 @@ def ventana(captura=None):
             self.wifi = self.boton("", self.alternar_wifi)
             raiz.addWidget(self.wifi)
             self.lista = QtWidgets.QListWidget()
-            self.lista.setFocusPolicy(QtCore.Qt.NoFocus)
+            self.lista.setFocusPolicy(QtCore.Qt.TabFocus)
             self.lista.setFont(QtGui.QFontDatabase.systemFont(QtGui.QFontDatabase.GeneralFont))
             self.lista.itemClicked.connect(self.conectar)
             raiz.addWidget(self.lista, 1)
@@ -207,7 +207,7 @@ def ventana(captura=None):
         def boton(self, texto, accion):
             b = QtWidgets.QPushButton(texto)
             b.setObjectName("accion")
-            b.setFocusPolicy(QtCore.Qt.NoFocus)
+            b.setFocusPolicy(QtCore.Qt.TabFocus)
             b.clicked.connect(lambda _=False: accion())
             return b
 
@@ -322,11 +322,11 @@ def ventana(captura=None):
                 return
             self.dialogo = True
             try:
-                si = QtWidgets.QMessageBox.question(self, "Olvidar la red",
-                                                    f"¿Olvidar «{r['ssid']}»? Tendrás que escribir su clave para volver a entrar.")
+                si = confirmar(self, "Olvidar la red",
+                               f"Se olvida «{r['ssid']}». Tendrás que escribir su clave para volver a entrar.", "Olvidar la red")
             finally:
                 self.dialogo = False
-            if si == QtWidgets.QMessageBox.Yes:
+            if si:
                 _nmcli("connection", "delete", "id", r["ssid"])
                 self.nota.setText(f"Red «{r['ssid']}» olvidada.")
                 self.refrescar()

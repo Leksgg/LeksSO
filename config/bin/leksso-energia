@@ -11,7 +11,7 @@ import sys
 from PySide6 import QtCore, QtWidgets
 
 sys.path.insert(0, "/usr/local/lib/leksso-ui")
-from leksso_ui import ESTILO_BASE, alternar, estilo, pedir_permiso, pintar, sudo_cmd  # noqa: E402
+from leksso_ui import ESTILO_BASE, alternar, confirmar, estilo, pedir_permiso, pintar, sudo_cmd  # noqa: E402
 
 
 def admite(metodo):
@@ -86,7 +86,7 @@ class Energia(QtWidgets.QWidget):
             b.clicked.connect(lambda _=False, n=nombre, o=orden, c=confirma: self.hacer(n, o, c))
             raiz.addWidget(b)
         # «Reiniciar desde un dispositivo» de Windows: arrancar una sola vez otro sistema, una memoria USB o la BIOS.
-        otro = QtWidgets.QPushButton("Reiniciar en otro sistema o dispositivo…\nWindows, una memoria USB de arranque o la BIOS")
+        otro = QtWidgets.QPushButton("Reiniciar en otro sistema…\nWindows, USB de arranque o BIOS")
         otro.setObjectName("peligro")
         otro.clicked.connect(self.reiniciar_en)
         raiz.addWidget(otro)
@@ -112,9 +112,9 @@ class Energia(QtWidgets.QWidget):
         if not ok:
             return
         id_entrada = dict(opciones)[texto]
-        if QtWidgets.QMessageBox.question(
+        if not confirmar(
                 self, "Reiniciar", f"Se reiniciará ahora en:\n{texto}\n\nSe cerrará lo que tengas abierto sin guardar.",
-                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No) != QtWidgets.QMessageBox.Yes:
+                "Reiniciar ahora"):
             return
         if id_entrada is None:
             self.hacer("Reiniciar en la BIOS", ["leksso-reiniciar-en", "bios"], False)
@@ -148,10 +148,7 @@ class Energia(QtWidgets.QWidget):
 
     def hacer(self, nombre, orden, confirma):
         if confirma:
-            r = QtWidgets.QMessageBox.question(
-                self, nombre, f"¿{nombre}?\nSe cerrará lo que tengas abierto sin guardar.",
-                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No)
-            if r != QtWidgets.QMessageBox.Yes:
+            if not confirmar(self, nombre, "Se cerrará lo que tengas abierto sin guardar.", nombre):
                 return
         self.hide()
         subprocess.Popen(orden, start_new_session=True, stdin=subprocess.DEVNULL,

@@ -155,7 +155,7 @@ def ventana(anio, mes, captura=None):
         def boton(self, texto, ayuda, accion):
             b = QtWidgets.QPushButton(texto)
             b.setToolTip(ayuda)
-            b.setFocusPolicy(QtCore.Qt.NoFocus)
+            b.setFocusPolicy(QtCore.Qt.TabFocus)
             b.setStyleSheet(pintar("QPushButton { background: #112123; border: 1px solid #25393c; padding: 4px 12px; font-size: 15px; }"
                                    "QPushButton:hover { background: #003635; border: 1px solid #00c4bf; }"))
             b.clicked.connect(accion)
@@ -178,14 +178,14 @@ def ventana(anio, mes, captura=None):
             for e, d in zip(self.celdas, rejilla(self.anio, self.mes)):
                 dentro = d.month == self.mes
                 es_fest = d in fest
-                color = "#e3edef" if dentro else "#667576"
+                color = "#e3edef" if dentro else "#7f8f91"
                 fondo = "transparent"
                 borde = "1px solid transparent"
                 peso = "normal"
                 if d.weekday() >= 5 and dentro:
                     color = "#94a1a3"
                 if es_fest:
-                    color = "#fdc357" if dentro else "#667576"
+                    color = "#fdc357" if dentro else "#7f8f91"
                     fondo = "#332305" if dentro else "transparent"
                     peso = "bold"
                 if d == hoy:

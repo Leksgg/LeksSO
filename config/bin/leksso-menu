@@ -33,6 +33,11 @@ def idioma():
         return "es"
 
 
+# Nombres que llegan en inglés o técnicos de otros paquetes, y entradas que ya tiene el diálogo de Energía.
+ALIAS = {"Volume Control": "Volumen", "Control de volumen de PulseAudio": "Volumen", "Brave Web Browser": "Navegador Brave"}
+OCULTAS = {"btop++", "apagar", "bloquear la pantalla", "cerrar la sesión", "configuración de la sesión", "hibernar", "suspender", "reiniciar"}
+
+
 def leer_apps():
     lang = idioma()
     por_id = {}
@@ -54,6 +59,9 @@ def leer_apps():
         nombre = e.get(f"Name[{lang}]") or e.get("Name")
         comando = e.get("Exec")
         if not nombre or not comando:
+            continue
+        nombre = ALIAS.get(nombre, nombre)
+        if nombre.lower() in OCULTAS:
             continue
         if nombre.lower() in vistos:
             continue
@@ -142,7 +150,7 @@ class Menu(QtWidgets.QWidget):
             b = QtWidgets.QPushButton(texto)
             b.setObjectName("accion")
             b.setCheckable(True)
-            b.setFocusPolicy(QtCore.Qt.NoFocus)
+            b.setFocusPolicy(QtCore.Qt.TabFocus)
             b.clicked.connect(lambda _=False, c=clave: self.cambiar(c))
             fila.addWidget(b)
             self.botones[clave] = b

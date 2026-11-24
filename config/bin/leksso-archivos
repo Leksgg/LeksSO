@@ -35,9 +35,9 @@ QTreeView, QListView, QListWidget { background: #021012; border: none; outline: 
 QTreeView::item, QListWidget::item { padding: 3px 2px; }
 QTreeView::item:selected, QListView::item:selected, QListWidget::item:selected { background: #003635; color: #e3edef; }
 QTreeView::item:hover, QListView::item:hover, QListWidget::item:hover { background: #09191b; }
-QLabel#seccion { color: #667576; font-size: 11px; padding: 8px 8px 2px 8px; }
+QLabel#seccion { color: #7f8f91; font-size: 11px; padding: 8px 8px 2px 8px; }
 QLabel#ruta { color: #94a1a3; padding: 6px 8px; }
-QLabel#pie { color: #667576; padding: 4px 8px; font-size: 12px; }
+QLabel#pie { color: #7f8f91; padding: 4px 8px; font-size: 12px; }
 QPushButton#plano { background: transparent; border: none; color: #94a1a3; padding: 4px 10px; }
 QPushButton#plano:hover { color: #00c4bf; background: #003635; }
 QMenu { background: #112123; border: 1px solid #25393c; }
@@ -91,7 +91,7 @@ class Explorador(QtCore.QObject):
         a.setSpacing(0)
         a.addWidget(self._seccion("LUGARES"))
         self.l_lugares = QtWidgets.QListWidget()
-        self.l_lugares.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.l_lugares.setFocusPolicy(QtCore.Qt.TabFocus)
         self.l_lugares.itemClicked.connect(lambda it: self.ir(it.data(QtCore.Qt.UserRole)))
         a.addWidget(self.l_lugares)
         a.addWidget(self._seccion("CARPETAS"))
@@ -113,12 +113,12 @@ class Explorador(QtCore.QObject):
         b.setSpacing(0)
         barra = QtWidgets.QHBoxLayout()
         barra.setContentsMargins(4, 2, 4, 2)
-        for texto, ayuda, accion in (("↑ Subir", "Carpeta de arriba (Retroceso)", self.subir),
+        for texto, ayuda, accion in (("↑ Carpeta superior", "Carpeta de arriba (Retroceso)", self.subir),
                                      ("⌂ Inicio", "Tu carpeta personal", lambda: self.ir(CASA))):
             bt = QtWidgets.QPushButton(texto)
             bt.setObjectName("plano")
             bt.setToolTip(ayuda)
-            bt.setFocusPolicy(QtCore.Qt.NoFocus)
+            bt.setFocusPolicy(QtCore.Qt.TabFocus)
             bt.clicked.connect(accion)
             barra.addWidget(bt)
         self.e_ruta = QtWidgets.QLabel()
@@ -221,7 +221,7 @@ class Explorador(QtCore.QObject):
         sel = len(self.lista.selectionModel().selectedIndexes())
         try:
             libre = shutil.disk_usage(self.ruta).free / 1024 ** 3
-            espacio = f" · {libre:.1f} GB libres"
+            espacio = f" · {libre:.1f}".replace(".", ",") + " GB libres"
         except OSError:
             espacio = ""
         self.e_pie.setText((f"{sel} seleccionados de {n}" if sel else f"{n} elementos") + espacio

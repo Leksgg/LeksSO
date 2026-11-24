@@ -270,7 +270,7 @@ def ventana(captura=None):
         def boton(self, texto, accion):
             b = QtWidgets.QPushButton(texto)
             b.setObjectName("accion")
-            b.setFocusPolicy(QtCore.Qt.NoFocus)
+            b.setFocusPolicy(QtCore.Qt.TabFocus)
             b.clicked.connect(lambda _=False: accion())
             return b
 

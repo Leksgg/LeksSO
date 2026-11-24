@@ -22,7 +22,6 @@ QLabel#estado { font-size: 17px; font-weight: bold; }
 QLabel#ok { color: #85ce6c; } QLabel#aviso { color: #fdc357; } QLabel#mal { color: #ff735a; }
 QLabel#dato { color: #94a1a3; }
 QComboBox, QTimeEdit { background: #112123; border: 1px solid #25393c; padding: 6px 8px; color: #e3edef; }
-QPushButton#principal { background: #003635; border: 1px solid #00c4bf; padding: 12px 14px; text-align: left; }
 QListWidget { background: #09191b; border: 1px solid #25393c; }
 """
 FRECUENCIAS = [("diaria", "Cada día"), ("semanal", "Cada semana (los lunes)"), ("mensual", "Cada mes (el día 1)")]

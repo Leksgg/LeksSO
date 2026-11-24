@@ -56,13 +56,20 @@ class Apariencia(QtWidgets.QWidget):
         x.clicked.connect(self.close)
         cab.addWidget(x)
         self.raiz.addLayout(cab)
+        # La lista de temas se desplaza dentro de la ventana: con la ventana flotante no caben los seis a la vez y así no se aplastan.
         self.zona = QtWidgets.QVBoxLayout()
-        self.raiz.addLayout(self.zona)
+        contenido = QtWidgets.QWidget()
+        contenido.setLayout(self.zona)
+        self.zona.setContentsMargins(0, 0, 0, 0)
+        desplazable = QtWidgets.QScrollArea()
+        desplazable.setWidgetResizable(True)
+        desplazable.setFrameShape(QtWidgets.QFrame.NoFrame)
+        desplazable.setWidget(contenido)
+        self.raiz.addWidget(desplazable, 1)
         self.estado = QtWidgets.QLabel("")
         self.estado.setObjectName("nota")
         self.estado.setWordWrap(True)
         self.raiz.addWidget(self.estado)
-        self.raiz.addStretch()
         self.pintar()
 
     def pintar(self):
@@ -75,10 +82,10 @@ class Apariencia(QtWidgets.QWidget):
         activo = tema_activo()
         for nombre in temas():
             nom, desc = NOMBRES.get(nombre, (nombre.capitalize(), ""))
-            b = QtWidgets.QPushButton(("● " if nombre == activo else "") + f"{nom}\n{desc}")
-            b.setObjectName("accion")
-            b.setEnabled(nombre != activo)
-            b.clicked.connect(lambda _=False, n=nombre: self.aplicar(n))
+            b = QtWidgets.QPushButton(("● En uso · " if nombre == activo else "") + f"{nom}\n{desc}")
+            b.setObjectName("activo" if nombre == activo else "accion")      # el tema en uso se ve marcado, no apagado
+            if nombre != activo:
+                b.clicked.connect(lambda _=False, n=nombre: self.aplicar(n))
             self.zona.addWidget(b)
             self.zona.addWidget(Muestra([tokens(nombre)[k] for k in MUESTRA if k in tokens(nombre)]))
             self.zona.addSpacing(8)

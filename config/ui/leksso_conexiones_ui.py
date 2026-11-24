@@ -13,7 +13,7 @@ import subprocess
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from leksso_ui import pedir_permiso, pintar, sudo_cmd
+from leksso_ui import confirmar, pedir_permiso, pintar, sudo_cmd
 
 CATEGORIAS = [("entrante", "Entra desde fuera"), ("internet", "Sale a Internet"), ("red_local", "Red local"), ("escuchando", "Escuchando (servicios)")]
 COLOR = {"validada": "#85ce6c", "sin validar": "#fdc357", "bloqueada": "#ff735a"}
@@ -232,11 +232,11 @@ class Conexiones(QtWidgets.QWidget):
         c = self.elegida()
         if not c:
             return
-        r = QtWidgets.QMessageBox.question(
+        if not confirmar(
             self, "Bloquear este destino",
             f"Se bloqueará {c['destino']}:{c['puerto']} ({c['proto']}) para todo el equipo y seguirá bloqueado hasta que lo quites en la pestaña Bloqueos.\n\n"
-            f"Esto bloquea ese destino, no al programa ({c['nombre']}): si su servidor cambia de dirección, el programa podría seguir conectándose.\n\n¿Bloquear?")
-        if r != QtWidgets.QMessageBox.Yes:
+            f"Esto bloquea ese destino, no al programa ({c['nombre']}): si su servidor cambia de dirección, el programa podría seguir conectándose.",
+            "Bloquear este destino", peligro=True):
             return
         self.resultado(self.datos.accion("bloquear", c["destino"], str(c["puerto"]), "--proto", c["proto"], "--origen", c["nombre"]),
                        f"Bloqueado {c['destino']}:{c['puerto']}. Puedes quitarlo en la pestaña Bloqueos.")
@@ -323,8 +323,8 @@ class Historial(QtWidgets.QWidget):
         self.lista.setColumnWidth(0, 120)
 
     def borrar(self):
-        if QtWidgets.QMessageBox.question(self, "Borrar el historial", "Se borra el historial de eventos. Los bloqueos y las confianzas no se tocan. ¿Seguro?") \
-                == QtWidgets.QMessageBox.Yes:
+        if confirmar(self, "Borrar el historial", "Se borra el historial de eventos. Los bloqueos y las confianzas no se tocan.",
+                     "Borrar el historial", peligro=True):
             self.datos.accion("borrar-historial")
             self.datos.cargar()
 

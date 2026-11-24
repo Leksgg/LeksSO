@@ -3,6 +3,18 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
+## 0.1.58 · 2026-11-24
+
+~ **Revisión de la interfaz (cuatro revisores independientes), primeras correcciones.**
+  - **Teclado y mando:** los botones de las ventanas vuelven a recibir foco con Tab (antes tenían «sin foco») y el foco se ve con un borde cian. Con el ratón, el foco no se roba.
+  - **Botón principal:** una sola acción destacada por ventana (relleno de acento): «Actualizar ahora», «Activar las copias». Los botones desactivados se distinguen con borde discontinuo y no solo con el gris.
+  - **Confirmaciones con verbo:** en vez de «Sí / No», el botón dice lo que pasa («Volver a la versión anterior», «Olvidar la red», «Borrar el historial», «Quitar el acceso»…) y por defecto se cancela. «Borrar todo lo copiado» del portapapeles ahora pide confirmación.
+  - **Notas de versión legibles:** Actualizaciones muestra el Markdown con formato y «Firma comprobada ✓» (el detalle queda en la ayuda emergente).
+  - **Ventanas coherentes:** Seguridad, Copias y Apariencia flotan como las demás; Apariencia desplaza su lista de temas y marca el tema en uso («● En uso») en lugar de apagarlo; Portapapeles, Redes y Notificaciones pierden el hueco vacío; el último botón de Energía ya no se corta.
+  - **Gris legible:** el gris tenue sube a #7f8f91 (contraste 5,7:1 sobre el fondo, antes 4,0:1).
+  - **Menú de aplicaciones:** «Volume Control» pasa a «Volumen», «Brave Web Browser» a «Navegador Brave»; se ocultan btop++ y las acciones de energía (Apagar, Bloquear, Cerrar sesión, Hibernar, Suspender, Reiniciar), que ya están en el diálogo de Energía.
+  - **Archivos:** «Subir» pasa a «Carpeta superior» y el espacio libre usa coma decimal («48,3 GB»).
+
 ## 0.1.57 · 2026-11-24
 
 ~ **Tipografías por pieza.** Los títulos de las ventanas de LeksSO van en MAYÚSCULAS con Raxtor (familia nueva «Raxtor Titulos», de `Raxtor-Bold.ttf`: mayúsculas, cifras y signos); el cuerpo de las ventanas (solo Montserrat: Qt dibuja Raxtor entera, no respeta la restricción a cifras), la barra, los avisos, el lanzador y los títulos de ventana de sway pasan a Montserrat, con Raxtor solo para las cifras; la terminal usa JetBrains Mono. Las letras que Raxtor no trae (Ñ, vocales con tilde) salen de Montserrat, solo esa letra. Se instalan `fonts-montserrat` y `fonts-jetbrains-mono`. La regla de fontconfig pasa a llamarse `65-leksso-raxtor.conf` y se borra la anterior (`...-cifras.conf`) al actualizar.

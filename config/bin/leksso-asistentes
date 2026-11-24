@@ -128,7 +128,7 @@ def ventana():
             self.setWindowTitle("Asistentes de IA")
             estilo(self, ESTILO_BASE + """
                 QCheckBox { spacing: 10px; }
-                QCheckBox::indicator { width: 16px; height: 16px; border: 1px solid #667576; background: #021012; }
+                QCheckBox::indicator { width: 16px; height: 16px; border: 1px solid #7f8f91; background: #021012; }
                 QCheckBox::indicator:hover { border-color: #00c4bf; }
                 QCheckBox::indicator:checked { background: #00c4bf; border-color: #00c4bf; }
                 QCheckBox::indicator:disabled { border-color: #25393c; background: #25393c; }

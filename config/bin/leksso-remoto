@@ -112,7 +112,7 @@ def ventana(captura=None):
         if ruta not in sys.path:
             sys.path.insert(0, ruta)
     from PySide6 import QtCore, QtWidgets
-    from leksso_ui import ESTILO_BASE, alternar, estilo
+    from leksso_ui import ESTILO_BASE, alternar, confirmar, estilo
 
     if captura is None and alternar("leksso-remoto"):
         return 0
@@ -192,7 +192,7 @@ def ventana(captura=None):
         def boton(self, texto, accion):
             b = QtWidgets.QPushButton(texto)
             b.setObjectName("accion")
-            b.setFocusPolicy(QtCore.Qt.NoFocus)
+            b.setFocusPolicy(QtCore.Qt.TabFocus)
             b.clicked.connect(lambda _=False: accion())
             return b
 
@@ -228,11 +228,9 @@ def ventana(captura=None):
             a = self.elegida()
             if not a:
                 return
-            r = QtWidgets.QMessageBox.question(self, "Quitar acceso",
-                                               f"¿Quitar el acceso a «{a['nombre']}»? Dejará de poder entrar en este equipo. "
-                                               "Para volver a entrar tendrá que pedirlo de nuevo.",
-                                               QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No)
-            if r == QtWidgets.QMessageBox.Yes:
+            if confirmar(self, "Quitar acceso",
+                         f"«{a['nombre']}» dejará de poder entrar en este equipo. Para volver a entrar tendrá que pedirlo de nuevo.",
+                         "Quitar el acceso", peligro=True):
                 guardar_autorizadas(quitar(leer_autorizadas(), a["linea"]))
                 self.refrescar()
 
