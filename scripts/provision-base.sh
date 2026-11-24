@@ -202,6 +202,15 @@ systemctl daemon-reload >/dev/null 2>&1 || true
 
 # Stream Deck: se inicia al conectarlo (el acceso a USB lo da la regla del paquete).
 install -m 0644 "$RAIZ/config/systemd/leksso-streamdeck.service" "$RAIZ/config/systemd/leksso-permisor.service" /etc/systemd/user/
+# El permisor que ya está en marcha sigue siendo el de antes de actualizar (sin «-I»): el servicio de administración, que ya
+# solo reconoce al permisor arrancado con -I, lo rechazaría hasta el siguiente inicio de sesión. Se reinicia aquí (probado
+# en la VM con la RC 0.1.53). try-restart: solo si está en marcha; las peticiones pendientes se pierden, lo recordado no.
+UID_USR="$(id -u "$USUARIO")"
+if [ -S "/run/user/$UID_USR/bus" ]; then
+  U env XDG_RUNTIME_DIR="/run/user/$UID_USR" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$UID_USR/bus" systemctl --user daemon-reload || true
+  U env XDG_RUNTIME_DIR="/run/user/$UID_USR" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$UID_USR/bus" systemctl --user try-restart leksso-permisor.service \
+    || echo "AVISO: no se pudo reiniciar el permisor; se reiniciará en el próximo inicio de sesión."
+fi
 install -m 0644 "$RAIZ/config/udev/70-leksso-streamdeck.rules" /etc/udev/rules.d/
 install -m 0644 "$RAIZ/config/udev/70-leksso-brillo.rules" /etc/udev/rules.d/      # brillo cambiable por el grupo video (teclas de brillo)
 # fluidsynth (sintetizador MIDI que traen Lutris y otros) abre la tarjeta de sonido directamente y deja a PipeWire sin audio:

@@ -37,6 +37,11 @@ class Pruebas(unittest.TestCase):
         self.assertFalse([l for l in codigo if re.search(r"AISLAMIENTO=.*firejail", l.split("#")[0])])    # hallazgo 15
         self.assertTrue([l for l in codigo if "usermod -aG" in l and "seatd" in l], "el usuario debe seguir en el grupo seatd")
 
+    def test_reinicia_el_permisor_en_marcha_para_que_lo_reconozca_el_servicio_de_administracion(self):
+        texto = "\n".join(l for l in self.lineas if not l.strip().startswith("#"))
+        self.assertRegex(texto, r"try-restart leksso-permisor\.service")
+        self.assertLess(texto.index('leksso-permisor.service" /etc/systemd/user/'), texto.index("try-restart leksso-permisor.service"))   # primero la unidad nueva, luego el reinicio
+
     def test_no_instala_npm_ni_los_asistentes_en_cada_provision(self):
         for l in self.lineas:
             if not l.strip().startswith("#"):

@@ -495,7 +495,11 @@ def _hablar(direccion, puerto, linea):
     return dato.decode("ascii", "replace")
 
 
-def pedir(direccion, ruta_clave=None, nombre=None, espera=CADUCA, puerto=PUERTO, salida=print):
+def _decir(texto):
+    print(texto, flush=True)          # con la salida redirigida a un archivo, sin esto no se vería nada hasta el final
+
+
+def pedir(direccion, ruta_clave=None, nombre=None, espera=CADUCA, puerto=PUERTO, salida=_decir):
     ruta, clave = clave_propia(ruta_clave)
     nombre = nombre_limpio(nombre or socket.gethostname())
     secreto = secrets.token_hex(16)               # mi número: no lo enseño hasta ver el del otro equipo
