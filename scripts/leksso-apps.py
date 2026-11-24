@@ -173,6 +173,22 @@ def correr(cmd, simular, **kw):
     return subprocess.run(cmd, env=env, **kw).returncode
 
 
+NPM_FIJADO = os.environ.get("LEKSSO_NPM_FIJADO") or "/usr/local/share/leksso/versiones-npm"
+
+
+def npm_fijado(paquete):
+    """True si el paquete tiene versión y suma fijadas en versiones-npm (se instala con leksso-npm-fijado)."""
+    try:
+        with open(NPM_FIJADO, encoding="utf-8") as f:
+            for linea in f:
+                partes = linea.split()
+                if len(partes) >= 3 and not linea.startswith("#") and partes[0] == paquete:
+                    return True
+    except OSError:
+        pass
+    return False
+
+
 def sudo(cmd, simular):
     return correr(["sudo", "--preserve-env=DEBIAN_FRONTEND"] + cmd, simular)
 
@@ -406,6 +422,9 @@ def hacer(item, simular, si):
         repo, patron = objetivo.split("|")
         return instalar_deb(url_github(repo, patron) if not simular else f"(último .deb de github.com/{repo})", simular)
     if tipo == "npm":
+        if npm_fijado(objetivo):          # versión y suma fijadas por LeksSO (Claude Code, Codex)
+            rc = sudo(["leksso-npm-fijado", objetivo], simular)
+            return anotar(item[2], "leksso-npm-fijado " + objetivo, rc, simular)
         rc = sudo(["npm", "install", "-g", objetivo], simular)
         return anotar(item[2], "npm install -g " + objetivo, rc, simular)
     if tipo == "script":

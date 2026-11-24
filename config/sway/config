@@ -36,8 +36,11 @@ exec leksso-zonas
 exec leksso-actualizar comprobar --avisar
 exec mako
 exec lxqt-policykit-agent
-exec wl-paste --type text --watch cliphist store
-exec wl-paste --type image --watch cliphist store
+# Historial del portapapeles: sin lo que marcan como sensible los gestores de contraseñas, y con caducidad (2 horas por
+# defecto; se cambia en la ventana del portapapeles). Ver leksso-portapapeles-guardar.
+exec wl-paste --type text --watch leksso-portapapeles-guardar guardar
+exec wl-paste --type image --watch leksso-portapapeles-guardar guardar
+exec sh -c 'while :; do leksso-portapapeles-guardar caducar; sleep 600; done'
 # Reposo: por defecto bloquear a los 10 min, apagar la pantalla a los 15 y suspender a los 30 (solo con batería).
 # Los tiempos se cambian en Ajustes, Bloqueo y reposo (se guardan en ~/.config/leksso/reposo).
 exec leksso-reposo iniciar

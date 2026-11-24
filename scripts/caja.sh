@@ -3,9 +3,13 @@
 # Sin red (o con red PROPIA vía pasta si se pide --red), sin acceso a tu carpeta personal y con el sistema en solo lectura.
 #
 # Uso:
-#   caja.sh [--rw CARPETA]... [--ro CARPETA]... [--env VAR=VALOR]... [--red] [--gui] [--audio] [--gpu]
-#           [--wine PREFIJO] -- programa [argumentos]
-#   --gui: ventana en el escritorio (Wayland y Xwayland). --audio: PipeWire/Pulse. --gpu: /dev/dri.
+#   caja.sh [--rw CARPETA]... [--ro CARPETA]... [--env VAR=VALOR]... [--red] [--gui [--x11] | --gui-completa] [--audio]
+#           [--gpu] [--wine PREFIJO] -- programa [argumentos]
+#   --gui: ventana en el escritorio por un socket Wayland RESTRINGIDO (contexto de seguridad de sway: sin captura de
+#          pantalla, portapapeles global, teclado ni ratón virtuales, ni lista de ventanas). Si no se puede crear, no arranca.
+#   --x11: además, Xwayland (lo necesita Wine hoy; los programas X11 se ven entre sí y a los X11 de la sesión).
+#   --gui-completa: el socket de la sesión SIN restringir, con Xwayland. Solo para programas de plena confianza.
+#   --audio: PipeWire/Pulse. --gpu: /dev/dri.
 #   --ia: caja para una IA local; solo ve el socket del permisor (leksso-ia.sock) y pide permiso para todo.
 #   --ia-nube: igual para una IA en la nube (usa el canal «nube», que siempre pregunta); necesita --red.
 #   --estricta: filtro seccomp para programas NO fiables (sin espacios de usuario, mount, ptrace, bpf...).
@@ -19,7 +23,7 @@
 # En Wine, la unidad Z: solo ve la caja, no tu sistema real.
 set -euo pipefail
 
-RW=(); RO=(); ENV=(); RED=0; PREFIJO=""; GUI=0; AUDIO=0; GPU=0; ESTRICTA=0; IA=""
+RW=(); RO=(); ENV=(); RED=0; PREFIJO=""; GUI=0; GUI_COMPLETA=0; X11=0; AUDIO=0; GPU=0; ESTRICTA=0; IA=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --ia)      [ -z "$IA" ] || { echo "Usa --ia o --ia-nube, no los dos" >&2; exit 2; }; IA="leksso-ia.sock"; shift ;;
@@ -28,6 +32,8 @@ while [ $# -gt 0 ]; do
                case "$2" in ""|*[!a-z]*) echo "Nombre de asistente no válido: $2" >&2; exit 2 ;; esac
                IA="leksso-ia-$2.sock"; shift 2 ;;
     --gui)   GUI=1; shift ;;
+    --gui-completa) GUI=1; GUI_COMPLETA=1; shift ;;
+    --x11)   X11=1; shift ;;
     --audio) AUDIO=1; shift ;;
     --gpu)   GPU=1; shift ;;
     --estricta) ESTRICTA=1; shift ;;
@@ -84,8 +90,27 @@ if [ -n "$IA" ]; then
 fi
 if [ "$GUI" -eq 1 ]; then
   WL="${WAYLAND_DISPLAY:-wayland-1}"
-  [ -S "$RT/$WL" ] && ARGS+=(--bind "$RT/$WL" "$DENTRO/$WL" --setenv WAYLAND_DISPLAY "$WL")
-  if [ -d /tmp/.X11-unix ]; then      # Xwayland, que necesita Wine
+  if [ "$GUI_COMPLETA" -eq 1 ]; then
+    # El socket de la sesión tal cual: la caja podría pedir a sway la captura de pantalla, el portapapeles global y un
+    # teclado y un ratón virtuales. Solo para un programa de plena confianza.
+    echo "AVISO: la caja ve el socket Wayland COMPLETO de la sesión (captura de pantalla, portapapeles, teclado virtual): úsalo solo con programas de plena confianza." >&2
+    [ -S "$RT/$WL" ] && ARGS+=(--bind "$RT/$WL" "$DENTRO/$WL" --setenv WAYLAND_DISPLAY "$WL")
+  else
+    # Socket NUEVO registrado en sway como «de una caja» (wp_security_context_v1): sway no le enseña los protocolos
+    # privilegiados. Lo crea leksso-contexto-wayland, que vive mientras viva este proceso (el PID no cambia con exec).
+    CTX="${LEKSSO_CONTEXTO_WAYLAND:-/usr/local/bin/leksso-contexto-wayland}"
+    [ -x "$CTX" ] || CTX="$(dirname "$(realpath "$0")")/leksso-contexto-wayland.py"
+    [ -f "$CTX" ] || { echo "ERROR: falta leksso-contexto-wayland: la caja con ventana no se abre sin él. (Solo si aceptas darle todo el escritorio: --gui-completa.)" >&2; exit 6; }
+    SOCK_CAJA=""
+    exec {CTXFD}< <(python3 "$CTX" servir --app-id leksso.caja --vigilar $$)
+    read -r -t 15 SOCK_CAJA <&"$CTXFD" || true
+    exec {CTXFD}<&-
+    [ -S "$SOCK_CAJA" ] || { echo "ERROR: no se pudo crear el socket Wayland restringido (hace falta sway 1.9 o más nuevo). La caja con ventana no se abre con todo el escritorio a la vista salvo que lo pidas: --gui-completa." >&2; exit 6; }
+    ARGS+=(--bind "$SOCK_CAJA" "$DENTRO/wayland-0" --setenv WAYLAND_DISPLAY wayland-0)
+  fi
+  # Xwayland (lo necesita Wine hoy). Los programas X11 de la caja se ven entre sí y a los X11 de la sesión: por eso
+  # no entra con --gui a secas, solo si se pide con --x11 (o con --gui-completa).
+  if { [ "$X11" -eq 1 ] || [ "$GUI_COMPLETA" -eq 1 ]; } && [ -d /tmp/.X11-unix ]; then
     ARGS+=(--ro-bind /tmp/.X11-unix /tmp/.X11-unix --setenv DISPLAY "${DISPLAY:-:0}")
   fi
 fi

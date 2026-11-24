@@ -39,24 +39,6 @@ X11Forwarding no
 ' > /etc/ssh/sshd_config.d/leksso.conf
 fi
 
-# 3c. Instalación SIN contraseña de usuario (entrada del menú «sin contraseña»): el usuario no tiene contraseña, el
-#     equipo entra solo al escritorio al encender y sudo no la pide. Quien tenga el equipo delante tiene acceso a todo:
-#     es para uso propio. El acceso remoto (SSH) no admite contraseñas vacías, así que desde la red no se puede entrar.
-case " $* " in *" --sin-contrasena "*) SIN_CONTRASENA=1 ;; esac
-if [ -n "${SIN_CONTRASENA:-}" ]; then
-  passwd -d "$USUARIO"
-  echo "$USUARIO ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/leksso-sin-contrasena
-  chmod 440 /etc/sudoers.d/leksso-sin-contrasena
-  install -d /etc/systemd/system/getty@tty1.service.d /etc/leksso
-  cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf <<'EOF'
-[Service]
-ExecStart=
-ExecStart=-/sbin/agetty -o '-p -f -- \\u' --noclear --autologin @USUARIO@ %I $TERM
-EOF
-  sed -i "s/@USUARIO@/$USUARIO/" /etc/systemd/system/getty@tty1.service.d/autologin.conf
-  touch /etc/leksso/sin-contrasena
-fi
-
 # 3d. «Disco cifrado con desbloqueo automático»: el disco se cifra con la clave que se eligió al instalar y, en el primer
 #     arranque del escritorio, se ofrece enlazarlo al TPM2 (leksso-disco). No se hace aquí porque pide esa clave y el
 #     estado del arranque del instalador no es el del sistema instalado. Las herramientas van en el USB (sin internet).

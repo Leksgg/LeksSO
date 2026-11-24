@@ -3,4 +3,4 @@
 f="$(realpath "$1")"
 d="$(dirname "$f")"
 mkdir -p "$HOME/.wine-leksso"
-exec caja --gui --audio --gpu --wine "$HOME/.wine-leksso" --ro "$d" -- wine "/home/caja/$(basename "$d")/$(basename "$f")"
+exec caja --gui --x11 --audio --gpu --wine "$HOME/.wine-leksso" --ro "$d" -- wine "/home/caja/$(basename "$d")/$(basename "$f")"

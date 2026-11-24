@@ -4,6 +4,7 @@
 Usa cliphist (que guarda el historial) y wl-copy. Un clic en una entrada la deja en el
 portapapeles y cierra; con la X o Esc se cierra sin cambiar nada.
 """
+import os
 import subprocess
 import sys
 
@@ -11,6 +12,23 @@ from PySide6 import QtCore, QtWidgets
 
 sys.path.insert(0, "/usr/local/lib/leksso-ui")
 from leksso_ui import ESTILO_BASE, alternar, estilo  # noqa: E402
+
+
+def ruta_config():
+    return os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"), "leksso", "portapapeles")
+
+
+def minutos_de_caducidad():
+    """Lo mismo que lee leksso-portapapeles-guardar: minutos que dura lo copiado (0 = nunca; por defecto 120)."""
+    try:
+        with open(ruta_config(), encoding="utf-8") as f:
+            for linea in f:
+                k, _, v = linea.partition("=")
+                if k.strip() == "caduca_min" and v.strip().isdigit():
+                    return int(v.strip())
+    except OSError:
+        pass
+    return 120
 
 
 def entradas():
@@ -49,6 +67,20 @@ class Historial(QtWidgets.QWidget):
         self.lista.itemClicked.connect(self.elegir)
         self.lista.itemActivated.connect(self.elegir)
         raiz.addWidget(self.lista)
+        fila = QtWidgets.QHBoxLayout()
+        fila.addWidget(QtWidgets.QLabel("Borrar lo copiado tras:"))
+        self.caduca = QtWidgets.QComboBox()
+        for texto, minutos in (("15 minutos", 15), ("1 hora", 60), ("2 horas", 120), ("8 horas", 480), ("1 día", 1440), ("Nunca", 0)):
+            self.caduca.addItem(texto, minutos)
+        self.caduca.setCurrentIndex(max(self.caduca.findData(minutos_de_caducidad()), 2))
+        self.caduca.currentIndexChanged.connect(self.guardar_caducidad)
+        fila.addWidget(self.caduca)
+        fila.addStretch()
+        raiz.addLayout(fila)
+        aviso = QtWidgets.QLabel("Lo que un gestor de contraseñas marca como sensible no se guarda nunca.")
+        aviso.setObjectName("dato")
+        aviso.setWordWrap(True)
+        raiz.addWidget(aviso)
         borrar = QtWidgets.QPushButton("Borrar historial")
         borrar.setObjectName("accion")
         borrar.clicked.connect(self.borrar)
@@ -78,6 +110,13 @@ class Historial(QtWidgets.QWidget):
         dec = subprocess.run(["cliphist", "decode", ident], capture_output=True)
         subprocess.run(["wl-copy"], input=dec.stdout)
         self.close()
+
+    def guardar_caducidad(self):
+        ruta = ruta_config()
+        os.makedirs(os.path.dirname(ruta), exist_ok=True)
+        with open(ruta, "w", encoding="utf-8") as f:
+            f.write(f"caduca_min={self.caduca.currentData()}\n")
+        subprocess.Popen(["leksso-portapapeles-guardar", "caducar"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def borrar(self):
         subprocess.run(["cliphist", "wipe"])

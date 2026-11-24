@@ -41,6 +41,15 @@ fi
 
 [ -z "$(git status --porcelain)" ] || { echo "Hay cambios sin subir: haz commit antes." >&2; exit 1; }
 
+# Puerta de pruebas: no se firma ni se publica con la batería en rojo (de la 0.1.47 a la 0.1.52 salieron versiones con
+# dos pruebas del instalador fallando y nadie lo notó). LEKSSO_SIN_PRUEBAS=1 la salta y lo deja dicho; no es lo normal.
+if [ "${LEKSSO_SIN_PRUEBAS:-}" = 1 ]; then
+  echo "AVISO: se publica SIN ejecutar la batería de pruebas (LEKSSO_SIN_PRUEBAS=1)." >&2
+else
+  echo "Ejecutando la batería de pruebas (unos 90 segundos)..."
+  bash scripts/correr-pruebas.sh || { echo "Las pruebas fallan: no se publica nada. Arréglalas, o salta este paso con LEKSSO_SIN_PRUEBAS=1 (no recomendado)." >&2; exit 1; }
+fi
+
 SUBIR=1
 for a in "$@"; do [ "$a" = "--sin-subir" ] && SUBIR=0; done
 PREPARADA=0

@@ -1,0 +1,7 @@
+# Versiones fijadas de los paquetes npm que LeksSO instala como administrador (Claude Code y Codex).
+# Formato: paquete versión integridad (sha512 que publica el registro de npm para ESA versión).
+# `sudo leksso-npm-fijado PAQUETE` comprueba la integridad antes de instalar y se niega si no coincide.
+# Para subir de versión: elegir la nueva, copiar su dist.integrity (`npm view PAQUETE@VERSIÓN dist.integrity`),
+# probarla y publicar una versión de LeksSO con este archivo cambiado. Nunca «latest».
+@anthropic-ai/claude-code 2.1.331 sha512-E6IE7pon8YAtlzIBB0yhhQgopGvsYuSjnCaoP9ATw64T/f3I4ZfwVcj5jWV9yD7XkrSQZCwO7PgS+qMcP817gA==
+@openai/codex 0.172.0 sha512-yHf/6wbw4Zvha2M2ylDhDrU9FgfKLYgV6xSzSjlz3gxQNsiVLkXo+fPGwBqvP0A5geLtZs9wAbq+1v7+ZVWJ0g==

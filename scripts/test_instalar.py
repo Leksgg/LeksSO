@@ -68,14 +68,17 @@ class Base(unittest.TestCase):
 
 class Version(Base):
     def test_elige_la_mas_alta_y_ignora_basura(self):
-        for t in ("v0.1.0-alpha", "v0.9.0-alpha", "v0.10.0-alpha", "v0.10.0-beta", "v9.9.9", "vX", "v1.0.0-alpha;id"):
+        # Orden por número (0.10.0 > 0.9.9), y a igual número alpha < beta < la versión normal (sin sufijo, desde la 0.1.47).
+        # Lo que no es una etiqueta de versión (vX, con punto y coma) se ignora.
+        for t in ("v0.1.0-alpha", "v0.9.0-alpha", "v0.9.9", "v0.10.0-alpha", "v0.10.0-beta", "v0.10.0", "vX", "v1.0.0-alpha;id"):
             sh("git", "tag", t, cwd=self.repo)
         r = self.bash("elegir_version ''")
-        self.assertEqual(r.stdout.strip(), "v0.10.0-beta", r.stderr)
+        self.assertEqual(r.stdout.strip(), "v0.10.0", r.stderr)
 
     def test_version_pedida_se_valida(self):
         self.assertEqual(self.bash("elegir_version v0.1.4-alpha").stdout.strip(), "v0.1.4-alpha")
-        for malo in ("0.1.4", "v0.1.4", "v0.1.4-alpha; rm -rf /", "../x", "v0.1.4-alpha\n"):
+        self.assertEqual(self.bash("elegir_version v0.1.4").stdout.strip(), "v0.1.4")    # sin sufijo: válida desde la 0.1.47
+        for malo in ("0.1.4", "v0.1.4;id", "v0.1.4-alpha; rm -rf /", "../x", "v0.1.4-alpha\n"):
             r = self.bash(f"elegir_version $'{malo.encode('unicode_escape').decode()}'")
             self.assertNotEqual(r.returncode, 0, malo)
 

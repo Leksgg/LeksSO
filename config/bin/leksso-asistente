@@ -14,7 +14,7 @@ case "${1:-abrir}" in
     command -v "$2" >/dev/null 2>&1 && { echo "$2 ya está instalado."; exit 0; }
     command -v npm >/dev/null 2>&1 || sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends nodejs npm \
       || { echo "No se pudo instalar Node (¿hay conexión?)." >&2; exit 1; }
-    sudo npm install -g "$p" || { echo "No se pudo instalar (¿hay conexión?)." >&2; exit 1; } ;;
+    sudo leksso-npm-fijado "$p" || { echo "No se pudo instalar (¿hay conexión?)." >&2; exit 1; } ;;
   activar|desactivar) echo "Eso se elige ahora en la ventana de asistentes: leksso-asistentes" ;;
   *) sed -n '2,6p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
 esac

@@ -3,7 +3,7 @@
 
   En el equipo que quiere entrar (LeksSO, Windows, cualquiera con Python y ssh):
     leksso-solicitud pedir DIRECCIÓN [--clave ~/.ssh/id_ed25519.pub] [--nombre NOMBRE]
-        envía la solicitud, enseña el código de dos palabras y espera a que la aprueben.
+        envía la solicitud, enseña el código de cuatro palabras y espera a que la aprueben.
 
   En el equipo que recibe (lo lanza el sistema; no hace falta teclear nada):
     leksso-solicitud recibir     atiende UNA conexión (lo arranca systemd por cada solicitud que llega)
@@ -14,9 +14,17 @@ Reglas:
   - Solo existe mientras el acceso remoto está encendido en modo «solo red local» (Ajustes, Acceso remoto). Apagado o en
     modo público, no se escucha nada.
   - Solo desde la red local, y solo si hay alguien con la sesión abierta para contestar.
-  - El código de dos palabras sale en los dos equipos y debe ser el mismo: se calcula con la clave del que pide, la
-    identidad de este equipo y un número que este equipo elige DESPUÉS de recibir la solicitud. Así nadie puede preparar
-    una solicitud falsa que enseñe el mismo código.
+  - El código de cuatro palabras (unos 352 millones de combinaciones) sale en los dos equipos y debe ser el mismo. Se calcula con la clave del que
+    pide, la identidad del equipo que recibe y DOS números aleatorios: uno de cada equipo. Para que un intermediario en la
+    red no pueda buscar un número que haga coincidir los dos códigos, el que pide se COMPROMETE con el suyo antes de ver
+    nada del otro (manda su huella) y lo REVELA después, cuando ya tiene el del equipo que recibe:
+        1. pide:  LEKSSO-SOLICITUD 2 nombre clave HUELLA      (HUELLA = sha256 de su número, que aún no enseña)
+        2. recibe: PENDIENTE 2 su-número usuario identidad    (el número del equipo que recibe, elegido ya con la huella delante)
+        3. pide:  LEKSSO-REVELAR 2 su-número                  (el que recibe comprueba que cuadra con la huella)
+    Quien se interpone tiene que fijar su número antes de saber el del otro lado: acierta una vez de cada 352 millones
+    (con dos palabras y sin compromiso, una de cada 18 769 y buscándolo a fuerza bruta). El código solo se enseña al
+    permitir cuando el número ya se ha revelado; una solicitud sin revelar se descarta a los 30 segundos.
+    Una versión anterior (la 1) no es compatible: el equipo que pide y el que recibe tienen que actualizarse.
   - Al permitir, la clave se guarda para entrar SOLO desde la red local (from="..." en authorized_keys).
   - Como mucho 3 solicitudes pendientes y 1 por equipo; caducan a los 5 minutos; tras 2 «No permitir» al mismo equipo,
     se le ignora 10 minutos.
@@ -35,9 +43,11 @@ import tempfile
 import time
 
 PUERTO = 22222
-VERSION = "1"
+VERSION = "2"
 MAX_LINEA = 2048
 CADUCA = 300              # segundos que vive una solicitud
+ESPERA_REVELAR = 30       # segundos que se espera a que quien pide revele su número; si no, se descarta
+N_PALABRAS = 4            # palabras del código: len(PALABRAS) ** 4 combinaciones (unos 352 millones, 28 bits y medio)
 MAX_PENDIENTES = 3
 RECHAZOS_PARA_SILENCIO = 2
 SILENCIO = 600            # segundos que se ignora a un equipo tras rechazarlo dos veces
@@ -46,7 +56,7 @@ TIPOS = ("ssh-ed25519", "ssh-rsa", "ecdsa-sha2-nistp256", "ecdsa-sha2-nistp384",
 REDES_LOCALES = "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
 HOSTKEY = "/etc/ssh/ssh_host_ed25519_key.pub"
 
-# 128 palabras cortas, sin tildes ni eñes, fáciles de leer y de comparar. Dos palabras = el código.
+# Palabras cortas, sin tildes ni eñes, fáciles de leer y de comparar (137 hoy). Cuatro palabras = el código.
 PALABRAS = """agua aire alba arco arena atun avion barco bici bolsa bosque brazo brisa burro cable cafe caja calle cama
 campo canto carta casa cebra cesta cielo cine clavo coche cola copa corona cubo cuerda dado dedo delfin disco dulce
 duna faro feria flor foca fresa fuego gafas gallo gato globo goma gorra grano grillo hada hielo hilo hoja horno hueso
@@ -75,10 +85,17 @@ def nombre_limpio(nombre):
     return n or "equipo-sin-nombre"
 
 
-def codigo(clave, hostkey, nonce):
-    """El código de dos palabras. clave y hostkey son (tipo, base64)."""
-    h = hashlib.sha256(f"{clave[0]} {clave[1]}\n{hostkey[0]} {hostkey[1]}\n{nonce}".encode()).digest()
-    return f"{PALABRAS[h[0] % len(PALABRAS)]}-{PALABRAS[h[1] % len(PALABRAS)]}"
+def compromiso(secreto):
+    """La huella con la que quien pide se compromete con su número antes de ver el del otro equipo."""
+    return hashlib.sha256(secreto.encode("ascii")).hexdigest()
+
+
+def codigo(clave, hostkey, nonce, secreto):
+    """El código de cuatro palabras. clave y hostkey son (tipo, base64); nonce lo elige quien recibe y secreto quien pide."""
+    h = hashlib.sha256(f"{clave[0]} {clave[1]}\n{hostkey[0]} {hostkey[1]}\n{nonce}\n{secreto}".encode()).digest()
+    # Cada palabra sale de 4 bytes del resumen: con un solo byte y una lista que no mide 256 / n, las primeras palabras
+    # saldrían más a menudo que las últimas. Con 4 bytes el sesgo es de una parte entre 30 millones.
+    return "-".join(PALABRAS[int.from_bytes(h[4 * i:4 * i + 4], "big") % len(PALABRAS)] for i in range(N_PALABRAS))
 
 
 def es_local(ip):
@@ -94,19 +111,31 @@ def es_local(ip):
     return d.version == 4 and any(d in ipaddress.ip_network(r) for r in REDES_LOCALES.split(","))
 
 
-def linea_solicitud(nombre, clave):
-    return f"LEKSSO-SOLICITUD {VERSION} {nombre_limpio(nombre)} {clave[0]} {clave[1]}\n"
+def linea_solicitud(nombre, clave, huella):
+    return f"LEKSSO-SOLICITUD {VERSION} {nombre_limpio(nombre)} {clave[0]} {clave[1]} {huella}\n"
 
 
 def leer_solicitud(linea):
-    """La línea que manda quien pide -> (nombre, (tipo, base64)) o None."""
+    """La línea que manda quien pide -> (nombre, (tipo, base64), huella) o None."""
     p = (linea or "").strip().split(" ")
-    if len(p) != 5 or p[0] != "LEKSSO-SOLICITUD" or p[1] != VERSION:
+    if len(p) != 6 or p[0] != "LEKSSO-SOLICITUD" or p[1] != VERSION or not re.fullmatch(r"[0-9a-f]{64}", p[5]):
         return None
     clave = partir_clave(p[3] + " " + p[4])
     if clave is None or p[2] != nombre_limpio(p[2]):
         return None
-    return p[2], clave
+    return p[2], clave, p[5]
+
+
+def linea_revelacion(secreto):
+    return f"LEKSSO-REVELAR {VERSION} {secreto}\n"
+
+
+def leer_revelacion(linea):
+    """La línea con la que quien pide revela su número -> el número, o None."""
+    p = (linea or "").strip().split(" ")
+    if len(p) == 3 and p[0] == "LEKSSO-REVELAR" and p[1] == VERSION and re.fullmatch(r"[0-9a-f]{32}", p[2]):
+        return p[2]
+    return None
 
 
 def leer_respuesta(linea):
@@ -128,8 +157,10 @@ def linea_autorizada(sol, ahora=None):
     return f'from="{REDES_LOCALES}" {sol["clave"][0]} {sol["clave"][1]} solicitud:{nombre_limpio(sol["nombre"])}:{fecha}'
 
 
-def pendientes(carpeta, ahora=None):
-    """Las solicitudes vivas de la cola, la más antigua primero. Borra de paso las caducadas y las ilegibles."""
+def pendientes(carpeta, ahora=None, solo_listas=True):
+    """Las solicitudes vivas de la cola, la más antigua primero. Borra de paso las caducadas y las ilegibles.
+    solo_listas: solo las que ya tienen código (el número de quien pide ya se reveló); las demás se están esperando y
+    se descartan a los ESPERA_REVELAR segundos."""
     ahora = ahora or time.time()
     res = []
     try:
@@ -144,8 +175,11 @@ def pendientes(carpeta, ahora=None):
             s["clave"] = tuple(s["clave"])
             if ahora - float(s["hora"]) > CADUCA or partir_clave(" ".join(s["clave"])) is None:
                 raise ValueError
+            if "codigo" not in s and ahora - float(s["hora"]) > ESPERA_REVELAR:
+                raise ValueError              # nunca reveló su número
             s["ruta"] = ruta
-            res.append(s)
+            if "codigo" in s or not solo_listas:
+                res.append(s)
         except (OSError, ValueError, KeyError, TypeError):
             try:
                 os.unlink(ruta)
@@ -191,12 +225,33 @@ def motivo_rechazo(carpeta, ip, ahora=None):
         return "no hay nadie con la sesion abierta en ese equipo"
     if silenciado(carpeta, ip, ahora):
         return "ese equipo ha dicho que no; espera diez minutos"
-    vivas = pendientes(carpeta, ahora)
+    vivas = pendientes(carpeta, ahora, solo_listas=False)        # también las que esperan la revelación
     if any(s["ip"] == ip for s in vivas):
         return "ya hay una solicitud tuya esperando respuesta"
     if len(vivas) >= MAX_PENDIENTES:
         return "hay demasiadas solicitudes esperando"
     return ""
+
+
+def revelar(carpeta, ip, secreto, hostkey, ahora=None):
+    """Quien pidió revela su número: se comprueba contra la huella que mandó y, si cuadra, queda calculado el código.
+    Devuelve '' si todo bien o el motivo del rechazo. La solicitud se busca por la huella (no se puede fabricar un número
+    que cuadre con una huella ajena) y tiene que venir de la misma dirección."""
+    ahora = ahora or time.time()
+    huella = compromiso(secreto)
+    for s in pendientes(carpeta, ahora, solo_listas=False):
+        if s.get("compromiso") != huella:
+            continue
+        if s["ip"] != ip:
+            return "esa solicitud no es de esta direccion"
+        if "codigo" in s:
+            return "esa solicitud ya estaba revelada"
+        nuevo = {k: v for k, v in s.items() if k != "ruta"}
+        nuevo["codigo"] = codigo(tuple(s["clave"]), hostkey, s["nonce"], secreto)
+        nuevo["hora"] = ahora                  # los cinco minutos para decidir empiezan al enseñarse el código
+        _escribir(s["ruta"], json.dumps(nuevo))
+        return ""
+    return "no hay una solicitud con ese compromiso (¿pasaron mas de 30 segundos?)"
 
 
 def carpeta_cola():
@@ -260,17 +315,17 @@ def recibir():
     dato = sys.stdin.buffer.readline(MAX_LINEA + 1)
     if len(dato) > MAX_LINEA or not dato.endswith(b"\n"):
         return decir("RECHAZADA solicitud mal formada")
-    sol = leer_solicitud(dato.decode("ascii", "replace"))
-    if sol is None:
+    texto = dato.decode("ascii", "replace")
+    if texto.startswith("LEKSSO-SOLICITUD 1 "):
+        return decir("RECHAZADA el otro equipo usa una version antigua de LeksSO: actualizalo")
+    revelado = leer_revelacion(texto)
+    sol = None if revelado else leer_solicitud(texto)
+    if revelado is None and sol is None:
         return decir("RECHAZADA solicitud mal formada")
     if not modo_local():
         return decir("RECHAZADA el acceso remoto no esta encendido en modo local")
-    motivo = motivo_rechazo(cola, ip)
-    if motivo:
-        return decir("RECHAZADA " + motivo)
-    nombre, clave = sol
-    if not clave_valida_de_verdad(clave):
-        return decir("RECHAZADA la clave no es valida")
+    if not es_local(ip):
+        return decir("RECHAZADA solo se admite desde la red local")
     try:
         with open(HOSTKEY, encoding="ascii") as f:
             hk = partir_clave(f.read())
@@ -278,11 +333,21 @@ def recibir():
         hk = None
     if hk is None:
         return decir("RECHAZADA este equipo no tiene identidad SSH")
+    if revelado:                                  # segundo paso: quien pidió revela su número
+        motivo = revelar(cola, ip, revelado, hk)
+        return decir("OK" if not motivo else "RECHAZADA " + motivo)
+    motivo = motivo_rechazo(cola, ip)
+    if motivo:
+        return decir("RECHAZADA " + motivo)
+    nombre, clave, huella = sol
+    if not clave_valida_de_verdad(clave):
+        return decir("RECHAZADA la clave no es valida")
     nonce = secrets.token_hex(8)
     ahora = time.time()
     ident = f"{int(ahora * 1000)}-{secrets.token_hex(4)}"
+    # Sin «codigo» todavía: no se enseña hasta que quien pide revele su número (revelar).
     _escribir(os.path.join(cola, ident + ".json"), json.dumps({
-        "nombre": nombre, "ip": ip, "clave": list(clave), "nonce": nonce, "codigo": codigo(clave, hk, nonce), "hora": ahora}))
+        "nombre": nombre, "ip": ip, "clave": list(clave), "nonce": nonce, "compromiso": huella, "hora": ahora}))
     import getpass
     return decir(f"PENDIENTE {VERSION} {nonce} {getpass.getuser()} {hk[0]} {hk[1]}")
 
@@ -333,9 +398,10 @@ def ventana(captura=None, ejemplo=None):
             raiz.addLayout(cab)
             raiz.addWidget(QtWidgets.QLabel(f"Equipo:  {sol['nombre']}  ({sol['ip']})"))
             cod = QtWidgets.QLabel(f"Código:  {sol['codigo']}")
-            cod.setStyleSheet(pintar("QLabel { font-size: 26px; font-weight: bold; color: #00c4bf; padding: 6px 0; }"))
+            cod.setWordWrap(True)                  # cuatro palabras no caben en una línea con letra grande
+            cod.setStyleSheet(pintar("QLabel { font-size: 22px; font-weight: bold; color: #00c4bf; padding: 6px 0; }"))
             raiz.addWidget(cod)
-            for texto in ("El mismo código tiene que salir en el otro equipo.",
+            for texto in ("Las cuatro palabras tienen que ser las mismas en el otro equipo, en el mismo orden.",
                           "Si lo permites, podrá ver y manejar este equipo desde tu red.",
                           "Si no lo esperabas, pulsa «No permitir»."):
                 e = QtWidgets.QLabel(texto)
@@ -415,23 +481,30 @@ def clave_propia(ruta=None):
     return clave_propia(privada + ".pub")
 
 
+def _hablar(direccion, puerto, linea):
+    """Manda una línea al otro equipo y devuelve la que contesta (texto). Lanza OSError si no se puede."""
+    with socket.create_connection((direccion, puerto), timeout=8) as s:
+        s.sendall(linea.encode("ascii"))
+        s.settimeout(20)
+        dato = b""
+        while not dato.endswith(b"\n") and len(dato) < MAX_LINEA:
+            trozo = s.recv(1024)
+            if not trozo:
+                break
+            dato += trozo
+    return dato.decode("ascii", "replace")
+
+
 def pedir(direccion, ruta_clave=None, nombre=None, espera=CADUCA, puerto=PUERTO, salida=print):
     ruta, clave = clave_propia(ruta_clave)
     nombre = nombre_limpio(nombre or socket.gethostname())
+    secreto = secrets.token_hex(16)               # mi número: no lo enseño hasta ver el del otro equipo
     try:
-        with socket.create_connection((direccion, puerto), timeout=8) as s:
-            s.sendall(linea_solicitud(nombre, clave).encode("ascii"))
-            s.settimeout(20)
-            dato = b""
-            while not dato.endswith(b"\n") and len(dato) < MAX_LINEA:
-                trozo = s.recv(1024)
-                if not trozo:
-                    break
-                dato += trozo
+        respuesta = _hablar(direccion, puerto, linea_solicitud(nombre, clave, compromiso(secreto)))
     except OSError:
         salida(f"{direccion} no acepta solicitudes. En ese equipo: Ajustes, Acceso remoto, «Solo red local».")
         return 1
-    r = leer_respuesta(dato.decode("ascii", "replace"))
+    r = leer_respuesta(respuesta)
     if r is None:
         salida("Ese equipo ha contestado algo que no entiendo (¿otra versión de LeksSO?).")
         return 1
@@ -439,9 +512,18 @@ def pedir(direccion, ruta_clave=None, nombre=None, espera=CADUCA, puerto=PUERTO,
         salida("Solicitud no admitida: " + r[1])
         return 1
     _, nonce, usuario, hk = r
+    try:
+        confirmacion = _hablar(direccion, puerto, linea_revelacion(secreto)).strip()      # ya tengo su número: revelo el mío
+    except OSError:
+        salida("No se pudo completar la solicitud (el otro equipo dejó de contestar). Vuelve a pedirlo.")
+        return 1
+    if confirmacion != "OK":
+        salida("No se pudo completar la solicitud: " + (leer_respuesta(confirmacion) or ("", "respuesta rara"))[1])
+        return 1
     salida(f"Solicitud enviada a {usuario}@{direccion}.")
-    salida(f"CÓDIGO: {codigo(clave, hk, nonce)}")
-    salida("Mira la pantalla de ese equipo: si sale el MISMO código, pulsa «Permitir». Si es distinto, «No permitir».")
+    salida(f"CÓDIGO: {codigo(clave, hk, nonce, secreto)}")
+    salida("Mira la pantalla de ese equipo: si salen las MISMAS cuatro palabras, en el mismo orden, pulsa «Permitir». "
+           "Si es distinto, «No permitir».")
     privada = ruta[:-4] if ruta.endswith(".pub") else ruta
     with tempfile.TemporaryDirectory() as tmp:
         conocidos = os.path.join(tmp, "known_hosts")
@@ -474,7 +556,7 @@ def main(a):
         return vigilar()
     if a[:1] == ["ventana"]:
         if a[1:2] == ["--captura"] and len(a) == 3:
-            ej = {"nombre": "PORTATIL-DE-CASA", "ip": "192.168.1.20", "codigo": "pera-luna", "hora": time.time(), "ruta": ""}
+            ej = {"nombre": "PORTATIL-DE-CASA", "ip": "192.168.1.20", "codigo": "pera-luna-faro-mar", "hora": time.time(), "ruta": ""}
             return ventana(a[2], ej)
         return ventana()
     if a[:1] == ["pedir"] and len(a) >= 2:

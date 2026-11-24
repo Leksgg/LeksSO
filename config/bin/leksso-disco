@@ -13,7 +13,7 @@
 # una vez y, ya dentro, `sudo leksso-disco renovar`.
 #
 # Qué protege y qué NO (importa): protege el disco si lo sacan del equipo o se llevan el equipo y lo abren en otro.
-# NO protege contra quien encienda ESTE equipo tal cual: llegará al escritorio sin clave (con autologin, igual que hoy).
+# NO protege contra quien encienda ESTE equipo tal cual: el disco se abrirá solo, pero el inicio de sesión sigue pidiendo la contraseña del usuario.
 set -uo pipefail
 PCR='{"pcr_bank":"sha256","pcr_ids":"7"}'
 

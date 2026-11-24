@@ -11,6 +11,7 @@ Se cierra con la X o con Esc.
 """
 import datetime as dt
 import json
+import os
 import subprocess
 import sys
 
@@ -19,6 +20,8 @@ from PySide6 import QtCore, QtGui, QtWidgets
 sys.path.insert(0, "/usr/local/lib/leksso-ui")
 from leksso_ui import ESTILO_BASE, alternar, estilo, olvidar_clave, pedir_permiso, pintar, sudo_cmd  # noqa: E402
 import leksso_conexiones_ui  # noqa: E402
+
+SIN_FIRMA = "/etc/leksso/sin-firma"      # lo crea el USB de fase de pruebas; leksso-actualizar lo mira (hallazgo 6 de la revisión)
 
 EXTRA = """
 QLabel#ok { color: #85ce6c; } QLabel#aviso { color: #fdc357; } QLabel#mal { color: #ff735a; }
@@ -230,6 +233,14 @@ class Seguridad(QtWidgets.QWidget):
         x.clicked.connect(self.close)
         cab.addWidget(x)
         raiz.addLayout(cab)
+        if os.path.exists(SIN_FIRMA):          # el aviso va arriba y fijo: no depende de ninguna pestaña
+            fase = QtWidgets.QLabel(
+                "⚠ Este equipo está en FASE DE PRUEBAS: acepta actualizaciones SIN comprobar su firma. "
+                "Quien controle el servidor de actualizaciones podría instalar código con permisos de administrador. "
+                "Para salir de este modo: sudo rm /etc/leksso/sin-firma")
+            fase.setObjectName("mal")
+            fase.setWordWrap(True)
+            raiz.addWidget(fase)
         self.pestanas = QtWidgets.QTabWidget()
         self.datos, tabs = leksso_conexiones_ui.pestanas(self)
         for widget, titulo in tabs:

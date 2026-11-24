@@ -1,0 +1,26 @@
+#!/bin/sh
+# Instala (global, como administrador) un paquete npm de VERSIÓN FIJA y con su integridad comprobada.
+#   sudo leksso-npm-fijado @anthropic-ai/claude-code
+# Las versiones y sus sumas están en /usr/local/share/leksso/versiones-npm, que va dentro de la versión firmada
+# de LeksSO. Antes la instalación pedía «lo último» a npm cada vez, y sus guiones de instalación corrían como root
+# sin que nadie de LeksSO los hubiera mirado (hallazgo 5 de la revisión de la 0.1.52).
+# Lo que NO resuelve: el guion postinstall de Claude Code sigue corriendo como root; ahora solo en la versión fijada.
+set -eu
+DATOS="${LEKSSO_NPM_FIJADO:-/usr/local/share/leksso/versiones-npm}"
+[ "$#" -eq 1 ] || { echo "Uso: sudo leksso-npm-fijado PAQUETE" >&2; exit 2; }
+[ -r "$DATOS" ] || { echo "No encuentro $DATOS: no se instala nada." >&2; exit 1; }
+fila="$(awk -v p="$1" '$1 == p && $1 !~ /^#/ { print $2 " " $3; exit }' "$DATOS")"
+[ -n "$fila" ] || { echo "$1 no tiene versión fijada en $DATOS: no se instala." >&2; exit 1; }
+version="${fila%% *}"
+suma="${fila#* }"
+case "$version" in ""|*[!0-9A-Za-z.+-]*) echo "Versión no válida en $DATOS." >&2; exit 1 ;; esac
+case "$suma" in sha512-*) ;; *) echo "Falta la suma sha512 de $1 en $DATOS." >&2; exit 1 ;; esac
+command -v npm >/dev/null 2>&1 || { echo "Falta npm (instala nodejs npm)." >&2; exit 1; }
+real="$(npm view "$1@$version" dist.integrity 2>/dev/null)" || { echo "No se pudo consultar $1@$version (¿hay conexión?)." >&2; exit 1; }
+if [ "$real" != "$suma" ]; then
+  echo "La suma de $1@$version no coincide con la fijada: no se instala." >&2
+  echo "  fijada:   $suma" >&2
+  echo "  registro: $real" >&2
+  exit 1
+fi
+exec npm install -g "$1@$version"

@@ -42,7 +42,7 @@ install -m 0644 "$RAIZ/config/apt/99leksso-auditoria" /etc/apt/apt.conf.d/99leks
 # Paquetes por capa. Todos existen en Debian 13 (trixie); winetricks necesita la sección contrib.
 ESCRITORIO=(labwc sway swaybg waybar kitty fuzzel grim pcmanfm-qt qt6-wayland qt6-svg-plugins qt6ct xwayland fonts-font-awesome seatd xdg-desktop-portal-wlr micro imv zathura zathura-pdf-poppler mpv vlc xarchiver udisks2 udiskie gvfs gvfs-backends polkitd ntfs-3g exfatprogs usbutils v4l-utils bluez pavucontrol-qt swaylock gtklock wayvnc tigervnc-viewer wl-clipboard mako-notifier libnotify-bin swayidle brightnessctl slurp cliphist wdisplays blueman cups avahi-daemon libnss-mdns system-config-printer fonts-noto-color-emoji fonts-liberation fonts-montserrat ffmpegthumbnailer power-profiles-daemon playerctl wlr-randr network-manager streamdeck-ui python3-pyside6.qtwidgets python3-pyside6.qtgui python3-pyside6.qtcore python3-pyside6.qtsvg)
 AUDIO=(pipewire pipewire-pulse wireplumber alsa-ucm-conf alsa-utils libspa-0.2-bluetooth)   # ucm: micrófono y altavoz del portátil; bluetooth: auriculares
-AISLAMIENTO=(bubblewrap firejail python3-seccomp passt)
+AISLAMIENTO=(bubblewrap python3-seccomp passt)    # firejail se quitó: nada lo llamaba y en Debian es un binario con privilegios de root
 HERRAMIENTAS=(git curl btop lm-sensors python3 bc pciutils mokutil fwupd plocate restic efibootmgr)   # plocate: búsqueda de archivos; restic: copias de seguridad
 # Red inalámbrica: NetworkManager necesita wpasupplicant para conectarse a cualquier Wi-Fi con contraseña; es un paquete «recomendado»
 # y el instalador instala sin recomendados, así que sin esto un portátil solo con Wi-Fi se quedaba sin red. iw y wireless-regdb: canales y
@@ -67,6 +67,8 @@ apt-get update || echo "Sin conexión: se usan los paquetes locales disponibles.
 apt-get install -y --no-install-recommends \
   "${ESCRITORIO[@]}" "${AUDIO[@]}" "${AISLAMIENTO[@]}" \
   "${HERRAMIENTAS[@]}" "${RED[@]}" "${GRAFICA[@]}" "${COMPATIBILIDAD[@]}"
+# Los equipos instalados antes de quitarlo traen firejail (setuid root, sin uso): se retira al actualizar.
+if dpkg -s firejail >/dev/null 2>&1; then apt-get purge -y firejail >/dev/null 2>&1 || echo "AVISO: no se pudo quitar firejail."; fi
 
 # Herramientas de invitado solo si estamos en Hyper-V.
 if [ "$(systemd-detect-virt 2>/dev/null || true)" = "microsoft" ]; then
@@ -75,8 +77,12 @@ if [ "$(systemd-detect-virt 2>/dev/null || true)" = "microsoft" ]; then
   grep -q '^WLR_NO_HARDWARE_CURSORS=' /etc/environment 2>/dev/null || echo 'WLR_NO_HARDWARE_CURSORS=1' >> /etc/environment
 fi
 
-# El usuario necesita estos grupos para que el compositor acceda a pantalla y teclado.
-usermod -aG video,input,render "$USUARIO" 2>/dev/null || true
+# El usuario necesita estos grupos para que el compositor acceda a la pantalla (video, render). El grupo «input» NO se añade:
+# daría lectura de los teclados de todos los usuarios, también en la pantalla de bloqueo y en sudo. sway recibe los dispositivos
+# de entrada a través de seatd (el usuario está en su grupo, más abajo). Los equipos instalados antes siguen en «input» hasta que
+# se lo quiten con `sudo leksso-grupo-input quitar USUARIO` (prueba antes con `leksso-grupo-input`).
+usermod -aG video,render "$USUARIO" 2>/dev/null || true
+install -m 0755 "$RAIZ/scripts/probar-grupo-input.sh" /usr/local/bin/leksso-grupo-input
 # lpadmin: poder añadir impresoras (Ajustes, Impresoras) sin ser administrador de todo lo demás
 usermod -aG lpadmin "$USUARIO" 2>/dev/null || true
 systemctl enable --now seatd 2>/dev/null || true
@@ -113,8 +119,10 @@ install -m 0644 "$RAIZ"/leksso-ia/nucleo.py "$RAIZ"/leksso-ia/permisor.py "$RAIZ
   "$RAIZ"/leksso-ia/panel.py "$RAIZ"/leksso-ia/leksso_ia.py "$RAIZ"/leksso-ia/mcp_permisor.py /usr/local/lib/leksso-ia/
 printf '#!/bin/sh\nexec python3 /usr/local/lib/leksso-ia/leksso_ia.py "$@"\n' > /usr/local/bin/leksso-ia
 install -m 0755 "$RAIZ/scripts/caja.sh" /usr/local/bin/caja
+install -m 0755 "$RAIZ/scripts/leksso-contexto-wayland.py" /usr/local/bin/leksso-contexto-wayland
 install -m 0755 "$RAIZ/scripts/leksso-claude.sh" /usr/local/bin/leksso-claude
 install -m 0755 "$RAIZ/scripts/leksso-codex.sh" /usr/local/bin/leksso-codex
+install -m 0755 "$RAIZ/config/bin/leksso-portapapeles-guardar" /usr/local/bin/leksso-portapapeles-guardar
 install -m 0755 "$RAIZ/config/bin/leksso-asistente" /usr/local/bin/leksso-asistente
 install -m 0755 "$RAIZ/config/bin/leksso-asistentes" /usr/local/bin/leksso-asistentes
 # Permisos de los asistentes: archivo del administrador. En una instalación nueva, todos apagados y en «solo archivos».
@@ -133,15 +141,12 @@ fi
 install -m 0644 "$RAIZ/config/systemd/leksso-admin.service" /etc/systemd/system/leksso-admin.service
 systemctl enable leksso-admin.service >/dev/null 2>&1 || true
 if [ -d /run/systemd/system ]; then systemctl daemon-reload; systemctl restart leksso-admin.service || true; fi
-# Asistentes de IA: vienen instalados pero INACTIVOS; cada usuario elige cuál activa (leksso-asistente).
-# Necesitan conexión: sin red se omiten y se instalan después, al elegirlos.
-if apt-get install -y --no-install-recommends nodejs npm; then
-  for paquete in @anthropic-ai/claude-code @openai/codex; do
-    npm install -g "$paquete" >/dev/null 2>&1 || echo "AVISO: no se pudo instalar $paquete (¿sin conexión?). Se instalará al elegirlo."
-  done
-else
-  echo "AVISO: sin Node (¿sin conexión?): los asistentes de IA se instalarán al elegirlos."
-fi
+# Asistentes de IA: NO se instalan aquí. Se instalan cuando el usuario elige uno (leksso-asistente / Aplicaciones), con
+# su contraseña, con versión y suma fijadas (leksso-npm-fijado). Antes esta provisión ejecutaba `npm install -g` sin versión
+# como root en cada instalación y cada actualización (hallazgo 5 de la revisión externa de la 0.1.52).
+install -d /usr/local/share/leksso
+install -m 0644 "$RAIZ/config/ia/versiones-npm" /usr/local/share/leksso/versiones-npm
+install -m 0755 "$RAIZ/config/bin/leksso-npm-fijado" /usr/local/bin/leksso-npm-fijado
 install -m 0644 "$RAIZ/scripts/seccomp-estricta.py" /usr/local/lib/leksso-ia/seccomp-estricta.py
 chmod 0755 /usr/local/bin/leksso-ia
 U install -d "$HOME_USR/.config/kitty"

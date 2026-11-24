@@ -45,15 +45,10 @@ CLAVE_EN_SCRIPT="$(sed -n "s/^CLAVE_PUBLICA='\(.*\)'\$/\1/p" "$PAQ/instalar.sh")
 [ -n "$CLAVE_EN_SCRIPT" ] && [ "$CLAVE_EN_SCRIPT" = "$(git show "$VERSION:config/allowed_signers" | head -n1)" ] \
   || { echo "La clave incrustada en instalar.sh no coincide con config/allowed_signers." >&2; exit 1; }
 
-# 1a. Variantes de instalación, una entrada del menú cada una: el disco se cifra o no, y el usuario tiene contraseña o no.
-#     La base (preseed.cfg) es «disco cifrado, con contraseña». Sin contraseña: el instalador no la pregunta (se deja
-#     bloqueada) y postinstalar.sh quita la contraseña, activa la entrada automática y sudo sin clave.
+# 1a. Variantes de instalación, una entrada del menú cada una: el disco se cifra o no. El usuario SIEMPRE tiene contraseña
+#     (decisión de Leks, 2026-11-24: se quitó la instalación «sin contraseña», que dejaba sudo sin clave y entrada automática).
+#     La base (preseed.cfg) es «disco cifrado, con contraseña».
 sed -e 's#^d-i partman-auto/method string crypto#d-i partman-auto/method string lvm#' -e 's#^d-i partman-auto/init_automatically_partition select some_device_crypto#d-i partman-auto/init_automatically_partition select some_device_lvm#' "$PAQ/preseed.cfg" > "$PAQ/preseed-sin-cifrado.cfg"
-for par in "preseed:preseed-sin-contrasena" "preseed-sin-cifrado:preseed-sin-cifrado-sin-contrasena"; do
-  origen="${par%%:*}"; destino="${par##*:}"
-  sed 's#^\(  in-target sh /opt/leksso-instalacion/postinstalar.sh\)$#\1 --sin-contrasena#' "$PAQ/$origen.cfg" > "$PAQ/$destino.cfg"
-  printf '\n# --- Sin contraseña de usuario: la deja bloqueada y postinstalar.sh la quita ---\nd-i passwd/user-password-crypted password !\n' >> "$PAQ/$destino.cfg"
-done
 
 # 1a-ter. Variante EXPERIMENTAL «junto a Windows» con particionado MANUAL: no lleva receta ni elección de disco (esas BORRAN el disco
 #     entero), así que el instalador de Debian enseña su propio particionador y el usuario elige el espacio libre, sin cifrar.
@@ -63,8 +58,7 @@ sed -e '/^d-i partman\/early_command/d' -e '/^d-i partman-auto/d' -e '/^d-i part
 
 # 1a-bis. Disco cifrado con DESBLOQUEO AUTOMÁTICO (TPM2): igual que «cifrado», pero en el primer arranque del escritorio se ofrece
 #     enlazar el disco al TPM para no teclear la clave en cada encendido (la clave elegida queda de respaldo).
-sed -E 's#^(  in-target sh /opt/leksso-instalacion/postinstalar.sh( --sin-contrasena)?)$#\1 --disco-automatico#' "$PAQ/preseed.cfg" > "$PAQ/preseed-disco-automatico.cfg"
-sed -E 's#^(  in-target sh /opt/leksso-instalacion/postinstalar.sh( --sin-contrasena)?)$#\1 --disco-automatico#' "$PAQ/preseed-sin-contrasena.cfg" > "$PAQ/preseed-disco-automatico-sin-contrasena.cfg"
+sed -E 's#^(  in-target sh /opt/leksso-instalacion/postinstalar.sh)$#\1 --disco-automatico#' "$PAQ/preseed.cfg" > "$PAQ/preseed-disco-automatico.cfg"
 
 # 1b. Fase de pruebas en equipos reales: sin exigir firma en las actualizaciones y con acceso remoto en red local.
 if [ "$FASE" = 1 ]; then echo "fase de pruebas" > "$PAQ/FASE_PRUEBAS"; fi
@@ -102,17 +96,14 @@ ENTRADA="menuentry --hotkey=l '${AVISO_PRUEBAS}Instalar LeksSO | Disco cifrado c
     linux    /install.amd/vmlinuz auto=true priority=critical file=/cdrom/leksso/preseed.cfg vga=788 --- quiet
     initrd   /install.amd/initrd.gz
 }"
-# Variantes (no en las imágenes de pruebas, que llevan respuestas fijas solo en la primera): cifrado sí/no, contraseña sí/no.
+# Variantes (no en las imágenes de pruebas, que llevan respuestas fijas solo en la primera): cifrado con clave, con TPM o sin cifrar.
 if [ -z "$PRUEBA" ]; then
   variante() {  # título, preseed
     printf "menuentry '${AVISO_PRUEBAS}%s' {\n    set background_color=black\n    linux    /install.amd/vmlinuz auto=true priority=critical file=/cdrom/leksso/%s vga=788 --- quiet\n    initrd   /install.amd/initrd.gz\n}\n" "$1" "$2"
   }
   ENTRADA="$ENTRADA
-$(variante 'Instalar LeksSO | Disco cifrado con clave | Usuario sin contraseña' preseed-sin-contrasena.cfg)
 $(variante 'Instalar LeksSO | Cifrado con TPM, sin clave | Usuario con contraseña' preseed-disco-automatico.cfg)
-$(variante 'Instalar LeksSO | Cifrado con TPM, sin clave | Usuario sin contraseña' preseed-disco-automatico-sin-contrasena.cfg)
 $(variante 'Instalar LeksSO | Disco sin cifrar | Usuario con contraseña' preseed-sin-cifrado.cfg)
-$(variante 'Instalar LeksSO | Disco sin cifrar | Usuario sin contraseña' preseed-sin-cifrado-sin-contrasena.cfg)
 $(printf "menuentry '${AVISO_PRUEBAS}[EXPERIMENTAL] Instalar LeksSO JUNTO a Windows | Particionado manual | Sin cifrar | Usuario con contraseña' {
     set background_color=black
     echo 'Se abrira el particionador de Debian. Elige el ESPACIO LIBRE. No toques las particiones de Windows.'
@@ -150,7 +141,7 @@ arriba = leyenda([
 ])
 instalar = leyenda([
     ("Cifrado con clave: tecleas la clave del disco en cada arranque.   Cifrado con TPM: el equipo abre el disco solo.", "#d0d0d0"),
-    ("Usuario sin contraseña: entra directo al escritorio.   Sin cifrar: el disco queda legible si lo sacan del equipo.", "#d0d0d0"),
+    ("Todas piden usuario y contraseña.   Sin cifrar: el disco queda legible si lo sacan del equipo.", "#d0d0d0"),
     ("Todas estas opciones BORRAN el disco que elijas en la pantalla siguiente.", "#ffd27a"),
 ])
 open(sys.argv[2], "w", encoding="utf-8").write(t.rstrip() + "\n" + arriba)

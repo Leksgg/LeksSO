@@ -29,6 +29,19 @@ class Pruebas(unittest.TestCase):
         r = subprocess.run(["bash", "-n", RUTA], capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stderr)
 
+    def test_el_usuario_no_entra_en_input_ni_se_instala_firejail(self):
+        codigo = [l for l in self.lineas if not l.strip().startswith("#")]
+        for l in codigo:
+            if "usermod -aG" in l:
+                self.assertNotRegex(l, r"\binput\b", l)          # hallazgo 7: lectura del teclado de todos
+        self.assertFalse([l for l in codigo if re.search(r"AISLAMIENTO=.*firejail", l.split("#")[0])])    # hallazgo 15
+        self.assertTrue([l for l in codigo if "usermod -aG" in l and "seatd" in l], "el usuario debe seguir en el grupo seatd")
+
+    def test_no_instala_npm_ni_los_asistentes_en_cada_provision(self):
+        for l in self.lineas:
+            if not l.strip().startswith("#"):
+                self.assertNotRegex(l, r"npm install", l)       # hallazgo 5: se instalan al elegirlos, con versión fijada
+
     def test_instala_lo_que_las_ventanas_y_el_registro_necesitan(self):
         texto = "\n".join(self.lineas)
         for esperado in ("leksso-auditoria", "99leksso-auditoria", "leksso-seguridad", "leksso-copias", "leksso-copias-ui",

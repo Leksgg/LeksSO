@@ -110,6 +110,6 @@ Write-Host @'
 Listo. Para instalar:
   1. Deja la USB conectada y reinicia el portátil.
   2. Entra en el menú de arranque (suele ser F12, F9, Esc o F2 al encender) y elige la USB.
-  3. En el menú elige una de las cuatro «Instalar LeksSO»: con o sin cifrado del disco, y con o sin contraseña de usuario. Te preguntará qué disco borrar y tu usuario (y las contraseñas que hayas dejado activadas).
+  3. En el menú elige una de las «Instalar LeksSO»: disco cifrado con clave, cifrado con TPM o sin cifrar. Te preguntará qué disco borrar, tu usuario y su contraseña (y la clave del cifrado, si lo elegiste).
 Windows desaparece de ese disco: copia antes lo que quieras conservar.
 '@ -ForegroundColor Green

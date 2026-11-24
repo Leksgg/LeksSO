@@ -177,7 +177,7 @@ MSG
     ip -4 -o addr show scope global | awk '{print "  ssh '"${SUDO_USER:-usuario}"'@" $4}' | sed 's#/[0-9]*$##'
     if [ "$MODO" = local ]; then
       echo "Otro equipo de tu red puede pedir entrar con: leksso-solicitud pedir <dirección de este equipo>"
-      echo "Te saldrá una ventana con un código de dos palabras; solo entra si pulsas «Permitir»."
+      echo "Te saldrá una ventana con un código de cuatro palabras; solo entra si pulsas «Permitir» y son las mismas en los dos equipos."
       [ "$SIN_ENTRADA" -eq 0 ] || echo "AVISO: esta cuenta no tiene contraseña ni claves: hasta que permitas una solicitud, nadie puede entrar."
     fi
     echo "Para apagarlo: sudo leksso-acceso-remoto off"

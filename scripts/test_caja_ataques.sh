@@ -44,7 +44,9 @@ else
   SAL="$(bash "$CAJA" --red -- true 2>&1)"; COD=$?
   [ "$COD" = 5 ] && echo "$SAL" | grep -q "falta pasta" && bien "sin pasta la caja con red se niega a arrancar"     || falla "sin pasta la caja con red no se niega (código $COD)"
 fi
-for opc in "" "--gui --audio --gpu"; do
+# (--gui-completa y no --gui: sin sway en marcha, --gui no arranca la caja —y entonces «el socket no es visible» pasaría en
+#  vacío—; la completa es además el modo más expuesto. La restringida se prueba en test_contexto_wayland.py.)
+for opc in "" "--gui-completa --audio --gpu"; do
   en $opc -- sh -c "ls $XDG_RUNTIME_DIR/leksso-control.sock /run/user/$(id -u)/leksso-control.sock /run/user/$(id -u)/leksso-ia.sock" >/dev/null 2>&1 \
     && falla "el socket del permisor es visible (opciones: ${opc:-ninguna})" || bien "el socket del permisor no es visible (opciones: ${opc:-ninguna})"
 done
