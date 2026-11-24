@@ -71,7 +71,7 @@ def pintar(texto):
 
 
 ESTILO = """
-QWidget { background: #021012; color: #e3edef; font-size: 14px; font-family: "Raxtor", "Montserrat", "DejaVu Sans"; }   /* Raxtor solo dibuja cifras; el texto es Montserrat */
+QWidget { background: #021012; color: #e3edef; font-size: 14px; font-family: "Montserrat", "DejaVu Sans"; }   /* Qt no respeta la restricción de Raxtor a cifras: el cuerpo no la usa */
 QLabel#titulo { font-family: "Raxtor Titulos", "Montserrat", "DejaVu Sans"; font-size: 17px; font-weight: bold; color: #00c4bf; }   /* títulos en MAYÚSCULAS */
 QLabel#nota { color: #94a1a3; font-size: 12px; }
 QLineEdit { background: #112123; border: 1px solid #25393c; padding: 8px 10px; color: #e3edef; }

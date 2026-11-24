@@ -96,7 +96,8 @@ class DondeSeUsa(unittest.TestCase):
 
     def test_ventanas_avisos_y_lanzador(self):
         ui = leer("config/ui/leksso_ui.py")
-        self.assertIn('font-family: "Raxtor", "Montserrat"', ui)                       # cuerpo: Montserrat, y Raxtor para las cifras
+        self.assertIn('font-family: "Montserrat", "DejaVu Sans"; }', ui)               # cuerpo: Montserrat (Qt dibuja Raxtor entera, no solo cifras)
+        self.assertNotRegex(ui.split("QLabel#titulo")[0], r'"Raxtor"')
         self.assertIn('QLabel#titulo { font-family: "Raxtor Titulos", "Montserrat"', ui)  # títulos: Raxtor en MAYÚSCULAS
         self.assertIn("font=Raxtor,Montserrat", leer("config/mako/config"))
         self.assertIn("font=Raxtor:size=13,Montserrat:size=13", leer("config/fuzzel/fuzzel.ini"))
