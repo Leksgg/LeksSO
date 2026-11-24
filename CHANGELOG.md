@@ -5,6 +5,8 @@ Lo más reciente, arriba.
 
 ## Sin publicar
 
+~ **La hora de la pantalla de bloqueo usa la fuente Raxtor si está instalada** (Montserrat si no, como antes). Raxtor solo trae cifras y letras sin tilde, por eso se usa únicamente para el reloj. La fuente no va en el repositorio: se instala en cada equipo (`~/.local/share/fonts` y `fc-cache -f`).
+
 ~ **Al actualizar, el permisor de IA que ya estaba en marcha se reinicia solo.** Seguía siendo el de antes de actualizar (arrancado sin `-I`) y el servicio de administración, que ahora solo reconoce al permisor arrancado con `-I`, lo rechazaba hasta el siguiente inicio de sesión. Se vio al probar la RC 0.1.53 en una máquina virtual. Las peticiones pendientes en ese momento se pierden; lo recordado no.
 
 ~ **`leksso-solicitud pedir` escribe lo que enseña sin esperar al final** cuando su salida va a un archivo o a una tubería (antes no se veía nada hasta terminar).
