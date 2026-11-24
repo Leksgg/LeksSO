@@ -3,15 +3,13 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
-## Sin publicar
+## 0.1.53 · 2026-11-24
 
 ~ **La hora de la pantalla de bloqueo usa la fuente Raxtor si está instalada** (Montserrat si no, como antes). Raxtor solo trae cifras y letras sin tilde, por eso se usa únicamente para el reloj. La fuente no va en el repositorio: se instala en cada equipo (`~/.local/share/fonts` y `fc-cache -f`).
 
 ~ **Al actualizar, el permisor de IA que ya estaba en marcha se reinicia solo.** Seguía siendo el de antes de actualizar (arrancado sin `-I`) y el servicio de administración, que ahora solo reconoce al permisor arrancado con `-I`, lo rechazaba hasta el siguiente inicio de sesión. Se vio al probar la RC 0.1.53 en una máquina virtual. Las peticiones pendientes en ese momento se pierden; lo recordado no.
 
 ~ **`leksso-solicitud pedir` escribe lo que enseña sin esperar al final** cuando su salida va a un archivo o a una tubería (antes no se veía nada hasta terminar).
-
-## RC 0.1.53 · 2026-11-24
 
 ~ **Las cajas con ventana ya no ven toda la pantalla ni el teclado del escritorio.** Con `--gui`, la caja recibía el socket Wayland de la sesión sin restricciones, y eso daba a un programa enjaulado (por ejemplo un `.exe` abierto con `leksso-wine`) más acceso al escritorio del que necesita. Ahora `caja --gui` crea un socket NUEVO y lo registra en sway como «de una caja» (protocolo `wp_security_context_v1`, que sway admite desde la 1.9): por él sway deja de enseñar los protocolos privilegiados. Medido con sway 1.11: la sesión ofrece 50 protocolos y la caja ve 31, sin captura, portapapeles global, teclado ni ratón virtuales, lista de ventanas, bloqueo de sesión ni creación de nuevos contextos; sí ve lo que necesita para dibujar y recibir teclado y ratón DE SU PROPIA VENTANA. Si no se puede crear el socket restringido, la caja con ventana NO arranca (código 6) en vez de abrirse a medias. Hay dos salidas explícitas: `--x11` añade Xwayland (lo necesita Wine hoy; los programas X11 se ven entre sí y a los X11 de la sesión, así que ya no entra con `--gui` a secas) y `--gui-completa` da el socket de la sesión sin filtrar, con aviso, solo para programas de plena confianza. `leksso-wine` pasa a pedir `--x11` de forma explícita: **mientras Wine use X11, ese hueco sigue abierto para los `.exe`**; falta probar el controlador Wayland de Wine para quitarlo. El ayudante (`leksso-contexto-wayland`) está en Python con solo la biblioteca estándar: el protocolo son dos interfaces y siete mensajes, se lanza una vez por caja y así no hace falta compilar nada en cada equipo.
 
