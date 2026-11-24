@@ -40,7 +40,7 @@ install -d /etc/apt/apt.conf.d
 install -m 0644 "$RAIZ/config/apt/99leksso-auditoria" /etc/apt/apt.conf.d/99leksso-auditoria
 
 # Paquetes por capa. Todos existen en Debian 13 (trixie); winetricks necesita la sección contrib.
-ESCRITORIO=(labwc sway swaybg waybar kitty fuzzel grim pcmanfm-qt qt6-wayland qt6-svg-plugins qt6ct xwayland fonts-font-awesome seatd xdg-desktop-portal-wlr micro imv zathura zathura-pdf-poppler mpv vlc xarchiver udisks2 udiskie gvfs gvfs-backends polkitd ntfs-3g exfatprogs usbutils v4l-utils bluez pavucontrol-qt swaylock gtklock wayvnc tigervnc-viewer wl-clipboard mako-notifier libnotify-bin swayidle brightnessctl slurp cliphist wdisplays blueman cups avahi-daemon libnss-mdns system-config-printer fonts-noto-color-emoji fonts-liberation fonts-montserrat ffmpegthumbnailer power-profiles-daemon playerctl wlr-randr network-manager streamdeck-ui python3-pyside6.qtwidgets python3-pyside6.qtgui python3-pyside6.qtcore python3-pyside6.qtsvg)
+ESCRITORIO=(sway swaybg waybar kitty fuzzel grim pcmanfm-qt qt6-wayland qt6-svg-plugins qt6ct xwayland fonts-font-awesome seatd xdg-desktop-portal-wlr micro imv zathura zathura-pdf-poppler mpv vlc xarchiver udisks2 udiskie gvfs gvfs-backends polkitd ntfs-3g exfatprogs usbutils v4l-utils bluez pavucontrol-qt swaylock gtklock wayvnc tigervnc-viewer wl-clipboard mako-notifier libnotify-bin swayidle brightnessctl slurp cliphist wdisplays blueman cups avahi-daemon libnss-mdns system-config-printer fonts-noto-color-emoji fonts-liberation fonts-montserrat ffmpegthumbnailer power-profiles-daemon playerctl wlr-randr network-manager streamdeck-ui python3-pyside6.qtwidgets python3-pyside6.qtgui python3-pyside6.qtcore python3-pyside6.qtsvg)
 AUDIO=(pipewire pipewire-pulse wireplumber alsa-ucm-conf alsa-utils libspa-0.2-bluetooth)   # ucm: micrófono y altavoz del portátil; bluetooth: auriculares
 AISLAMIENTO=(bubblewrap python3-seccomp passt)    # firejail se quitó: nada lo llamaba y en Debian es un binario con privilegios de root
 HERRAMIENTAS=(git curl btop lm-sensors python3 bc pciutils mokutil fwupd plocate restic efibootmgr)   # plocate: búsqueda de archivos; restic: copias de seguridad
@@ -245,11 +245,9 @@ if [ "$(systemd-detect-virt 2>/dev/null || echo none)" = "none" ] || [ "${LEKSSO
   esac
 fi
 
-# Zonas del escritorio (sway) y alternativa labwc: ventanas con título y botones, barra de tareas en la barra superior.
-U install -d "$HOME_USR/.config/labwc" "$HOME_USR/.local/share/themes"
-U install -m 0644 "$RAIZ/config/labwc/rc.xml" "$RAIZ/config/labwc/menu.xml" "$HOME_USR/.config/labwc/"
-U install -m 0755 "$RAIZ/config/labwc/autostart" "$HOME_USR/.config/labwc/autostart"
-U cp -r "$RAIZ/config/labwc/tema/LeksSO" "$HOME_USR/.local/share/themes/"
+# El escritorio de LeksSO es sway (zonas). labwc, la alternativa que había, se retiró: los equipos que lo tenían instalado lo pierden
+# al actualizar. Lo que dejó en la carpeta personal (~/.config/labwc, ~/.local/share/themes/LeksSO) no se toca.
+if dpkg -s labwc >/dev/null 2>&1; then apt-get purge -y labwc >/dev/null 2>&1 || echo "AVISO: no se pudo quitar labwc."; fi
 install -m 0755 "$RAIZ/config/sway/zonas.sh" /usr/local/bin/leksso-zonas
 U install -m 0644 "$RAIZ/config/bash_profile" "$HOME_USR/.bash_profile"
 # Escritorio con iconos: carpeta Escritorio y accesos.

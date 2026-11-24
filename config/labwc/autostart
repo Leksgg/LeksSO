@@ -1,4 +1,0 @@
-# Se ejecuta al iniciar la sesión de labwc.
-pcmanfm-qt --desktop >/dev/null 2>&1 &
-waybar >/dev/null 2>&1 &
-systemctl --user start leksso-permisor.service

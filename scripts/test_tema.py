@@ -19,7 +19,6 @@ COPIAS = {
     "mako/config": ".config/mako/config", "fuzzel/fuzzel.ini": ".config/fuzzel/fuzzel.ini",
     "swaylock/config": ".config/swaylock/config", "qt6ct/colors/leksso.conf": ".config/qt6ct/colors/leksso.conf",
     "pcmanfm-qt/settings.conf": ".config/pcmanfm-qt/default/settings.conf",
-    "labwc/tema/LeksSO/openbox-3/themerc": ".local/share/themes/LeksSO/openbox-3/themerc",
 }
 
 

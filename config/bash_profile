@@ -1,5 +1,4 @@
 # Al iniciar sesión en la primera consola, arranca el escritorio de LeksSO (sway).
-# Para usar labwc en su lugar: entra en otra consola (Ctrl+Alt+F2) y escribe «labwc».
 # Con el controlador propietario de NVIDIA, sway solo arranca si se le dice que acepta la tarjeta.
 if [ -z "${WAYLAND_DISPLAY:-}" ] && [ "$(tty)" = "/dev/tty1" ]; then
   if grep -q '^nvidia ' /proc/modules 2>/dev/null; then

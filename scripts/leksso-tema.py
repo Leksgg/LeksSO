@@ -30,7 +30,6 @@ ARCHIVOS = [
     ".config/waybar/style.css", ".config/kitty/kitty.conf", ".config/sway/config",
     ".config/mako/config", ".config/fuzzel/fuzzel.ini", ".config/swaylock/config",
     ".config/qt6ct/colors/leksso.conf", ".config/pcmanfm-qt/default/settings.conf",
-    ".local/share/themes/LeksSO/openbox-3/themerc",
 ]
 
 
@@ -83,7 +82,7 @@ def recargar():
     env = entorno_de_sesion()
     # kitty es un único proceso para todas las ventanas: SIGUSR1 le hace releer kitty.conf sin cerrarlas
     ordenes = [["pkill", "-USR2", "-u", str(os.getuid()), "waybar"], ["pkill", "-USR1", "-u", str(os.getuid()), "-x", "kitty"],
-               ["makoctl", "reload"], ["swaymsg", "reload"], ["labwc", "--reconfigure"],
+               ["makoctl", "reload"], ["swaymsg", "reload"],
                # el explorador guarda en memoria los iconos del tema anterior: se cierra y se abre de nuevo en su sitio
                ["leksso-zonas", "--explorador"]]
     for o in ordenes:

@@ -42,6 +42,13 @@ class Pruebas(unittest.TestCase):
         self.assertRegex(texto, r"try-restart leksso-permisor\.service")
         self.assertLess(texto.index('leksso-permisor.service" /etc/systemd/user/'), texto.index("try-restart leksso-permisor.service"))   # primero la unidad nueva, luego el reinicio
 
+    def test_labwc_ya_no_se_instala_ni_se_configura_y_se_retira_si_estaba(self):
+        codigo = [l for l in self.lineas if not l.strip().startswith("#")]
+        array = [l for l in codigo if l.startswith("ESCRITORIO=")][0]
+        self.assertNotIn("labwc", array.replace("(", " ").replace(")", " ").split())
+        self.assertFalse([l for l in codigo if "labwc" in l and "purge" not in l and "dpkg -s" not in l], "solo puede quedar la retirada")
+        self.assertTrue([l for l in codigo if "apt-get purge -y labwc" in l])
+
     def test_no_instala_npm_ni_los_asistentes_en_cada_provision(self):
         for l in self.lineas:
             if not l.strip().startswith("#"):

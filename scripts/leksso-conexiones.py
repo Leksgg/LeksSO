@@ -69,7 +69,7 @@ CATEGORIAS = ("entrante", "internet", "red_local", "escuchando", "local")
 CERRANDO = {"TIME-WAIT", "FIN-WAIT-1", "FIN-WAIT-2", "CLOSING", "LAST-ACK", "SYN-RECV", "CLOSE"}
 # Programas y servicios que no se pueden parar ni bloquear desde aquí: sin ellos el equipo pierde red, hora, sesión o actualizaciones.
 NO_TOCAR_COMM = {"systemd", "systemd-resolve", "systemd-resolved", "systemd-timesyn", "systemd-timesyncd", "NetworkManager",
-                 "wpa_supplicant", "dhclient", "dbus-daemon", "polkitd", "sway", "labwc", "udevd", "systemd-udevd", "chronyd", "init"}
+                 "wpa_supplicant", "dhclient", "dbus-daemon", "polkitd", "sway", "udevd", "systemd-udevd", "chronyd", "init"}
 NO_TOCAR_RUTAS = ("/usr/lib/apt/methods/", "/usr/bin/apt", "/usr/bin/dpkg", "/usr/local/bin/leksso-", "/usr/local/lib/leksso-",
                   "/usr/lib/systemd/", "/lib/systemd/")
 PUERTOS_VITALES = {53: "DNS", 67: "DHCP", 68: "DHCP", 123: "hora (NTP)", 853: "DNS cifrado"}

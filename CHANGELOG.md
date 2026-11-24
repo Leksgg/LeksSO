@@ -3,6 +3,10 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
+## Sin publicar
+
+- **labwc retirado.** El escritorio de LeksSO es solo sway. Se quitan la carpeta `config/labwc`, su instalación en `provision-base.sh`, el tema para labwc, y su recarga en `leksso-tema`. Al actualizar, si el equipo lo tenía instalado, se desinstala el paquete; lo que dejó en la carpeta personal no se toca.
+
 ## 0.1.55 · 2026-11-24
 
 ~ **Las ventanas de LeksSO ya no heredan la entrada estándar de quien las lanza al pedir permisos de administrador** (`sudo -n`, `-S`): si esa entrada seguía abierta, la detección del modo de `sudo` podía quedarse esperando 15 segundos dos veces y concluir mal. Era además el origen de una prueba que fallaba de vez en cuando (`test_sudo`); ahora hay una prueba que lo reproduce.
