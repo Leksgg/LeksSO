@@ -3,9 +3,10 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
-## Sin publicar
+## 0.1.56 · 2026-11-24
 
 - **labwc retirado.** El escritorio de LeksSO es solo sway. Se quitan la carpeta `config/labwc`, su instalación en `provision-base.sh`, el tema para labwc, y su recarga en `leksso-tema`. Al actualizar, si el equipo lo tenía instalado, se desinstala el paquete; lo que dejó en la carpeta personal no se toca.
+- **Clave de firma antigua retirada** de `allowed_signers`: solo había firmado de la 0.1.0-alpha a la 0.1.10-alpha. Desde ahora los equipos solo aceptan etiquetas firmadas con la clave actual.
 
 ## 0.1.55 · 2026-11-24
 
