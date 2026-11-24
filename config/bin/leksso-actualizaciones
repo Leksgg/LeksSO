@@ -171,7 +171,17 @@ class Ventana(QtWidgets.QWidget):
         c = cache()
         disp = c.get("disponible")
         self.b_instalar.setEnabled(bool(disp))
-        self.b_volver.setEnabled(os.path.exists("/var/lib/leksso/version-anterior"))
+        previa = ""
+        try:
+            previa = open("/var/lib/leksso/version-anterior", encoding="utf-8").read().strip()
+        except OSError:
+            pass
+        nombre = (sal("leksso-actualizar", "version", previa) or previa) if previa else ""
+        self.b_volver.setEnabled(bool(previa))
+        self.b_volver.setText(f"Volver a {nombre.replace('LeksSO ', '')}" if previa else "Volver a la anterior")
+        self.b_volver.setToolTip("Reinstala la versión anterior y aparta lo que añadió la actual (queda en un respaldo). "
+                                 "También se puede hacer al arrancar, con la entrada «LeksSO: volver a la versión anterior» del menú."
+                                 if previa else "No hay una versión anterior guardada (se guarda al actualizar).")
         if disp:
             self.estado.setText(f"Hay una versión nueva: {sal('leksso-actualizar', 'version', disp) or disp}. Léela abajo y actualiza cuando quieras.")
         elif c.get("comprobado"):
@@ -235,7 +245,11 @@ class Ventana(QtWidgets.QWidget):
             self.terminal("Sistema y controladores", "sudo leksso-actualizar hardware sistema")
 
     def volver(self):
-        r = QtWidgets.QMessageBox.question(self, "Volver", "¿Volver a la versión anterior de LeksSO?",
+        r = QtWidgets.QMessageBox.question(self, "Volver", "¿Volver a la versión anterior de LeksSO?\n\n"
+                                           "Se reinstala esa versión (con su firma comprobada, sin necesitar red) y se apartan a un respaldo "
+                                           "los archivos que añadió la versión actual. Tus ajustes y tus archivos no se tocan.\n\n"
+                                           "Si el escritorio no arrancara, también puedes hacerlo desde el menú de arranque: "
+                                           "«LeksSO: volver a la versión anterior».",
                                            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No)
         if r == QtWidgets.QMessageBox.Yes:
             self.terminal("Volver a la versión anterior", "sudo leksso-actualizar volver")

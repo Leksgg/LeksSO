@@ -6,7 +6,8 @@
   leksso-actualizar barra                estado para la barra (lee lo ya comprobado, sin red)
   leksso-actualizar cambios [VERSIÓN]    qué trae la versión nueva
   sudo leksso-actualizar aplicar [VERSIÓN]   instala la versión nueva (solo si su firma es válida)
-  sudo leksso-actualizar volver          vuelve a la versión anterior
+  sudo leksso-actualizar volver          vuelve a la versión anterior y retira (a un respaldo) lo que añadió la nueva.
+                                         Funciona sin red. También desde el menú de arranque: «LeksSO: volver a la versión anterior».
   leksso-actualizar hardware ...         controladores y firmware (detectar, comprobar, aplicar...): ver `hardware`
 
 Seguridad: solo se instalan versiones con etiqueta (vX.Y.Z, o vX.Y.Z-alpha/-beta/-rc las de prueba) firmadas con la clave de LeksSO que
@@ -27,6 +28,16 @@ FICHERO_VERSION = "/etc/leksso-release"
 FIRMANTES = "/etc/leksso/allowed_signers"
 CLON = "/var/lib/leksso/repo"
 ANTERIOR = "/var/lib/leksso/version-anterior"
+RESPALDO_VOLVER = "/var/lib/leksso/respaldo-volver"
+# Dónde instala LeksSO sus archivos. Al volver a una versión anterior, lo de estos sitios que la instalación de esa versión
+# NO ha escrito es de la versión de la que se viene: se aparta a un respaldo. Quedan FUERA a propósito: /etc/leksso (tus ajustes,
+# permisos de los asistentes, claves), /var/lib/leksso, /etc/sudoers.d, la carpeta personal y cualquier carpeta.
+ARCHIVOS_DE_LEKSSO = [
+    "/usr/local/bin/leksso-*", "/usr/local/bin/caja", "/usr/local/sbin/leksso-*",
+    "/usr/local/lib/leksso-ia/*", "/usr/local/lib/leksso-ui/*", "/usr/local/share/leksso/*", "/usr/share/leksso/*",
+    "/etc/systemd/system/leksso-*", "/etc/systemd/user/leksso-*", "/etc/udev/rules.d/70-leksso-*",
+    "/etc/apt/apt.conf.d/99leksso-*", "/etc/fonts/conf.d/65-leksso-*", "/etc/grub.d/42_leksso_*",
+]
 SIN_FIRMA = "/etc/leksso/sin-firma"                # fase de pruebas: si existe, no se exige firma (lo crea el USB de pruebas)
 INSTALADA = "/var/lib/leksso/instalada.json"      # versión, commit y firmante de lo instalado
 RAMA_PRINCIPAL = "origin/main"
@@ -227,7 +238,9 @@ def raiz_o_salir():
         sys.exit("Este paso necesita permisos de administrador: sudo leksso-actualizar ...")
 
 
-def preparar_clon():
+def preparar_clon(tolerar_sin_red=False):
+    """Deja lista la copia local del repositorio oficial. tolerar_sin_red: si no se puede bajar nada (sin red, al volver a una
+    versión que ya está en la copia), se sigue con lo que hay; verificar() exige igualmente que la etiqueta esté y su firma."""
     os.makedirs(os.path.dirname(CLON), exist_ok=True)
     if not os.path.isdir(os.path.join(CLON, ".git")):
         r = git("clone", "--no-checkout", REPO_URL, CLON)
@@ -237,6 +250,9 @@ def preparar_clon():
     git("remote", "set-url", "origin", REPO_URL, cwd=CLON)
     r = git("fetch", "--tags", "--force", "origin", cwd=CLON)
     if r.returncode != 0:
+        if tolerar_sin_red:
+            print("AVISO: sin conexión con el repositorio oficial: se usa la copia que ya hay en este equipo.")
+            return
         sys.exit("No se pudo actualizar la copia local: " + r.stderr.strip()[:200])
 
 
@@ -305,8 +321,15 @@ def instalar_version(tag, usuario, commit="", huella=""):
     os.replace(INSTALADA + ".nuevo", INSTALADA)
 
 
-def usuario_real():
+def usuario_real(arranque=False):
     u = os.environ.get("SUDO_USER")
+    if (not u or u == "root") and arranque:
+        # Al arrancar no hay sudo: se toma al primer usuario normal del equipo (el que instaló LeksSO).
+        import pwd
+        humanos = sorted((p for p in pwd.getpwall() if 1000 <= p.pw_uid < 60000 and not p.pw_shell.endswith(("nologin", "false"))),
+                         key=lambda p: p.pw_uid)
+        if humanos:
+            return humanos[0].pw_name
     if not u or u == "root":
         sys.exit("Ejecuta con sudo desde tu usuario: sudo leksso-actualizar aplicar")
     return u
@@ -346,23 +369,72 @@ def aplicar(tag=None):
     return 0
 
 
-def volver():
+def archivos_de_leksso(zonas=None):
+    """Los archivos (no las carpetas) que LeksSO instala en los sitios de ARCHIVOS_DE_LEKSSO."""
+    import glob
+    hallados = []
+    for patron in (ARCHIVOS_DE_LEKSSO if zonas is None else zonas):
+        for ruta in sorted(glob.glob(patron)):
+            if os.path.islink(ruta) or os.path.isfile(ruta):
+                hallados.append(ruta)
+    return hallados
+
+
+def limpiar_sobrantes(marca, zonas=None, respaldo=None):
+    """Aparta (NO borra) los archivos de LeksSO que la instalación hecha después de `marca` no ha escrito: son de la versión
+    de la que se vuelve. Cada uno se mueve a un respaldo con su misma ruta, para poder devolverlo si hiciera falta.
+    Devuelve la lista de rutas apartadas y la carpeta del respaldo."""
+    import shutil
+    respaldo = respaldo or os.path.join(RESPALDO_VOLVER, time.strftime("%Y%m%d-%H%M%S"))
+    apartados = []
+    for ruta in archivos_de_leksso(zonas):
+        try:
+            if os.lstat(ruta).st_mtime >= marca:          # lo ha escrito la versión a la que se vuelve: se queda
+                continue
+            if ruta.startswith("/etc/systemd/system/") and ruta.endswith((".service", ".timer")):
+                subprocess.run(["systemctl", "disable", "--now", os.path.basename(ruta)], capture_output=True)
+            destino = os.path.join(respaldo, ruta.lstrip("/"))
+            os.makedirs(os.path.dirname(destino), exist_ok=True)
+            shutil.move(ruta, destino)
+            apartados.append(ruta)
+        except OSError as e:
+            print(f"AVISO: no se pudo apartar {ruta}: {e}")
+    return apartados, respaldo
+
+
+def volver(arranque=False):
+    """Vuelve a la versión anterior: reinstala esa versión (con su firma comprobada) y aparta lo que añadió la actual.
+    Sin red también vale: la versión anterior ya está en la copia local. arranque=True: lo lanza el menú de arranque."""
     raiz_o_salir()
     _cerrojo = bloquear()
-    usuario = usuario_real()
+    usuario = usuario_real(arranque)
     try:
         previa = open(ANTERIOR, encoding="utf-8").read().strip()
     except OSError:
         sys.exit("No hay una versión anterior guardada.")
     if not clave(previa):
         sys.exit("La versión anterior guardada no es válida.")
-    preparar_clon()
+    preparar_clon(tolerar_sin_red=True)
     commit, huella = verificar("v" + previa)
     actual = version_actual()
+    marca = time.time() - 2                                # lo que escriba la instalación de la versión anterior es posterior
     instalar_version("v" + previa, usuario, commit, huella)
-    with open(ANTERIOR, "w", encoding="utf-8") as f:
-        f.write((actual or "") + "\n")
-    print(f"\nVuelves a LeksSO {bonita(previa)}. Cierra la sesión y vuelve a entrar.")
+    apartados, respaldo = limpiar_sobrantes(marca)
+    if apartados:
+        subprocess.run(["systemctl", "daemon-reload"], capture_output=True)
+        print(f"\nSe han apartado {len(apartados)} archivos de LeksSO {bonita(actual or '?')} que la versión {bonita(previa)} no usa:")
+        for ruta in apartados[:30]:
+            print("  " + ruta)
+        print(f"Están en {respaldo} (con su ruta original), por si quieres recuperar alguno.")
+    if os.path.exists("/usr/sbin/update-grub") and any(r.startswith("/etc/grub.d/") for r in apartados):
+        subprocess.run(["update-grub"], capture_output=True)       # la entrada de arranque «volver» ya no existe en esa versión
+    try:
+        os.remove(ANTERIOR)                                # no se vuelve más atrás; para ir hacia delante, «Actualizar ahora»
+    except OSError:
+        pass
+    if os.path.exists("/usr/sbin/update-grub"):
+        subprocess.run(["update-grub"], capture_output=True)       # sin versión anterior guardada, la entrada de arranque sobra
+    print(f"\nVuelves a LeksSO {bonita(previa)}. " + ("Se reinicia el equipo." if arranque else "Cierra la sesión y vuelve a entrar."))
     return 0
 
 
@@ -420,7 +492,7 @@ def main(a):
         if c == "aplicar":
             return aplicar(a[1] if len(a) > 1 else None)
         if c == "volver":
-            return volver()
+            return volver(arranque="--arranque" in a)
         if c == "reinstalar":
             return reinstalar()
         if c == "hardware":

@@ -1,0 +1,20 @@
+# LeksSO: volver a la versión anterior desde el menú de arranque.
+# Solo se ejecuta si se arranca con la entrada «LeksSO: volver a la versión anterior» del menú (lleva leksso.volver=1 en la línea del
+# kernel); en un arranque normal la condición no se cumple y no hace nada. Funciona sin red (la versión anterior ya está en la copia
+# local) y, al terminar bien, reinicia el equipo. Si falla, el arranque sigue con normalidad y el motivo queda en el diario.
+[Unit]
+Description=LeksSO: volver a la versión anterior (entrada del menú de arranque)
+ConditionKernelCommandLine=leksso.volver=1
+After=local-fs.target
+Before=getty@tty1.service getty.target graphical.target
+
+[Service]
+Type=oneshot
+TimeoutStartSec=1800
+StandardOutput=journal+console
+StandardError=journal+console
+ExecStart=/usr/local/bin/leksso-actualizar volver --arranque
+ExecStartPost=/usr/bin/systemctl --no-block reboot
+
+[Install]
+WantedBy=multi-user.target

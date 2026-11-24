@@ -198,7 +198,14 @@ systemctl enable leksso-hardware.timer >/dev/null 2>&1 || true
 # /var/lib/leksso, /etc/leksso y leksso-copias.timer.d, que aquí no se escriben).
 install -m 0755 "$RAIZ/scripts/leksso-copias.py" /usr/local/bin/leksso-copias
 install -m 0644 "$RAIZ/config/systemd/leksso-copias.service" "$RAIZ/config/systemd/leksso-copias.timer" /etc/systemd/system/
+# Volver a la versión anterior desde el menú de arranque: la unidad solo actúa con leksso.volver=1 en la línea del kernel.
+install -m 0644 "$RAIZ/config/systemd/leksso-volver-arranque.service" /etc/systemd/system/
 systemctl daemon-reload >/dev/null 2>&1 || true
+systemctl enable leksso-volver-arranque.service >/dev/null 2>&1 || true
+if [ -d /etc/grub.d ] && command -v update-grub >/dev/null 2>&1; then
+  install -m 0755 "$RAIZ/config/grub/42_leksso_volver" /etc/grub.d/42_leksso_volver
+  update-grub >/dev/null 2>&1 || echo "AVISO: no se pudo actualizar el menú de arranque; la entrada «volver a la versión anterior» no estará."
+fi
 
 # Stream Deck: se inicia al conectarlo (el acceso a USB lo da la regla del paquete).
 install -m 0644 "$RAIZ/config/systemd/leksso-streamdeck.service" "$RAIZ/config/systemd/leksso-permisor.service" /etc/systemd/user/

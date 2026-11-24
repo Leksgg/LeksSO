@@ -1,0 +1,30 @@
+#!/bin/sh
+# LeksSO: entrada del menú de arranque «volver a la versión anterior». grub-mkconfig (update-grub) ejecuta este script y pega lo
+# que imprime en grub.cfg. Reutiliza la PRIMERA entrada que genera 10_linux (el mismo kernel y el mismo disco de siempre, con
+# todo lo que lleve: cifrado, TPM...) con tres cambios: otro título, otro identificador y «leksso.volver=1» en la línea del kernel
+# (sin «quiet» ni «splash», para ver lo que pasa). La unidad leksso-volver-arranque.service hace el resto al arrancar.
+# Si algo no es como se espera, no imprime nada: nunca puede romper el menú (y update-grub comprueba además el resultado con
+# grub-script-check antes de instalarlo).
+ANTERIOR="${LEKSSO_VERSION_ANTERIOR:-/var/lib/leksso/version-anterior}"
+[ -r "$ANTERIOR" ] || exit 0                                   # sin versión anterior guardada no hay a qué volver
+GENERADOR="${LEKSSO_GRUB_10LINUX:-/etc/grub.d/10_linux}"
+[ -x "$GENERADOR" ] || exit 0
+"$GENERADOR" 2>/dev/null | awk '
+  BEGIN { dentro = 0; hecho = 0 }
+  hecho { next }
+  !dentro && /^menuentry / {
+    if (!match($0, /^menuentry (\047[^\047]*\047|"[^"]*")/)) { hecho = 1; next }      # forma desconocida: nada
+    dentro = 1
+    resto = substr($0, RLENGTH + 1)
+    gsub(/\$menuentry_id_option \047[^\047]*\047/, "$menuentry_id_option \047leksso-volver\047", resto)
+    print "menuentry \047LeksSO: volver a la versión anterior\047" resto
+    next
+  }
+  dentro && /^[ \t]*linux(efi)?[ \t]/ {
+    gsub(/[ \t]quiet/, ""); gsub(/[ \t]splash/, "")
+    print $0 " leksso.volver=1"
+    next
+  }
+  dentro { print $0; if ($0 ~ /^}/) { dentro = 0; hecho = 1 } }
+'
+exit 0
