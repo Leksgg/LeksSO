@@ -102,18 +102,20 @@ case "${1:-estado}" in
     if con_contrasena; then echo "contrasena=si claves=$(num_claves)"; else echo "contrasena=no claves=$(num_claves)"; fi
     ;;
   clave)
-    # Autoriza una clave pública para la cuenta de quien lo ejecuta (sin sudo). Se valida con ssh-keygen y se guarda
-    # SIN opciones delante (command=, from=...): solo el tipo, la clave y un comentario.
+    # Autoriza una clave pública para la cuenta de quien lo ejecuta. Se valida con ssh-keygen y se guarda
+    # SIN opciones delante (command=, from=...): solo el tipo, la clave y un comentario. Con sudo se vuelve a lanzar COMO
+    # el usuario (runuser): antes escribía en su ~/.ssh como root, y un enlace puesto allí por el propio usuario habría
+    # hecho que root escribiera donde no debe (hallazgo menor de la revisión de la 0.1.52).
     CL="${2:-}"; [ -n "$CL" ] || CL="$(cat)"
     CL="$(printf '%s' "$CL" | tr -d '\r' | head -n1 | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
     case "$CL" in ssh-ed25519\ *|ssh-rsa\ *|ecdsa-sha2-*\ *|sk-ssh-ed25519@openssh.com\ *) ;; *) echo "ERROR: no es una clave pública SSH (debe empezar por ssh-ed25519, ssh-rsa, ecdsa-sha2-...)." >&2; exit 2 ;; esac
     printf '%s\n' "$CL" | ssh-keygen -l -f /dev/stdin >/dev/null 2>&1 || { echo "ERROR: la clave no es válida (¿está cortada o tiene una errata?)." >&2; exit 2; }
     [ "$(id -u)" -ne 0 ] || [ -n "${SUDO_USER:-}" ] || { echo "ERROR: ejecútalo como tu usuario, no como root." >&2; exit 2; }
+    [ "$(id -u)" -ne 0 ] || exec runuser -u "$(usuario)" -- "$0" clave "$CL"
     H="$(getent passwd "$(usuario)" | cut -d: -f6)"
     install -d -m 700 "$H/.ssh"
     touch "$H/.ssh/authorized_keys"; chmod 600 "$H/.ssh/authorized_keys"
     if grep -qxF "$CL" "$H/.ssh/authorized_keys"; then echo "Esa clave ya estaba autorizada."; else printf '%s\n' "$CL" >>"$H/.ssh/authorized_keys"; echo "Clave autorizada."; fi
-    [ "$(id -u)" -ne 0 ] || chown -R "$(usuario):" "$H/.ssh"
     ;;
   on)
     [ "$(id -u)" -eq 0 ] || { echo "Ejecuta con sudo: sudo leksso-acceso-remoto on [local|publico]" >&2; exit 1; }

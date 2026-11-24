@@ -24,10 +24,11 @@ for _ruta in ("/usr/local/lib/leksso-ui", os.path.join(os.path.dirname(os.path.a
 ESTILO = """
 window { background-color: #021012; color: #e3edef; font-family: "Montserrat", "DejaVu Sans", sans-serif; }
 #columna { border-left: 8px solid #00c4bf; padding: 0 0 0 48px; }
-/* La hora usa Raxtor si está instalada (solo trae cifras y letras sin tilde: sirve para el reloj y no para el resto). Sin ella,
-   Montserrat como siempre. La fuente NO va en este repositorio (derechos reservados del autor): se instala en cada equipo. */
+/* La hora y la fecha usan Raxtor si está instalada: la regla de fontconfig de LeksSO la limita a las CIFRAS (y «:»), así
+   que las letras de la fecha, con sus tildes, salen en Montserrat. Sin la fuente, Montserrat como siempre. La parte de la
+   contraseña no se toca. La fuente NO va en este repositorio (derechos reservados del autor): se instala en cada equipo. */
 #clock-label { font-family: "Raxtor", "Montserrat", "DejaVu Sans", sans-serif; font-size: 224px; font-weight: 700; color: #e3edef; margin: -24px 0 -8px 0; }
-#date-label { font-size: 32px; font-weight: 500; color: #e3edef; margin-bottom: 48px; }
+#date-label { font-family: "Raxtor", "Montserrat", "DejaVu Sans", sans-serif; font-size: 32px; font-weight: 500; color: #e3edef; margin-bottom: 48px; }
 #input-label { font-size: 22px; font-weight: 500; color: #e3edef; }
 #input-field { font-size: 24px; min-height: 56px; padding: 0 16px; background-color: #112123; color: #e3edef;
                border: 2px solid #25393c; border-radius: 0; box-shadow: none; caret-color: #00c4bf; }

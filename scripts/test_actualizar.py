@@ -29,6 +29,17 @@ def clave_nueva(carpeta, nombre):
 
 
 class Versiones(unittest.TestCase):
+    def test_el_texto_de_fuera_se_limpia_antes_de_enseñarlo(self):
+        sucio = "## 0.1.99\n\x1b[2J\x1b]0;titulo\x07texto\x08\x08normal\r\notra \u202eatrás\u200b\x00fin\ttab\x7f\x9b31m"
+        limpio = act.limpiar_para_terminal(sucio)
+        for malo in ("\x1b", "\x07", "\x08", "\r", "\u202e", "\u200b", "\x00", "\x7f", "\x9b"):
+            self.assertNotIn(malo, limpio)
+        self.assertIn("## 0.1.99\n", limpio)
+        self.assertIn("\ttab", limpio)                                                   # tabuladores y saltos de línea se conservan
+        self.assertIn("texto", limpio)
+        self.assertEqual(act.limpiar_para_terminal("Ñandú · áéíóú ¿qué? «sí» ✓"), "Ñandú · áéíóú ¿qué? «sí» ✓")   # el español no se toca
+        self.assertEqual(act.limpiar_para_terminal(None), "")
+
     def test_nombres_y_orden(self):
         self.assertEqual(act.bonita("0.1.0-alpha"), "Alpha 0.1.0")
         self.assertEqual(act.bonita("v1.2.3-rc"), "RC 1.2.3")

@@ -212,6 +212,9 @@ if [ -S "/run/user/$UID_USR/bus" ]; then
     || echo "AVISO: no se pudo reiniciar el permisor; se reiniciará en el próximo inicio de sesión."
 fi
 install -m 0644 "$RAIZ/config/udev/70-leksso-streamdeck.rules" /etc/udev/rules.d/
+# Raxtor (si el usuario la instaló a mano) solo dibuja cifras: esta regla le quita el resto de glifos. fc-cache -f la aplica.
+install -m 0644 "$RAIZ/config/fontconfig/65-leksso-raxtor-cifras.conf" /etc/fonts/conf.d/65-leksso-raxtor-cifras.conf
+fc-cache -f >/dev/null 2>&1 || true
 install -m 0644 "$RAIZ/config/udev/70-leksso-brillo.rules" /etc/udev/rules.d/      # brillo cambiable por el grupo video (teclas de brillo)
 # fluidsynth (sintetizador MIDI que traen Lutris y otros) abre la tarjeta de sonido directamente y deja a PipeWire sin audio:
 # su servicio de usuario se enmascara (no se usa en LeksSO).

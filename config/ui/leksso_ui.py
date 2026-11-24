@@ -71,7 +71,7 @@ def pintar(texto):
 
 
 ESTILO = """
-QWidget { background: #021012; color: #e3edef; font-size: 14px; }
+QWidget { background: #021012; color: #e3edef; font-size: 14px; font-family: "Raxtor", "DejaVu Sans"; }   /* Raxtor solo dibuja cifras */
 QLabel#titulo { font-size: 16px; font-weight: bold; color: #00c4bf; }
 QLabel#nota { color: #94a1a3; font-size: 12px; }
 QLineEdit { background: #112123; border: 1px solid #25393c; padding: 8px 10px; color: #e3edef; }

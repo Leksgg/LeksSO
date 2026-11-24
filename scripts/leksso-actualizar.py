@@ -188,6 +188,16 @@ def riel():
     return 0
 
 
+_CONTROL = re.compile("[\x00-\x08\x0b-\x1f\x7f-\x9f\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u2069\ufeff]")
+
+
+def limpiar_para_terminal(texto):
+    """Quita de un texto que viene de fuera lo que una terminal interpretaría como órdenes (secuencias con ESC, retrocesos,
+    caracteres de control, marcas que cambian el sentido de lectura). Se queda con letras, símbolos, saltos de línea y
+    tabuladores. El CHANGELOG se imprime ANTES de verificar ninguna firma, así que no puede ser de fiar."""
+    return _CONTROL.sub("", (texto or "").replace("\r\n", "\n").replace("\r", "\n"))
+
+
 def cambios(tag=None):
     c = leer_cache()
     v = tag or c.get("disponible")
@@ -208,7 +218,7 @@ def cambios(tag=None):
                 break
         if dentro:
             lineas.append(linea)
-    print("\n".join(lineas[:80]))
+    print(limpiar_para_terminal("\n".join(lineas[:80])))
     return 0
 
 

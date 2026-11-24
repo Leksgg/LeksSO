@@ -105,7 +105,7 @@ class PedirClave(QtWidgets.QDialog):
         t.setWordWrap(True)
         v.addWidget(t)
         self.a, self.b = QtWidgets.QLineEdit(), QtWidgets.QLineEdit()
-        for campo, ph in ((self.a, "Clave (mínimo 4 caracteres)"), (self.b, "Repite la clave")):
+        for campo, ph in ((self.a, "Clave (mínimo 10 caracteres; una frase larga vale)"), (self.b, "Repite la clave")):
             campo.setEchoMode(QtWidgets.QLineEdit.Password)
             campo.setPlaceholderText(ph)
             v.addWidget(campo)
@@ -119,8 +119,8 @@ class PedirClave(QtWidgets.QDialog):
         self.setMinimumWidth(420)
 
     def validar(self):
-        if len(self.a.text()) < 4:
-            self.msg.setText("La clave debe tener al menos 4 caracteres.")
+        if len(self.a.text()) < 10:
+            self.msg.setText("La clave debe tener al menos 10 caracteres (una frase larga vale).")
         elif self.a.text() != self.b.text():
             self.msg.setText("Las dos claves no coinciden.")
         else:

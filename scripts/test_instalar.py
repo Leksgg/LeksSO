@@ -66,6 +66,16 @@ class Base(unittest.TestCase):
         sh("git", "-C", self.repo, "branch", "-M", "main")
 
 
+class Pruebas_como_administrador(unittest.TestCase):
+    def test_las_variables_de_prueba_se_ignoran_como_root(self):
+        t = open(SCRIPT, encoding="utf-8").read()
+        i = t.index('LEKSSO_INSTALAR_PRUEBAS')
+        trozo = t[i - 50:i + 900]
+        self.assertIn('[ "$(id -u)" -eq 0 ]', trozo)                  # como administrador, ignoradas
+        self.assertIn("se ignoran", trozo)
+        self.assertLess(trozo.index('-eq 0 ]'), trozo.index('LEKSSO_PRUEBA_CLAVE'))   # y la guarda va ANTES de usar la clave de prueba
+
+
 class Version(Base):
     def test_elige_la_mas_alta_y_ignora_basura(self):
         # Orden por número (0.10.0 > 0.9.9), y a igual número alpha < beta < la versión normal (sin sufijo, desde la 0.1.47).

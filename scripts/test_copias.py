@@ -79,7 +79,7 @@ class PruebasCopias(unittest.TestCase):
         return subprocess.run([sys.executable, PROGRAMA, *a], env=self.env, capture_output=True, text=True, input=entrada)
 
     def activar(self, **extra):
-        d = {"frecuencia": "diaria", "hora": "03:30", "clave": "Lks15"}
+        d = {"frecuencia": "diaria", "hora": "03:30", "clave": "Lks15-copias-prueba"}
         d.update(extra)
         return self.corre("activar", entrada=json.dumps(d))
 
@@ -111,8 +111,8 @@ class PruebasCopias(unittest.TestCase):
 
     def test_clave_y_discos_y_espacio(self):
         m = self.modulo()
-        self.assertEqual(m.validar_clave("Lks15"), "Lks15")
-        for mala in ("abc", "a\nb", "", "x" * 201, None):
+        self.assertEqual(m.validar_clave("Lks15-copias-prueba"), "Lks15-copias-prueba")
+        for mala in ("abc", "Lks15", "123456789", "a\nb", "", "x" * 201, None):       # menos de 10 caracteres ya no vale
             with self.assertRaises(m.Error):
                 m.validar_clave(mala)
         lvm = "lekso--vg-root lvm\nsda3          part\nsda           disk\n"
@@ -136,7 +136,7 @@ class PruebasCopias(unittest.TestCase):
         r = self.activar()
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         clave = self.t + "/etc/leksso/copias.key"
-        self.assertEqual(open(clave).read(), "Lks15")
+        self.assertEqual(open(clave).read(), "Lks15-copias-prueba")
         self.assertEqual(oct(os.stat(clave).st_mode & 0o777), "0o400")
         self.assertEqual(oct(os.stat(self.t + "/var/lib/leksso-copias").st_mode & 0o777), "0o700")
         h = open(self.t + "/etc/systemd/system/leksso-copias.timer.d/horario.conf").read()
@@ -157,7 +157,7 @@ class PruebasCopias(unittest.TestCase):
         r = self.corre("configurar", entrada=json.dumps({"frecuencia": "semanal", "hora": "22:15"}))
         self.assertEqual(r.returncode, 0, r.stdout)
         self.assertIn("Mon *-*-* 22:15:00", open(self.t + "/etc/systemd/system/leksso-copias.timer.d/horario.conf").read())
-        self.assertEqual(open(self.t + "/etc/leksso/copias.key").read(), "Lks15")
+        self.assertEqual(open(self.t + "/etc/leksso/copias.key").read(), "Lks15-copias-prueba")
 
     def test_clave_mala_no_deja_nada_activado(self):
         r = self.activar(clave="ab")

@@ -3,6 +3,18 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
+## Sin publicar
+
+~ **Raxtor, la fuente de los números, en toda la interfaz de LeksSO.** La barra inferior, la hora y la fecha de la pantalla de bloqueo (la parte de la contraseña no cambia), las ventanas de LeksSO, los avisos y el lanzador dibujan los NÚMEROS con Raxtor si está instalada. Raxtor no trae tildes ni ñ y dibuja las minúsculas como capitales, así que una regla de fontconfig (`config/fontconfig/65-leksso-raxtor-cifras.conf`) le quita todo menos `0-9`, `:` y `%`: las letras salen siempre de la fuente de siempre, con sus acentos. No se cambian las fuentes genéricas (las páginas web y los demás programas no se enteran) ni la de la terminal, que sigue monoespaciada. La fuente tiene derechos reservados y NO va en el repositorio: se copia a mano a `~/.local/share/fonts` (o `/usr/local/share/fonts`) y se ejecuta `fc-cache -f`. Sin ella, todo sigue como antes.
+
+~ **`leksso-acceso-remoto clave` ya no escribe como administrador.** Con `sudo` se vuelve a lanzar como el usuario; antes escribía en su `~/.ssh` como root.
+
+~ **El CHANGELOG que se descarga se limpia antes de enseñarlo** (`leksso-actualizar cambios`): se quitan secuencias de la terminal, caracteres de control y marcas que cambian el sentido de lectura; el texto en español no se toca. Se imprimía antes de verificar ninguna firma.
+
+~ **La clave de las copias de seguridad pide al menos 10 caracteres** (antes 4). Las copias ya hechas conservan su clave.
+
+~ **El instalador ignora sus variables de prueba cuando se ejecuta como administrador.** Antes la única defensa era que `sudo` limpiara el entorno.
+
 ## 0.1.53 · 2026-11-24
 
 ~ **La hora de la pantalla de bloqueo usa la fuente Raxtor si está instalada** (Montserrat si no, como antes). Raxtor solo trae cifras y letras sin tilde, por eso se usa únicamente para el reloj. La fuente no va en el repositorio: se instala en cada equipo (`~/.local/share/fonts` y `fc-cache -f`).

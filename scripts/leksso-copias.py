@@ -69,9 +69,12 @@ def calendario(frecuencia, hora):
     return f"{FRECUENCIAS[frecuencia]} {hora}:00"
 
 
+MIN_CLAVE = 10          # antes 4: la clave se guarda junto al repositorio, y solo protege si el repositorio sale del equipo
+
+
 def validar_clave(clave):
-    if not isinstance(clave, str) or not 4 <= len(clave) <= 200 or "\n" in clave or "\0" in clave:
-        raise Error("La clave debe tener entre 4 y 200 caracteres y una sola línea.")
+    if not isinstance(clave, str) or not MIN_CLAVE <= len(clave) <= 200 or "\n" in clave or "\0" in clave:
+        raise Error(f"La clave debe tener entre {MIN_CLAVE} y 200 caracteres y una sola línea (una frase larga vale).")
     return clave
 
 

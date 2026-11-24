@@ -28,8 +28,12 @@ CLAVE_PUBLICA='leksso-release namespaces="git" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5A
 HUELLA_ESPERADA='SHA256:E5cacFQkhc7QCOXvlEa16/iiuqXTI4XFwuz22zbQg8I'
 RAMA="origin/main"
 OSRELEASE="/etc/os-release"
-# Solo para las pruebas del propio instalador (nunca llegan por sudo): sustituyen la clave y el origen.
-if [ "${LEKSSO_INSTALAR_PRUEBAS:-}" = "1" ]; then
+# Solo para las pruebas del propio instalador: sustituyen la clave y el origen. Como administrador se IGNORAN: antes la
+# única defensa era que sudo limpiara el entorno, y quien instala como root es justo quien no debe poder cambiar la clave de
+# confianza (los demás ayudantes de LeksSO que corren como root ya hacían esto).
+if [ "${LEKSSO_INSTALAR_PRUEBAS:-}" = "1" ] && [ "$(id -u)" -eq 0 ]; then
+  echo "AVISO: como administrador se ignoran las variables de prueba del instalador (LEKSSO_PRUEBA_*)." >&2
+elif [ "${LEKSSO_INSTALAR_PRUEBAS:-}" = "1" ]; then
   REPO="${LEKSSO_PRUEBA_REPO:-$REPO}"; CLON="${LEKSSO_PRUEBA_CLON:-$CLON}"
   CLAVE_PUBLICA="${LEKSSO_PRUEBA_CLAVE:-$CLAVE_PUBLICA}"; HUELLA_ESPERADA="${LEKSSO_PRUEBA_HUELLA:-$HUELLA_ESPERADA}"
   RAMA="${LEKSSO_PRUEBA_RAMA:-$RAMA}"; OSRELEASE="${LEKSSO_PRUEBA_OSRELEASE:-$OSRELEASE}"

@@ -344,6 +344,13 @@ class Cableado(unittest.TestCase):
         self.assertIn("quitar_solicitudes", t[t.index("  off)"):])
         self.assertIn('comment "leksso-acceso-remoto solicitud"', t)                       # quitar_regla la borra también
 
+    def test_clave_con_sudo_se_vuelve_a_lanzar_como_el_usuario(self):
+        t = leer("config/bin/leksso-acceso-remoto")
+        bloque = t[t.index("  clave)"):t.index("  on)")]
+        self.assertIn('exec runuser -u "$(usuario)" -- "$0" clave "$CL"', bloque)
+        self.assertNotIn("chown", bloque)                      # ya no hace falta: nunca escribe como root
+        self.assertLess(bloque.index("runuser"), bloque.index("authorized_keys"))   # se baja de privilegios ANTES de tocar nada
+
     def test_el_servicio_corre_sin_privilegios_y_encerrado(self):
         t = leer("config/bin/leksso-acceso-remoto")
         for x in ("User=$u", "NoNewPrivileges=yes", "ProtectSystem=strict", "ProtectHome=read-only", "Accept=yes",
