@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """leksso-ia: cliente del usuario para el permisor (aprobar, deshacer, registro) y cliente de la IA.
 
-Usuario: leksso-ia servir | pendientes | aprobar PID [-r] | rechazar PID | registro [N]
+Usuario: leksso-ia servir | pendientes | aprobar PID [-r] | rechazar PID | registro [N] | verificar
         leksso-ia deshacer ACCION [--forzar] | deshacer-tarea TAREA | recordadas | olvidar RUTA
 IA:     leksso-ia ia pedir TITULO RUTA:PERMISOS... | ia estado PID | ia listar|leer|borrar TAREA RUTA
         leksso-ia ia escribir TAREA RUTA TEXTO | ia mover TAREA ORIGEN DESTINO | ia cerrar TAREA
 """
 import json
+import re
 import socket
+import subprocess
 import sys
 
 import permisor
@@ -54,6 +56,20 @@ def aprobar(pid, recordar):
     print(f"  Aprobada. Tarea {r['tarea']}.")
 
 
+def ultimo_sello_del_diario():
+    """La última cabeza que el permisor dejó en el diario del sistema, o None si no se puede leer (no hay journalctl o el
+    usuario no tiene permiso). El usuario no puede reescribir ese diario: es lo que ancla el registro."""
+    try:
+        r = subprocess.run(["journalctl", "-t", "leksso-permisor", "-o", "cat", "-n", "200", "--no-pager"],
+                           capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if r.returncode != 0:
+        return None
+    cabezas = re.findall(r"sello n=\d+ cabeza=([0-9a-f]{64})", r.stdout)
+    return cabezas[-1] if cabezas else None
+
+
 def main(a):
     if not a:
         return print(__doc__)
@@ -72,6 +88,16 @@ def main(a):
             marca = "  " if r.get("ok", True) else "NO"
             print(marca, r.get("t", ""), r.get("id", r.get("deshace", "")), r.get("accion", "deshace"),
                   r.get("ruta", ""), r.get("motivo", ""))
+    elif c == "verificar":
+        sello = ultimo_sello_del_diario()
+        v = control(op="verificar", sello=sello)["verificacion"]
+        print(f"Líneas válidas: {v['lineas']}   cortes en la cadena: {v['cortes']}   firmas falsas: {v['invalidas']}")
+        if sello is None:
+            print("No se pudo leer el diario del sistema (hacen falta permisos: sudo leksso-ia verificar): solo se comprobó la cadena.")
+        else:
+            print("Sello del sistema:", "COINCIDE con el registro" if v["sello_del_sistema"] else "NO aparece en el registro: faltan líneas")
+        print("TODO BIEN" if v["ok"] else "REVISAR: el registro no es de fiar")
+        sys.exit(0 if v["ok"] else 1)
     elif c == "deshacer":
         control(op="deshacer", accion=a[1], forzar="--forzar" in a)
         print("Deshecho.")

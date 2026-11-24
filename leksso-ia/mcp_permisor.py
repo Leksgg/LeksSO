@@ -123,7 +123,10 @@ def t_ejecutar(a):
     orden = _cadena(a, "orden", 8000)
     admin = a.get("admin") is True
     espera = _entero(a, "espera_s", 120, 1, 1800)
-    r = hablar({"op": "ejecutar", "orden": orden, "admin": admin, "espera": espera}, espera=espera + 60)
+    peticion = {"op": "ejecutar", "orden": orden, "admin": admin, "espera": espera}
+    if a.get("tarea") is not None:                  # nivel «Comandos en caja»: la tarea cuyas carpetas ve la orden
+        peticion["tarea"] = _cadena(a, "tarea", 64)
+    r = hablar(peticion, espera=espera + 60)
     if r.get("ok") and r.get("estado") == "pendiente":      # hace falta el visto bueno del usuario en el panel
         limite = time.time() + _entero(a, "esperar_aprobacion_s", 120, 0, ESPERA_MAX)
         while time.time() < limite:
@@ -211,6 +214,8 @@ HERRAMIENTAS = {
                  "lo destructivo y, según el nivel, la administración esperan a que el usuario lo apruebe en el panel.",
                  _obj({"orden": {**_S, "description": "La orden, tal como se escribiría en la terminal. Sin sudo: usa admin."},
                        "admin": {"type": "boolean", "description": "true = como administrador."},
+                       "tarea": {**_S, "description": "Solo en el nivel «Comandos en caja»: la tarea (de pedir_acceso) "
+                                 "cuyas carpetas ve la orden. La orden corre dentro de la caja, sin red."},
                        "espera_s": {"type": "integer", "description": "Segundos máximos de ejecución (por defecto 120)."},
                        "esperar_aprobacion_s": {"type": "integer"}}, ["orden"]), t_ejecutar),
     "mis_permisos": ("Dice qué puedes hacer en este equipo según lo que ha elegido el usuario (archivos, órdenes, administración).",
@@ -248,7 +253,16 @@ def instrucciones():
         p = mios.get("permisos") or {}
     except (OSError, ValueError):
         p = {}
-    if p.get("comandos"):
+    if p.get("archivos") == "leer":
+        t += (" Estás en el nivel «Consultar»: solo puedes pedir permiso de lectura (r); escribir, borrar y mover no están "
+              "permitidos. Si hace falta, dile al usuario que te suba el nivel en Ajustes de asistentes.")
+    if p.get("comandos") == "caja":
+        t += (" Puedes ejecutar órdenes con la herramienta ejecutar, pero DENTRO de una caja: solo ves las carpetas de una "
+              "tarea abierta (pasa su identificador en «tarea»), sin red y sin tocar la sesión del usuario ni el sistema. "
+              "Pide primero la carpeta con pedir_acceso. Si algo necesita más (red, administración, otras carpetas), dile "
+              "al usuario que te suba el nivel en Ajustes de asistentes (leksso-asistentes). Usa los comandos PROPIOS de "
+              "LeksSO solo para decirle al usuario lo que puede hacer: ")
+    elif p.get("comandos"):
         t += (" Puedes operar el equipo con la herramienta ejecutar"
               + (" (también como administrador, con admin=true)" if p.get("admin") not in (None, "no") else
                  " (sin administración: si algo la necesita, dile al usuario que te la dé en Ajustes de asistentes)")

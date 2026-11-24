@@ -21,6 +21,14 @@ import unicodedata
 import uuid
 from pathlib import Path
 
+try:                                   # el diario del sistema: solo en Linux
+    import syslog
+except ImportError:                    # pragma: no cover
+    syslog = None
+
+GENESIS = "0" * 64                     # la «cabeza» de un registro vacío
+SELLO_CADA = 5                         # segundos como mucho entre un sello y el siguiente (las órdenes sellan siempre)
+
 MAX_LEER = 2 * 1024 * 1024
 PROHIBIDAS = {"/", "/etc", "/usr", "/bin", "/sbin", "/lib", "/lib64", "/boot",
               "/sys", "/proc", "/dev", "/var", "/root", "/run"}
@@ -51,10 +59,29 @@ def renombrar_sin_pisar(origen, destino, src_fd, dst_fd):
     raise OSError(err, os.strerror(err), destino)
 
 
+def _identidad(st):
+    """Con qué se reconoce «lo mismo» al deshacer: [dispositivo, inodo] y, si no es una carpeta, también tamaño y fecha de
+    modificación. El inodo solo no basta: ext4 reutiliza el número en cuanto queda libre, así que un archivo nuevo puede
+    heredar el de uno borrado. Renombrar no cambia ni el tamaño ni la fecha, por eso estos datos sobreviven a mover y a
+    la papelera. En las carpetas solo se usa el inodo: su fecha cambia cada vez que se toca algo dentro."""
+    base = [st.st_dev, st.st_ino]
+    if stat.S_ISDIR(st.st_mode):
+        return base
+    return base + [st.st_size, st.st_mtime_ns]
+
+
+def _es_el_mismo(actual, guardado):
+    """Compara lo que hay ahora con lo anotado. Las acciones anotadas por versiones antiguas solo llevan
+    [dispositivo, inodo]: con esas se compara solo eso."""
+    guardado, actual = list(guardado), list(actual)
+    if len(guardado) == 2:          # carpeta, o anotada por una versión antigua: solo dispositivo e inodo
+        return actual[:2] == guardado
+    return actual == guardado
+
+
 def _objeto(fd, nombre):
-    """Identidad (dispositivo, inodo) de lo que hay con ese nombre, sin seguir enlaces."""
-    st = os.stat(nombre, dir_fd=fd, follow_symlinks=False)
-    return [st.st_dev, st.st_ino]
+    """Identidad de lo que hay con ese nombre, sin seguir enlaces."""
+    return _identidad(os.stat(nombre, dir_fd=fd, follow_symlinks=False))
 
 
 class Denegado(Exception):
@@ -130,6 +157,10 @@ class Nucleo:
         self.tareas = {}
         self.acciones = {}
         self.invalidas = 0                 # líneas del registro con firma falsa o ausente
+        self.cortes = 0                    # veces que la cadena no enlaza: líneas borradas, cambiadas de sitio o metidas a mano
+        self._cabeza = GENESIS             # firma de la última línea válida: la siguiente línea la cita
+        self._validas = 0
+        self._ultimo_sello = 0.0
         self._cerrojo = threading.RLock()
         self._clave = self._leer_clave()
         self._cargar()
@@ -150,6 +181,62 @@ class Nucleo:
                         "sha256").hexdigest()
 
     # ---------- registro ----------
+    # Cada línea lleva la firma de la anterior («prev») dentro de lo que firma: quitar una línea, cambiarlas de sitio o
+    # meter una a mano rompe el enlace con la siguiente y queda contado en «cortes», para siempre. La cadena sola NO
+    # frena a quien lea la clave (es del mismo usuario): por eso la cabeza se sella además en el diario del sistema
+    # (_sellar), que el usuario no puede reescribir, y `verificar` compara las dos cosas.
+    def _revisar(self, r, est):
+        """Comprueba una línea ya leída contra el estado de la cadena. True si la firma vale (la línea cuenta)."""
+        if not isinstance(r, dict) or not hmac.compare_digest(str(r.get("firma", "")), self._firma(r)):
+            est["invalidas"] += 1
+            return False
+        if "prev" in r:
+            est["encadenado"] = True
+            if r["prev"] != est["esperado"]:
+                est["cortes"] += 1
+        elif est["encadenado"]:                # una línea sin «prev» DESPUÉS de empezar la cadena no puede ser de este programa
+            est["cortes"] += 1
+        est["esperado"] = r["firma"]
+        est["validas"] += 1
+        est["firmas"].add(r["firma"])
+        return True
+
+    def _estado_cadena(self):
+        return {"esperado": GENESIS, "encadenado": False, "cortes": 0, "invalidas": 0, "validas": 0, "firmas": set()}
+
+    def verificar(self, sello_externo=None):
+        """Recorre el registro entero. sello_externo: la última cabeza que quedó en el diario del sistema (si se pudo leer):
+        si no aparece entre las líneas del registro, faltan líneas (por ejemplo, las últimas)."""
+        est = self._estado_cadena()
+        if self.registro.exists():
+            for linea in self.registro.read_text(encoding="utf-8").splitlines():
+                try:
+                    r = json.loads(linea)
+                except ValueError:
+                    continue
+                self._revisar(r, est)
+        sello = None
+        if sello_externo:
+            sello = sello_externo in est["firmas"] or sello_externo == GENESIS
+        ok = est["cortes"] == 0 and est["invalidas"] == 0 and sello is not False
+        return {"ok": ok, "lineas": est["validas"], "cortes": est["cortes"], "invalidas": est["invalidas"],
+                "cabeza": est["esperado"], "sello_del_sistema": sello}
+
+    def _sellar(self, r):
+        """Deja la cabeza de la cadena en el diario del sistema (si el servicio lo pide con LEKSSO_SELLO=syslog). Es lo que
+        el usuario no puede reescribir. Como mucho cada SELLO_CADA segundos, y siempre que se ejecuta una orden."""
+        if syslog is None or os.environ.get("LEKSSO_SELLO") != "syslog":
+            return
+        ahora = time.monotonic()
+        if r.get("accion") not in ("orden", "orden_admin") and ahora - self._ultimo_sello < SELLO_CADA:
+            return
+        self._ultimo_sello = ahora
+        try:
+            syslog.openlog("leksso-permisor", 0, syslog.LOG_AUTH)
+            syslog.syslog(syslog.LOG_INFO, f"sello n={self._validas} cabeza={self._cabeza}")
+        except OSError:
+            pass
+
     def _cargar(self):
         if not self.registro.exists():
             return
@@ -159,13 +246,13 @@ class Nucleo:
                 f.seek(-1, os.SEEK_END)
                 if f.read(1) != b"\n":
                     f.write(b"\n")
+        est = self._estado_cadena()
         for linea in self.registro.read_text(encoding="utf-8").splitlines():
             try:
                 r = json.loads(linea)
             except ValueError:
                 continue
-            if not isinstance(r, dict) or not hmac.compare_digest(str(r.get("firma", "")), self._firma(r)):
-                self.invalidas += 1
+            if not self._revisar(r, est):
                 continue
             if "deshace" in r:
                 if r["deshace"] in self.acciones:
@@ -173,22 +260,29 @@ class Nucleo:
             elif "id" in r and r.get("ok"):
                 r["deshecha"] = False
                 self.acciones[r["id"]] = r
+        self.cortes, self.invalidas = est["cortes"], est["invalidas"]
+        self._cabeza, self._validas = est["esperado"], est["validas"]
 
     def _anotar(self, r):
-        r["t"] = time.strftime("%Y-%m-%dT%H:%M:%S")
-        r["firma"] = self._firma(r)
         with self._cerrojo:
+            r["t"] = time.strftime("%Y-%m-%dT%H:%M:%S")
+            r["prev"] = self._cabeza               # el enlace con la línea anterior va dentro de lo que se firma
+            r["firma"] = self._firma(r)
             with open(self.registro, "a", encoding="utf-8") as f:
                 f.write(json.dumps(r, ensure_ascii=False) + "\n")
                 f.flush()
                 os.fsync(f.fileno())
+            self._cabeza = r["firma"]
+            self._validas += 1
             if r.get("ok") and "id" in r:
                 r["deshecha"] = False
                 self.acciones[r["id"]] = r
+            self._sellar(r)
 
-    def anotar_consulta(self, accion, detalle=""):
-        """Deja constancia de una consulta de solo lectura que no toca archivos (por ejemplo, medir el equipo)."""
-        self._anotar({"tarea": None, "accion": accion, "ruta": detalle, "ok": True})
+    def anotar_consulta(self, accion, detalle="", **extra):
+        """Deja constancia de una consulta de solo lectura que no toca archivos (por ejemplo, medir el equipo).
+        extra: datos firmados que acompañan a la línea (por ejemplo, la huella completa de una orden)."""
+        self._anotar({"tarea": None, "accion": accion, "ruta": detalle, "ok": True, **extra})
 
     def _nuevo_id(self):
         return "a" + uuid.uuid4().hex[:8]
@@ -478,8 +572,7 @@ class Nucleo:
         try:
             os.stat(nombre, dir_fd=fd, follow_symlinks=False)
             en_papelera = self._a_papelera(fd, nombre, ruta)
-            st = os.lstat(self.papelera / "files" / en_papelera)
-            objeto = [st.st_dev, st.st_ino]
+            objeto = _identidad(os.lstat(self.papelera / "files" / en_papelera))
         except FileNotFoundError:
             self._denegar(t, "borrar", ruta, "no existe")
         finally:
@@ -581,7 +674,7 @@ class Nucleo:
                     origen = self.papelera / "files" / a["papelera"]
                     if not os.path.lexists(origen):
                         raise Denegado("ya no está en la papelera")
-                    if a.get("obj") and (lambda s: [s.st_dev, s.st_ino])(os.lstat(origen)) != a["obj"]:
+                    if a.get("obj") and not _es_el_mismo(_identidad(os.lstat(origen)), a["obj"]):
                         raise Denegado("lo que hay ahora en la papelera con ese nombre no es lo que se borró; no se restaura")
                     try:
                         os.rename(origen, a["nombre"], dst_dir_fd=fd)
@@ -612,7 +705,7 @@ class Nucleo:
                 f2 = self._fd_de(a["raiz"], a["padre"])
                 try:
                     try:
-                        if a.get("obj") and _objeto(f1, a["nombre2"]) != a["obj"]:
+                        if a.get("obj") and not _es_el_mismo(_objeto(f1, a["nombre2"]), a["obj"]):
                             raise Denegado("lo que hay ahora en el destino no es lo que se movió; no se deshace")
                         renombrar_sin_pisar(a["nombre2"], a["nombre"], f1, f2)
                     except FileExistsError:

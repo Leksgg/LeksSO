@@ -5,9 +5,13 @@ asistente no puede darse permisos a sí mismo. Lo leen el permisor, el servicio 
 
 Por cada asistente y usuario:
   activo     si se usa en este equipo
-  archivos   "preguntar" (cada carpeta pide tu permiso) | "libre" (carpetas de tu carpeta personal sin preguntar)
-  comandos   si puede ejecutar comandos en el equipo con tu usuario
-  admin      "no" | "preguntar" (cada orden de administrador pide un clic) | "libre" (sin preguntar)
+  archivos   "leer" (solo consulta: cada carpeta nueva pide tu permiso y solo se concede lectura) |
+             "preguntar" (cada carpeta nueva pide tu permiso) | "libre" (carpetas de tu carpeta personal sin preguntar)
+  comandos   False (ninguno) | "caja" (órdenes DENTRO de la caja: solo ven las carpetas de una tarea concedida, sin red
+             y sin tocar tu sesión) | True (órdenes con tu usuario por todo el equipo)
+  admin      "no" | "libre" (como administrador, sin preguntar). Antes existía «preguntar»: la pregunta la podía
+             contestar el propio asistente, así que se quitó; los permisos antiguos con «preguntar» pasan a «no».
+Cinco niveles: Consultar, Archivos, Comandos en caja, Este equipo (sin administrador) y Acceso total.
 Lo destructivo (borrar el sistema, formatear, cambiar contraseñas…) pregunta siempre.
 """
 import json
@@ -18,11 +22,24 @@ RUTA = os.environ.get("LEKSSO_ASISTENTES") or "/etc/leksso/asistentes.json"
 NOMBRES = {"claude": "Claude", "codex": "Codex"}
 DEFECTO = {"activo": False, "archivos": "preguntar", "comandos": False, "admin": "no"}
 PREAJUSTES = {
+    "consultar": {"archivos": "leer", "comandos": False, "admin": "no"},
     "archivos": {"archivos": "preguntar", "comandos": False, "admin": "no"},
-    "equipo": {"archivos": "libre", "comandos": True, "admin": "preguntar"},
+    "caja": {"archivos": "preguntar", "comandos": "caja", "admin": "no"},
+    "equipo": {"archivos": "libre", "comandos": True, "admin": "no"},
     "total": {"archivos": "libre", "comandos": True, "admin": "libre"},
 }
-NOMBRE_PREAJUSTE = {"archivos": "Solo archivos", "equipo": "Este equipo", "total": "Acceso total"}
+NOMBRE_PREAJUSTE = {"consultar": "Consultar", "archivos": "Archivos", "caja": "Comandos en caja",
+                    "equipo": "Este equipo", "total": "Acceso total"}
+# Qué permite cada nivel, en palabras llanas (lo enseña la ventana de asistentes).
+DESCRIPCION_PREAJUSTE = {
+    "consultar": "Solo lee archivos de las carpetas que le concedas. No escribe, no borra, no ejecuta nada.",
+    "archivos": "Lee y escribe en las carpetas que le concedas (borrar va a la papelera). No ejecuta órdenes.",
+    "caja": "Además ejecuta órdenes, pero dentro de la caja: solo ve las carpetas de la tarea, sin red y sin tocar tu sesión.",
+    "equipo": "Ejecuta cualquier orden con TU usuario por todo el equipo, sin administrador. Puede leer tus claves "
+              "(SSH, etc.) y cambiar tus archivos de inicio: «sin administrador» no significa inofensivo.",
+    "total": "Todo lo anterior y además administrador (root): puede cambiar cualquier cosa del equipo sin preguntar. "
+             "Lo destructivo (borrar el sistema, formatear, contraseñas) te lo pregunta igualmente.",
+}
 
 
 def validar(p):
@@ -30,11 +47,11 @@ def validar(p):
     p = p if isinstance(p, dict) else {}
     limpio = dict(DEFECTO)
     limpio["activo"] = p.get("activo") is True
-    if p.get("archivos") in ("preguntar", "libre"):
+    if p.get("archivos") in ("leer", "preguntar", "libre"):
         limpio["archivos"] = p["archivos"]
-    limpio["comandos"] = p.get("comandos") is True
-    if p.get("admin") in ("no", "preguntar", "libre"):
-        limpio["admin"] = p["admin"]
+    limpio["comandos"] = True if p.get("comandos") is True else ("caja" if p.get("comandos") == "caja" else False)
+    if p.get("admin") == "libre":              # «preguntar» (antiguo) y cualquier otra cosa pasan a «no»
+        limpio["admin"] = "libre"
     if limpio["admin"] != "no":
         limpio["comandos"] = True          # quien administra también ejecuta como usuario
     return limpio
@@ -82,11 +99,13 @@ def resumen(p):
     for clave, valores in PREAJUSTES.items():
         if all(p[k] == v for k, v in valores.items()):
             return NOMBRE_PREAJUSTE[clave]
-    partes = ["archivos sin preguntar" if p["archivos"] == "libre" else "archivos con permiso"]
-    if p["comandos"]:
+    partes = [{"libre": "archivos sin preguntar", "leer": "solo lectura de archivos"}.get(p["archivos"], "archivos con permiso")]
+    if p["comandos"] == "caja":
+        partes.append("comandos en caja")
+    elif p["comandos"]:
         partes.append("comandos")
     if p["admin"] != "no":
-        partes.append("administración" + (" preguntando" if p["admin"] == "preguntar" else " sin preguntar"))
+        partes.append("administración")
     return ", ".join(partes)
 
 

@@ -117,9 +117,9 @@ class Ordenes(unittest.TestCase):
         with self.assertRaises(Denegado):
             self.p.manejar_ia({"op": "ejecutar", "orden": "ls", "asistente": "claude"}, "nube", None)
 
-    def test_admin_preguntando_espera_al_usuario(self):
-        fijar(claude={"activo": True, "comandos": True, "admin": "preguntar"})
-        r = self.ia("claude", op="ejecutar", orden="apt install -y htop", admin=True)
+    def test_lo_destructivo_como_admin_espera_al_usuario(self):
+        fijar(claude={"activo": True, "comandos": True, "admin": "libre"})
+        r = self.ia("claude", op="ejecutar", orden="reboot", admin=True)
         self.assertEqual(r["estado"], "pendiente")
         self.assertEqual(self.hechas, [])
         with self.assertRaises(Denegado):                       # sin aprobar no se puede ejecutar por pid
@@ -127,22 +127,22 @@ class Ordenes(unittest.TestCase):
         self.p.manejar_control({"op": "aprobar", "pid": r["pid"]})
         self.assertEqual(self.ia("claude", op="estado", pid=r["pid"])["estado"], "aprobada")
         self.assertEqual(self.ia("claude", op="ejecutar", pid=r["pid"])["codigo"], 0)
-        self.assertEqual(self.hechas, [("root", "apt install -y htop")])
+        self.assertEqual(self.hechas, [("root", "reboot")])
         with self.assertRaises(Denegado):                       # una aprobación vale para una sola ejecución
             self.ia("claude", op="ejecutar", pid=r["pid"])
 
     def test_orden_aprobada_no_la_usa_otro_asistente(self):
-        fijar(claude={"activo": True, "comandos": True, "admin": "preguntar"},
+        fijar(claude={"activo": True, "comandos": True, "admin": "libre"},
               codex={"activo": True, "comandos": True})
-        r = self.ia("claude", op="ejecutar", orden="apt update", admin=True)
+        r = self.ia("claude", op="ejecutar", orden="reboot", admin=True)
         self.p.manejar_control({"op": "aprobar", "pid": r["pid"]})
         with self.assertRaises(Denegado):
             self.ia("codex", op="ejecutar", pid=r["pid"])
         self.assertEqual(self.hechas, [])
 
     def test_rechazada_no_se_ejecuta(self):
-        fijar(claude={"activo": True, "comandos": True, "admin": "preguntar"})
-        r = self.ia("claude", op="ejecutar", orden="apt update", admin=True)
+        fijar(claude={"activo": True, "comandos": True, "admin": "libre"})
+        r = self.ia("claude", op="ejecutar", orden="reboot", admin=True)
         self.p.manejar_control({"op": "rechazar", "pid": r["pid"]})
         self.assertEqual(self.ia("claude", op="estado", pid=r["pid"])["estado"], "rechazada")
         with self.assertRaises(Denegado):
@@ -187,6 +187,100 @@ class Ordenes(unittest.TestCase):
     def test_quien_administra_tambien_ejecuta(self):
         self.assertTrue(asistentes.validar({"admin": "libre"})["comandos"])
         self.assertEqual(asistentes.validar({"admin": "raro", "archivos": 3})["admin"], "no")
+
+
+    # ----- los cinco niveles -----
+    def test_el_admin_preguntar_antiguo_pasa_a_no(self):
+        v = asistentes.validar({"activo": True, "archivos": "libre", "comandos": True, "admin": "preguntar"})
+        self.assertEqual(v["admin"], "no")
+        self.assertEqual(asistentes.resumen(v), "Este equipo")
+
+    def test_cada_nivel_tiene_nombre_y_descripcion(self):
+        self.assertEqual(list(asistentes.PREAJUSTES), ["consultar", "archivos", "caja", "equipo", "total"])
+        for clave, valores in asistentes.PREAJUSTES.items():
+            self.assertEqual(asistentes.validar(dict(valores, activo=True)) | {"activo": True}, dict(valores, activo=True))
+            self.assertIn(clave, asistentes.NOMBRE_PREAJUSTE)
+            self.assertTrue(asistentes.DESCRIPCION_PREAJUSTE[clave])
+            self.assertEqual(asistentes.resumen(dict(valores, activo=True)), asistentes.NOMBRE_PREAJUSTE[clave])
+
+    def test_consultar_solo_lee(self):
+        casa = str(self.p.n.casa)
+        os.makedirs(os.path.join(casa, "docs"))
+        fijar(claude=dict(asistentes.PREAJUSTES["consultar"], activo=True))
+        ok = self.p.manejar_ia({"op": "pedir", "titulo": "leer", "carpetas": {os.path.join(casa, "docs"): "r"}}, "nube", "claude")
+        self.assertEqual(ok["estado"], "pendiente")
+        for perms in ("w", "rw", "rwd"):
+            with self.assertRaises(Denegado):
+                self.p.manejar_ia({"op": "pedir", "titulo": "escribir", "carpetas": {os.path.join(casa, "docs"): perms}}, "nube", "claude")
+
+    def _nivel_caja(self):
+        casa = str(self.p.n.casa)
+        os.makedirs(os.path.join(casa, "proyecto"))
+        fijar(claude=dict(asistentes.PREAJUSTES["caja"], activo=True))
+        self.llamadas = []
+        self.p.correr_caja = lambda o, e, c, carpetas: self.llamadas.append((o, carpetas)) or {"codigo": 0, "salida": "ok"}
+        return os.path.join(casa, "proyecto")
+
+    def test_comandos_en_caja_exigen_una_tarea(self):
+        self._nivel_caja()
+        with self.assertRaises(Denegado):
+            self.ia("claude", op="ejecutar", orden="ls")
+        with self.assertRaises(Denegado):
+            self.ia("claude", op="ejecutar", orden="ls", tarea="inventada")
+        self.assertEqual(self.llamadas, [])
+        self.assertEqual(self.hechas, [])
+
+    def test_comandos_en_caja_corren_con_las_carpetas_de_la_tarea(self):
+        proyecto = self._nivel_caja()
+        r = self.ia("claude", op="pedir", titulo="trabajar", carpetas={proyecto: "rw"})
+        self.p.manejar_control({"op": "aprobar", "pid": r["pid"]})
+        tarea = self.ia("claude", op="estado", pid=r["pid"])["tarea"]
+        self.assertEqual(self.ia("claude", op="ejecutar", orden="git status", tarea=tarea)["codigo"], 0)
+        self.assertEqual(self.llamadas, [("git status", [(os.path.realpath(proyecto), True)])])
+        self.assertEqual(self.hechas, [])                       # nunca corrió fuera de la caja
+
+    def test_comandos_en_caja_solo_lectura_monta_ro(self):
+        proyecto = self._nivel_caja()
+        r = self.ia("claude", op="pedir", titulo="mirar", carpetas={proyecto: "r"})
+        self.p.manejar_control({"op": "aprobar", "pid": r["pid"]})
+        tarea = self.ia("claude", op="estado", pid=r["pid"])["tarea"]
+        self.ia("claude", op="ejecutar", orden="ls", tarea=tarea)
+        self.assertEqual(self.llamadas[0][1], [(os.path.realpath(proyecto), False)])
+
+    def test_la_tarea_de_otro_asistente_no_sirve_en_la_caja(self):
+        proyecto = self._nivel_caja()
+        fijar(claude=dict(asistentes.PREAJUSTES["caja"], activo=True), codex=dict(asistentes.PREAJUSTES["caja"], activo=True))
+        r = self.ia("claude", op="pedir", titulo="trabajar", carpetas={proyecto: "rw"})
+        self.p.manejar_control({"op": "aprobar", "pid": r["pid"]})
+        tarea = self.ia("claude", op="estado", pid=r["pid"])["tarea"]
+        with self.assertRaises(Denegado):
+            self.ia("codex", op="ejecutar", orden="ls", tarea=tarea)
+        self.assertEqual(self.llamadas, [])
+
+    def test_comandos_en_caja_no_dan_administrador(self):
+        proyecto = self._nivel_caja()
+        r = self.ia("claude", op="pedir", titulo="trabajar", carpetas={proyecto: "rw"})
+        self.p.manejar_control({"op": "aprobar", "pid": r["pid"]})
+        tarea = self.ia("claude", op="estado", pid=r["pid"])["tarea"]
+        with self.assertRaises(Denegado):
+            self.ia("claude", op="ejecutar", orden="ls", admin=True, tarea=tarea)
+
+    def test_bajar_a_caja_frena_una_orden_ya_aprobada_fuera_de_ella(self):
+        fijar(claude={"activo": True, "comandos": True, "admin": "no"})
+        r = self.ia("claude", op="ejecutar", orden="rm -rf ~")
+        self.assertEqual(r["estado"], "pendiente")
+        self.p.manejar_control({"op": "aprobar", "pid": r["pid"]})
+        fijar(claude=dict(asistentes.PREAJUSTES["caja"], activo=True))
+        with self.assertRaises(Denegado):
+            self.ia("claude", op="ejecutar", pid=r["pid"])
+        self.assertEqual(self.hechas, [])
+
+    def test_este_equipo_no_tiene_administrador(self):
+        fijar(claude=dict(asistentes.PREAJUSTES["equipo"], activo=True))
+        with self.assertRaises(Denegado):
+            self.ia("claude", op="ejecutar", orden="apt update", admin=True)
+        self.assertEqual(self.ia("claude", op="ejecutar", orden="ls")["codigo"], 0)
+        self.assertEqual(self.hechas, [("usuario", "ls")])
 
 
 if __name__ == "__main__":

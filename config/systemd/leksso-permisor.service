@@ -3,7 +3,11 @@ Description=Permisor de IA de LeksSO
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 /usr/local/lib/leksso-ia/permisor.py
+# -I: modo aislado. Sin él Python carga los paquetes y los archivos .pth de ~/.local, y cualquier proceso del usuario
+# (también uno lanzado por un asistente) podía meter código dentro del permisor y hacerse pasar por él ante root.
+ExecStart=/usr/bin/python3 -I /usr/local/lib/leksso-ia/permisor.py
+# Cada pocos segundos (y en cada orden) deja la cabeza del registro en el diario del sistema, que el usuario no puede reescribir.
+Environment=LEKSSO_SELLO=syslog
 Restart=on-failure
 RestartSec=2
 

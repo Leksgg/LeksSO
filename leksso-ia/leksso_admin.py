@@ -16,6 +16,10 @@ import socket
 import socketserver
 import struct
 import subprocess
+import sys
+
+# Se arranca con «python3 -I»: se añade solo la carpeta del script (de root).
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import asistentes
 
@@ -31,7 +35,9 @@ def parece_el_permisor(grupos, programa, orden, claves_entorno, uid):
     """Qué debe cumplir el proceso que llama. Todo se compara exacto, no por «contiene»:
     - su grupo de control es la unidad leksso-permisor.service del gestor de ESTE usuario (mientras la unidad
       verdadera corre, otra con el mismo nombre no puede existir);
-    - el programa es python3 del sistema y la orden es exactamente «python3 permisor.py» (sin -c, sin módulos);
+    - el programa es python3 del sistema y la orden es exactamente «python3 -I permisor.py» (sin -c, sin módulos).
+      El -I importa: con él Python no carga los paquetes del usuario (~/.local, archivos .pth) ni la carpeta
+      actual, que es por donde un proceso del usuario podía meter código dentro del permisor verdadero;
     - no lleva variables que cambian lo que Python o el cargador importan (PYTHON*, LD_*)."""
     ruta = None
     for linea in grupos.splitlines():
@@ -44,8 +50,8 @@ def parece_el_permisor(grupos, programa, orden, claves_entorno, uid):
         return False
     if not (os.path.basename(programa).startswith("python3") and programa.startswith("/usr/bin/")):
         return False
-    if len(orden) != 2 or not orden[0] or os.path.basename(orden[0].decode("utf-8", "replace")) not in (
-            "python3", os.path.basename(programa)) or orden[1] != SCRIPT_PERMISOR:
+    if len(orden) != 3 or not orden[0] or os.path.basename(orden[0].decode("utf-8", "replace")) not in (
+            "python3", os.path.basename(programa)) or orden[1] != b"-I" or orden[2] != SCRIPT_PERMISOR:
         return False
     return not any(k.startswith(b"PYTHON") or k.startswith(b"LD_") for k in claves_entorno)
 

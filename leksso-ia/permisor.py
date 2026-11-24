@@ -6,17 +6,24 @@ Dos sockets Unix, ambos 0600 y solo del usuario:
 El de control no se monta nunca en una caja ni se entrega a la IA, así que la IA no
 puede aprobarse a sí misma. Protocolo: un JSON por línea, una respuesta por línea.
 """
+import hashlib
 import json
 import os
+import shlex
 import socket
 import socketserver
 import stat
 import struct
 import subprocess
+import sys
 import threading
 import time
 import uuid
 from pathlib import Path
+
+# Se arranca con «python3 -I» (ni carpeta del usuario ni sus paquetes en la ruta de importación): el único directorio
+# que se añade es el del propio script, que en una instalación real es de root.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import asistentes
 import equipo
@@ -50,6 +57,24 @@ def correr_usuario(orden, espera, casa):
     return {"codigo": codigo, "salida": texto + (f"\n[se cortó a los {espera} s]" if vencio else "")}
 
 
+CAJA = os.environ.get("LEKSSO_CAJA") or "/usr/local/bin/caja"
+
+
+def correr_caja(orden, espera, casa, carpetas):
+    """Ejecuta la orden DENTRO de la caja (nivel «Comandos en caja»): solo ve las carpetas concedidas, sin red y sin
+    el socket de control ni tu sesión. carpetas = [(ruta real, escribe)]. Se lanza igual que correr_usuario (fuera
+    del endurecimiento del permisor) pero el programa que corre es la caja, no bash a secas."""
+    args = []
+    for ruta, escribe in carpetas:
+        args += ["--rw" if escribe else "--ro", ruta]
+    cd = f"cd /home/caja/{shlex.quote(os.path.basename(carpetas[0][0]))} 2>/dev/null; " if carpetas else ""
+    base = ["systemd-run", "--user", "--pipe", "--wait", "--collect", "--quiet",
+            f"--working-directory={casa}", CAJA, *args, "--", "/bin/bash", "-c", cd + orden]
+    codigo, salida, vencio = asistentes.correr_acotado(base, espera, MAX_SALIDA_ORDEN)
+    texto = salida.decode("utf-8", "replace")[-MAX_SALIDA_ORDEN:]
+    return {"codigo": codigo, "salida": texto + (f"\n[se cortó a los {espera} s]" if vencio else "")}
+
+
 def correr_admin(orden, espera, casa):
     """Pide al servicio de administración que ejecute la orden como root."""
     with socket.socket(socket.AF_UNIX) as c:
@@ -63,6 +88,13 @@ def correr_admin(orden, espera, casa):
     return {"codigo": r["codigo"], "salida": r["salida"]}
 
 
+def _huella(texto):
+    """Con qué se prueba después qué se ejecutó: el registro guarda solo los primeros 300 caracteres de una orden y no
+    guarda su salida, pero sí la huella sha256 de la orden ENTERA (y de la salida) y su tamaño."""
+    b = texto.encode("utf-8", "replace")
+    return {"sha256": hashlib.sha256(b).hexdigest(), "largo": len(b)}
+
+
 class Permisor:
     def __init__(self, casa, ttl=3600):
         self.n = Nucleo(casa)
@@ -74,6 +106,7 @@ class Permisor:
         self.ordenes = {}             # pid -> orden aprobada, a la espera de ejecutarse (con caducidad)
         self.usuario = _usuario()
         self.correr = {False: correr_usuario, True: correr_admin}   # las pruebas lo sustituyen
+        self.correr_caja = correr_caja
         self.fichero_recordadas = self.n.datos / "recordadas.json"
         self.recordadas = {}
         if self.fichero_recordadas.exists():
@@ -127,6 +160,10 @@ class Permisor:
             if not isinstance(ruta, str) or not isinstance(perms, str) or not perms \
                     or not set(perms) <= set("rwd") or len(ruta) > 4096 or not imprimible(ruta):
                 raise Denegado("carpetas o permisos no válidos")
+        if asistente in asistentes.NOMBRES and self.permisos(asistente)["archivos"] == "leer" \
+                and any(set(v) - {"r"} for v in carpetas.values()):
+            raise Denegado("este asistente está en el nivel «Consultar»: solo puede leer. El usuario puede subirle el "
+                           "nivel en Ajustes de asistentes (leksso-asistentes).")
         # se guardan resueltas (sin enlaces): lo que se ve al aprobar es la carpeta real
         raices = self.n.comprobar_carpetas(carpetas)
         nuevas = sorted(k for k, v in raices.items() if v.get("nueva"))
@@ -179,9 +216,10 @@ class Permisor:
                            "dárselo en Ajustes de asistentes (leksso-asistentes).")
         return p
 
-    def ejecutar(self, asistente, m):
-        """Ejecuta una orden en el equipo real si el asistente tiene permiso. Lo destructivo y la administración
-        «preguntando» pasan antes por el panel: se devuelve una petición pendiente y se ejecuta al aprobarla."""
+    def ejecutar(self, asistente, m, destino=None):
+        """Ejecuta una orden si el asistente tiene permiso. En el nivel «Comandos en caja» corre dentro de la caja con
+        las carpetas de una tarea abierta. Lo destructivo pasa antes por el panel: se devuelve una petición pendiente
+        y se ejecuta al aprobarla."""
         if asistente not in asistentes.NOMBRES:
             raise Denegado("este canal no puede ejecutar órdenes")
         espera = m.get("espera", 120)
@@ -193,14 +231,17 @@ class Permisor:
                 raise Denegado("no hay una orden aprobada con ese identificador (o ya caducó)")
             # Entre la aprobación y ahora el usuario pudo apagar el asistente o quitarle el permiso.
             self._comprobar_orden(asistente, o["orden"], o["admin"])
+            if not o["admin"] and self.permisos(asistente)["comandos"] is not True:
+                raise Denegado("el nivel de este asistente cambió y ya no puede ejecutar órdenes fuera de la caja")
             return self._correr(asistente, o["orden"], o["admin"], espera)
         orden, admin = m.get("orden"), m.get("admin") is True
         if not isinstance(orden, str) or not 0 < len(orden) <= MAX_ORDEN or "\0" in orden:
             raise Denegado("orden no válida")
         p = self._comprobar_orden(asistente, orden, admin)
+        if p["comandos"] == "caja" and not admin:      # dentro de la caja nada toca el sistema: no hay nada que confirmar
+            return self._correr_en_caja(asistente, orden, m.get("tarea"), destino, espera)
         motivo = "destructiva" if asistentes.destructivo(orden) else \
-                 ("administración" if admin and p["admin"] == "preguntar" else
-                  ("registro de seguridad" if asistentes.lee_auditoria(orden) else ""))
+                 ("registro de seguridad" if asistentes.lee_auditoria(orden) else "")
         if not motivo:
             return self._correr(asistente, orden, admin, espera)
         if len(orden) > MAX_ORDEN_PREGUNTAR:
@@ -216,15 +257,43 @@ class Permisor:
             if os.environ.get("LEKSSO_SIN_AVISOS") != "1" else None
         return {"pid": pid, "estado": "pendiente", "motivo": motivo}
 
+    def _correr_en_caja(self, asistente, orden, tid, destino, espera):
+        t = self.n.tareas.get(tid) if isinstance(tid, str) else None
+        if t is None or t.cerrada or time.time() > t.expira:
+            raise Denegado("en el nivel «Comandos en caja» las órdenes corren dentro de la caja y hace falta una tarea "
+                           "abierta: pide la carpeta con pedir_acceso y pasa su identificador en «tarea».")
+        canal = getattr(t, "canal", None)
+        if canal is not None and (canal[1] != asistente or (destino is not None and canal[0] != destino)):
+            raise Denegado("esa tarea no es de este canal")
+        carpetas = [(ruta, "w" in info["perms"]) for ruta, info in t.raices.items()]
+        h = _huella(orden)
+        self.n.anotar_consulta("orden", f"[{asistente}] {orden[:300]} → se va a ejecutar en la caja",
+                               orden_sha256=h["sha256"], orden_largo=h["largo"])
+        try:
+            r = self.correr_caja(orden, espera, str(self.n.casa), carpetas)
+        except (OSError, ValueError) as e:
+            self.n.anotar_consulta("orden", f"[{asistente}] {orden[:300]} → no se pudo ejecutar en la caja",
+                                   orden_sha256=h["sha256"], orden_largo=h["largo"])
+            raise Denegado(f"no se pudo ejecutar en la caja: {e}")
+        s = _huella(r["salida"])
+        self.n.anotar_consulta("orden", f"[{asistente}] {orden[:300]} → caja, código {r['codigo']}",
+                               orden_sha256=h["sha256"], orden_largo=h["largo"], salida_sha256=s["sha256"], salida_largo=s["largo"])
+        return r
+
     def _correr(self, asistente, orden, admin, espera):
         accion = "orden_admin" if admin else "orden"
-        self.n.anotar_consulta(accion, f"[{asistente}] {orden[:300]} → se va a ejecutar")      # antes de correr, no solo después
+        h = _huella(orden)
+        self.n.anotar_consulta(accion, f"[{asistente}] {orden[:300]} → se va a ejecutar",      # antes de correr, no solo después
+                               orden_sha256=h["sha256"], orden_largo=h["largo"])
         try:
             r = self.correr[admin](orden, espera, str(self.n.casa))
         except (OSError, ValueError) as e:
-            self.n.anotar_consulta(accion, f"[{asistente}] {orden[:300]} → no se pudo ejecutar")
+            self.n.anotar_consulta(accion, f"[{asistente}] {orden[:300]} → no se pudo ejecutar",
+                                   orden_sha256=h["sha256"], orden_largo=h["largo"])
             raise Denegado(f"no se pudo ejecutar: {e}")
-        self.n.anotar_consulta(accion, f"[{asistente}] {orden[:300]} → código {r['codigo']}")
+        s = _huella(r["salida"])
+        self.n.anotar_consulta(accion, f"[{asistente}] {orden[:300]} → código {r['codigo']}",
+                               orden_sha256=h["sha256"], orden_largo=h["largo"], salida_sha256=s["sha256"], salida_largo=s["largo"])
         return r
 
     def estado(self, pid, canal=None):
@@ -294,7 +363,7 @@ class Permisor:
                 p = self.permisos(asistente)
                 return {"asistente": asistente, "permisos": p, "resumen": asistentes.resumen(p)}
             if op == "ejecutar":
-                return self.ejecutar(asistente, m)
+                return self.ejecutar(asistente, m, destino)
             if op == "pedir":
                 r = self.pedir(m["titulo"], m["carpetas"], destino, asistente)   # destino y asistente los fija el canal
                 if r["estado"] == "pendiente" and asistente and self._libre(asistente, self.pendientes[r["pid"]]):
@@ -359,6 +428,9 @@ class Permisor:
             return {"borrados": self.n.purgar_versiones(m.get("dias", 30), int(m.get("mb", 2048)) * 1024 ** 2)}
         if op == "registro":
             return {"registro": self.n.ultimas(m.get("n", 20))}
+        if op == "verificar":
+            sello = m.get("sello")
+            return {"verificacion": self.n.verificar(sello if isinstance(sello, str) and len(sello) <= 64 else None)}
         raise Denegado("operación desconocida")
 
 

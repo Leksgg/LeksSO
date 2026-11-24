@@ -5,6 +5,7 @@ import stat
 import tempfile
 import time
 import unittest
+from unittest import mock
 
 os.environ["LEKSSO_SIN_AVISOS"] = "1"
 _TMP = tempfile.mkdtemp()
@@ -36,12 +37,12 @@ class Aprobaciones(unittest.TestCase):
         return self.p.manejar_ia(m, "nube", asistente)
 
     def pedir_destructiva(self, asistente="claude"):
-        r = self.ia(asistente, op="ejecutar", orden="apt update", admin=True)
+        r = self.ia(asistente, op="ejecutar", orden="reboot", admin=True)
         self.assertEqual(r["estado"], "pendiente")
         return r["pid"]
 
     def test_orden_aprobada_caduca(self):
-        fijar(claude={"activo": True, "comandos": True, "admin": "preguntar"})
+        fijar(claude={"activo": True, "comandos": True, "admin": "libre"})
         pid = self.pedir_destructiva()
         self.p.manejar_control({"op": "aprobar", "pid": pid})
         self.p.ordenes[pid]["hasta"] = time.time() - 1
@@ -50,16 +51,16 @@ class Aprobaciones(unittest.TestCase):
         self.assertEqual(self.hechas, [])
 
     def test_revocar_el_permiso_tras_aprobar_la_frena(self):
-        fijar(claude={"activo": True, "comandos": True, "admin": "preguntar"})
+        fijar(claude={"activo": True, "comandos": True, "admin": "libre"})
         pid = self.pedir_destructiva()
         self.p.manejar_control({"op": "aprobar", "pid": pid})
-        fijar(claude={"activo": False, "comandos": True, "admin": "preguntar"})              # el usuario apaga el asistente
+        fijar(claude={"activo": False, "comandos": True, "admin": "libre"})              # el usuario apaga el asistente
         with self.assertRaises(Denegado):
             self.ia("claude", op="ejecutar", pid=pid)
         self.assertEqual(self.hechas, [])
 
     def test_quitar_comandos_tras_aprobar_la_frena(self):
-        fijar(claude={"activo": True, "comandos": True, "admin": "preguntar"})
+        fijar(claude={"activo": True, "comandos": True, "admin": "libre"})
         pid = self.pedir_destructiva()
         self.p.manejar_control({"op": "aprobar", "pid": pid})
         fijar(claude={"activo": True, "comandos": False, "admin": "no"})
@@ -67,7 +68,7 @@ class Aprobaciones(unittest.TestCase):
             self.ia("claude", op="ejecutar", pid=pid)
 
     def test_aprobada_y_vigente_se_ejecuta_una_sola_vez(self):
-        fijar(claude={"activo": True, "comandos": True, "admin": "preguntar"})
+        fijar(claude={"activo": True, "comandos": True, "admin": "libre"})
         pid = self.pedir_destructiva()
         self.p.manejar_control({"op": "aprobar", "pid": pid})
         self.assertEqual(self.ia("claude", op="ejecutar", pid=pid)["codigo"], 0)
@@ -76,15 +77,15 @@ class Aprobaciones(unittest.TestCase):
         self.assertEqual(len(self.hechas), 1)
 
     def test_otro_asistente_no_canjea_la_orden(self):
-        fijar(claude={"activo": True, "comandos": True, "admin": "preguntar"}, codex={"activo": True, "comandos": True, "admin": "preguntar"})
+        fijar(claude={"activo": True, "comandos": True, "admin": "libre"}, codex={"activo": True, "comandos": True, "admin": "libre"})
         pid = self.pedir_destructiva("claude")
         self.p.manejar_control({"op": "aprobar", "pid": pid})
         with self.assertRaises(Denegado):
             self.ia("codex", op="ejecutar", pid=pid)
 
     def test_orden_que_hay_que_aprobar_no_puede_ser_enorme(self):
-        fijar(claude={"activo": True, "comandos": True, "admin": "preguntar"})
-        larga = "apt update " + "a" * (permisor.MAX_ORDEN_PREGUNTAR + 10)
+        fijar(claude={"activo": True, "comandos": True, "admin": "libre"})
+        larga = "rm -rf / # " + "a" * (permisor.MAX_ORDEN_PREGUNTAR + 10)
         with self.assertRaises(Denegado):
             self.ia("claude", op="ejecutar", orden=larga, admin=True)
         self.assertEqual(self.p.pendientes, {})
@@ -92,14 +93,14 @@ class Aprobaciones(unittest.TestCase):
         self.assertEqual(self.ia("claude", op="ejecutar", orden="echo " + "a" * 2000)["codigo"], 0)
 
     def test_peticiones_sin_responder_caducan(self):
-        fijar(claude={"activo": True, "comandos": True, "admin": "preguntar"})
+        fijar(claude={"activo": True, "comandos": True, "admin": "libre"})
         pid = self.pedir_destructiva()
         self.p.pendientes[pid]["t"] -= permisor.CADUCA_PENDIENTE + 1
         self.assertEqual(self.p.manejar_control({"op": "pendientes"})["pendientes"], {})
         self.assertEqual(self.ia("claude", op="estado", pid=pid)["estado"], "rechazada")
 
     def test_los_identificadores_son_largos(self):
-        fijar(claude={"activo": True, "comandos": True, "admin": "preguntar"})
+        fijar(claude={"activo": True, "comandos": True, "admin": "libre"})
         self.assertGreaterEqual(len(self.pedir_destructiva()), 17)
 
     def test_una_tarea_no_sirve_en_otro_canal(self):
@@ -203,11 +204,231 @@ class MoverYDeshacer(unittest.TestCase):
         self.n.deshacer(aid)
         self.assertEqual((self.proy / "a.txt").read_text(), "A")
 
+    # ----- hallazgo 8: la identidad por inodo no basta (ext4 reutiliza números) -----
+    def test_reescribir_en_el_sitio_se_detecta_aunque_el_inodo_sea_el_mismo(self):
+        """Escribir sobre el archivo movido conserva el inodo: solo tamaño y fecha lo delatan (antes pasaba sin avisar)."""
+        t = self.n.conceder("rwd", {str(self.proy): "rwd"})
+        aid = self.n.mover(t, str(self.proy / "a.txt"), str(self.proy / "sub" / "a.txt"))
+        ino = os.stat(self.proy / "sub" / "a.txt").st_ino
+        (self.proy / "sub" / "a.txt").write_text("INTRUSO")
+        self.assertEqual(os.stat(self.proy / "sub" / "a.txt").st_ino, ino)
+        with self.assertRaises(Denegado):
+            self.n.deshacer(aid)
+        self.assertFalse((self.proy / "a.txt").exists())
+
+    def test_la_papelera_reescrita_en_el_sitio_se_detecta(self):
+        t = self.n.conceder("rwd", {str(self.proy): "rwd"})
+        aid = self.n.borrar(t, str(self.proy / "a.txt"))
+        nombre = [a for a in self.n.acciones.values() if a["id"] == aid][0]["papelera"]
+        (self.n.papelera / "files" / nombre).write_text("OTRA COSA")
+        with self.assertRaises(Denegado):
+            self.n.deshacer(aid)
+
+    def test_lo_anotado_lleva_tamano_y_fecha(self):
+        t = self.n.conceder("rwd", {str(self.proy): "rwd"})
+        aid = self.n.mover(t, str(self.proy / "a.txt"), str(self.proy / "sub" / "a.txt"))
+        obj = [a for a in self.n.acciones.values() if a["id"] == aid][0]["obj"]
+        self.assertEqual(len(obj), 4)
+        self.assertEqual(obj[2], 1)                                  # «A» pesa un byte
+
+    def test_una_carpeta_movida_se_deshace_aunque_cambie_por_dentro(self):
+        os.makedirs(self.proy / "dir" / "hijo")
+        t = self.n.conceder("rwd", {str(self.proy): "rwd"})
+        aid = self.n.mover(t, str(self.proy / "dir"), str(self.proy / "sub" / "dir"))
+        (self.proy / "sub" / "dir" / "nuevo.txt").write_text("x")   # su fecha cambia, sigue siendo la misma carpeta
+        self.n.deshacer(aid)
+        self.assertTrue((self.proy / "dir" / "hijo").is_dir())
+
+    def test_comparacion_de_identidades(self):
+        import nucleo
+
+        import types
+
+        def st(ino, size=5, mtime=10, dev=1, modo=stat.S_IFREG | 0o644):
+            return types.SimpleNamespace(st_mode=modo, st_ino=ino, st_dev=dev, st_size=size, st_mtime_ns=mtime)
+        base = nucleo._identidad(st(7))
+        self.assertTrue(nucleo._es_el_mismo(nucleo._identidad(st(7)), base))
+        self.assertFalse(nucleo._es_el_mismo(nucleo._identidad(st(7, size=6)), base))          # mismo inodo, otro tamaño
+        self.assertFalse(nucleo._es_el_mismo(nucleo._identidad(st(7, mtime=99)), base))        # mismo inodo, otra fecha
+        self.assertFalse(nucleo._es_el_mismo(nucleo._identidad(st(8)), base))
+        self.assertFalse(nucleo._es_el_mismo(nucleo._identidad(st(7, dev=2)), base))
+        # anotado por una versión antigua (solo dispositivo e inodo): se compara solo eso
+        self.assertTrue(nucleo._es_el_mismo(nucleo._identidad(st(7, size=99)), [1, 7]))
+        self.assertFalse(nucleo._es_el_mismo(nucleo._identidad(st(8)), [1, 7]))
+        # carpetas: solo inodo, sin fecha
+        carpeta = stat.S_IFDIR | 0o755
+        self.assertEqual(nucleo._identidad(st(7, modo=carpeta)), [1, 7])
+        self.assertTrue(nucleo._es_el_mismo(nucleo._identidad(st(7, mtime=99, modo=carpeta)), nucleo._identidad(st(7, modo=carpeta))))
+        # lo que era un archivo y ahora es una carpeta no es lo mismo
+        self.assertFalse(nucleo._es_el_mismo(nucleo._identidad(st(7, modo=carpeta)), base))
+
+
+class RegistroEncadenado(unittest.TestCase):
+    """Hallazgo 9 de la revisión de la 0.1.52: el registro del permisor no detectaba líneas borradas ni guardaba qué se ejecutó."""
+
+    def setUp(self):
+        import nucleo
+        self.nucleo = nucleo
+        self.casa = tempfile.mkdtemp()
+        self.n = nucleo.Nucleo(self.casa)
+
+    def anotar(self, k):
+        for i in range(k):
+            self.n.anotar_consulta("medir_equipo", f"consulta {i}")
+
+    def lineas(self):
+        return open(self.n.registro, encoding="utf-8").read().splitlines()
+
+    def escribir(self, lineas):
+        open(self.n.registro, "w", encoding="utf-8").write("\n".join(lineas) + "\n")
+
+    def reabrir(self):
+        return self.nucleo.Nucleo(self.casa)
+
+    def test_cada_linea_cita_la_firma_de_la_anterior(self):
+        self.anotar(4)
+        rs = [json.loads(x) for x in self.lineas()]
+        self.assertEqual(rs[0]["prev"], self.nucleo.GENESIS)
+        for antes, despues in zip(rs, rs[1:]):
+            self.assertEqual(despues["prev"], antes["firma"])
+        v = self.n.verificar()
+        self.assertTrue(v["ok"])
+        self.assertEqual((v["lineas"], v["cortes"], v["invalidas"]), (4, 0, 0))
+        self.assertEqual(v["cabeza"], rs[-1]["firma"])
+
+    def test_borrar_una_linea_del_medio_se_detecta(self):
+        self.anotar(5)
+        ls = self.lineas()
+        self.escribir(ls[:2] + ls[3:])
+        self.assertEqual(self.reabrir().cortes, 1)
+        v = self.reabrir().verificar()
+        self.assertFalse(v["ok"])
+        self.assertEqual(v["cortes"], 1)
+
+    def test_borrar_la_primera_y_cambiar_de_sitio_tambien(self):
+        self.anotar(4)
+        ls = self.lineas()
+        self.escribir(ls[1:])                                   # falta la primera
+        self.assertEqual(self.reabrir().cortes, 1)
+        self.escribir([ls[0], ls[2], ls[1], ls[3]])             # dos líneas cambiadas de sitio
+        self.assertGreaterEqual(self.reabrir().cortes, 1)
+
+    def test_una_linea_metida_a_mano_sin_la_clave_cuenta_como_falsa(self):
+        self.anotar(3)
+        ls = self.lineas()
+        falsa = json.dumps({"tarea": None, "accion": "orden", "ruta": "[claude] ls", "ok": True, "firma": "00" * 32})
+        self.escribir(ls[:2] + [falsa] + ls[2:])
+        v = self.reabrir().verificar()
+        self.assertEqual(v["invalidas"], 1)
+        self.assertFalse(v["ok"])
+
+    def test_quitar_las_ultimas_lineas_solo_lo_delata_el_sello_del_sistema(self):
+        self.anotar(5)
+        cabeza_real = self.n.verificar()["cabeza"]             # lo que quedó anotado en el diario del sistema
+        self.escribir(self.lineas()[:3])                        # quien edita el archivo borra las dos últimas
+        v = self.reabrir().verificar()
+        self.assertEqual(v["cortes"], 0)                        # la cadena sola no se entera
+        self.assertTrue(v["ok"])
+        v = self.reabrir().verificar(sello_externo=cabeza_real)
+        self.assertFalse(v["ok"])                               # con el sello del sistema, sí
+        self.assertFalse(v["sello_del_sistema"])
+
+    def test_con_el_sello_al_dia_todo_cuadra(self):
+        self.anotar(3)
+        self.assertTrue(self.n.verificar(sello_externo=self.n.verificar()["cabeza"])["ok"])
+        self.anotar(2)                                          # lo anotado después del último sello no es un problema
+        self.assertTrue(self.n.verificar(sello_externo=json.loads(self.lineas()[2])["firma"])["ok"])
+
+    def test_la_cadena_sigue_tras_reiniciar(self):
+        self.anotar(3)
+        n2 = self.reabrir()
+        n2.anotar_consulta("medir_equipo", "tras reiniciar")
+        v = n2.verificar()
+        self.assertTrue(v["ok"], v)
+        self.assertEqual(v["lineas"], 4)
+
+    def test_tras_un_corte_las_lineas_nuevas_enlazan_con_la_ultima_buena_y_el_corte_queda_visible(self):
+        self.anotar(4)
+        ls = self.lineas()
+        self.escribir(ls[:1] + ls[2:])
+        n2 = self.reabrir()
+        n2.anotar_consulta("medir_equipo", "después")
+        v = n2.verificar()
+        self.assertEqual(v["cortes"], 1)                        # el hueco no se arregla solo
+        self.assertFalse(v["ok"])
+
+    def test_registros_antiguos_sin_enlace_se_aceptan_pero_no_despues_de_empezar_la_cadena(self):
+        n = self.n
+        viejo = {"tarea": None, "accion": "medir_equipo", "ruta": "antiguo", "ok": True, "t": "2026-11-01T00:00:00"}
+        viejo["firma"] = n._firma(viejo)                        # como lo escribía una versión sin cadena
+        self.escribir([json.dumps(viejo)])
+        n2 = self.reabrir()
+        self.assertTrue(n2.verificar()["ok"])
+        n2.anotar_consulta("medir_equipo", "nuevo")             # ya enlaza con la línea antigua
+        self.assertTrue(n2.verificar()["ok"])
+        intruso = {"tarea": None, "accion": "orden", "ruta": "sin enlace", "ok": True, "t": "2026-11-24T00:00:00"}
+        intruso["firma"] = n2._firma(intruso)                   # alguien con la clave añade una línea SIN enlace
+        open(n2.registro, "a", encoding="utf-8").write(json.dumps(intruso) + "\n")
+        self.assertEqual(self.reabrir().verificar()["cortes"], 1)
+
+    def test_deshacer_sigue_funcionando_con_la_cadena(self):
+        proy = os.path.join(self.casa, "proy")
+        os.makedirs(proy)
+        open(os.path.join(proy, "a.txt"), "w").write("A")
+        t = self.n.conceder("rwd", {proy: "rwd"})
+        aid = self.n.borrar(t, os.path.join(proy, "a.txt"))
+        n2 = self.reabrir()                                     # el registro se relee con la cadena puesta
+        n2.deshacer(aid)
+        self.assertEqual(open(os.path.join(proy, "a.txt")).read(), "A")
+        self.assertTrue(n2.verificar()["ok"])
+
+    def test_el_sello_va_al_diario_del_sistema_solo_si_el_servicio_lo_pide(self):
+        with mock.patch.object(self.nucleo, "syslog") as sl:
+            self.anotar(2)
+            sl.syslog.assert_not_called()                       # sin LEKSSO_SELLO no se escribe nada
+            with mock.patch.dict(os.environ, {"LEKSSO_SELLO": "syslog"}):
+                self.n.anotar_consulta("orden", "[claude] ls")  # una orden sella siempre
+                self.assertEqual(sl.syslog.call_count, 1)
+                texto = sl.syslog.call_args[0][1]
+                self.assertRegex(texto, r"^sello n=3 cabeza=[0-9a-f]{64}$")
+                self.assertIn(self.n.verificar()["cabeza"], texto)
+                self.n.anotar_consulta("medir_equipo", "dentro del intervalo")
+                self.assertEqual(sl.syslog.call_count, 1)       # no más de uno cada SELLO_CADA segundos
+                self.n._ultimo_sello -= self.nucleo.SELLO_CADA + 1
+                self.n.anotar_consulta("medir_equipo", "pasado el intervalo")
+                self.assertEqual(sl.syslog.call_count, 2)
+
+    def test_el_registro_guarda_la_huella_de_la_orden_entera_y_de_su_salida(self):
+        import hashlib
+        permiso = permisor.Permisor(tempfile.mkdtemp())
+        permiso.correr = {False: lambda o, e, c: {"codigo": 0, "salida": "hecho\n"}, True: None}
+        fijar(claude={"activo": True, "comandos": True, "admin": "no"})
+        orden = "echo " + "x" * 5000
+        permiso.manejar_ia({"op": "ejecutar", "orden": orden}, "nube", "claude")
+        ultima = permiso.n.ultimas(1)[0]
+        self.assertEqual(ultima["orden_sha256"], hashlib.sha256(orden.encode()).hexdigest())
+        self.assertEqual(ultima["orden_largo"], len(orden))
+        self.assertEqual(ultima["salida_sha256"], hashlib.sha256(b"hecho\n").hexdigest())
+        self.assertLess(len(ultima["ruta"]), 400)                # el texto legible sigue acortado a 300
+        self.assertTrue(permiso.n.verificar()["ok"])
+        # y quien reescriba el campo de la orden rompe la firma
+        lineas = open(permiso.n.registro, encoding="utf-8").read().replace(ultima["orden_sha256"], "0" * 64)
+        open(permiso.n.registro, "w", encoding="utf-8").write(lineas)
+        self.assertGreaterEqual(permisor.Nucleo(str(permiso.n.casa)).invalidas, 1)
+
+    def test_verificar_por_el_canal_de_control(self):
+        permiso = permisor.Permisor(tempfile.mkdtemp())
+        permiso.n.anotar_consulta("medir_equipo", "x")
+        r = permiso.manejar_control({"op": "verificar"})["verificacion"]
+        self.assertTrue(r["ok"])
+        r = permiso.manejar_control({"op": "verificar", "sello": "ab" * 32})["verificacion"]
+        self.assertFalse(r["ok"])                                # un sello que no está en el registro
+
 
 class QuienEsElPermisor(unittest.TestCase):
     G = "0::/user.slice/user-1000.slice/user@1000.service/app.slice/leksso-permisor.service\n"
     P = "/usr/bin/python3.13"
-    O = [b"/usr/bin/python3", leksso_admin.SCRIPT_PERMISOR]
+    O = [b"/usr/bin/python3", b"-I", leksso_admin.SCRIPT_PERMISOR]
 
     def ok(self, grupos=None, programa=None, orden=None, entorno=(), uid=1000):
         return leksso_admin.parece_el_permisor(grupos or self.G, programa or self.P, orden or self.O, list(entorno), uid)
@@ -223,9 +444,12 @@ class QuienEsElPermisor(unittest.TestCase):
 
     def test_otro_programa_u_otra_orden_no(self):
         self.assertFalse(self.ok(programa="/home/yo/python3"))
-        self.assertFalse(self.ok(orden=[b"python3", b"-c", b"print(1)", leksso_admin.SCRIPT_PERMISOR]))
-        self.assertFalse(self.ok(orden=[b"python3", b"/tmp/permisor.py"]))
-        self.assertFalse(self.ok(orden=[b"python3", b"-m", leksso_admin.SCRIPT_PERMISOR]))
+        self.assertFalse(self.ok(orden=[b"python3", b"-I", b"-c", b"print(1)", leksso_admin.SCRIPT_PERMISOR]))
+        # sin -I (como arrancaba antes) ya no vale: dejaría cargar paquetes y .pth de la carpeta del usuario
+        self.assertFalse(self.ok(orden=[b"/usr/bin/python3", leksso_admin.SCRIPT_PERMISOR]))
+        self.assertFalse(self.ok(orden=[b"/usr/bin/python3", b"-S", leksso_admin.SCRIPT_PERMISOR]))
+        self.assertFalse(self.ok(orden=[b"python3", b"-I", b"/tmp/permisor.py"]))
+        self.assertFalse(self.ok(orden=[b"python3", b"-I", b"-m", leksso_admin.SCRIPT_PERMISOR]))
 
     def test_variables_que_cambian_las_importaciones_no(self):
         self.assertFalse(self.ok(entorno=[b"PATH", b"PYTHONPATH"]))

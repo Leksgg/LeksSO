@@ -71,6 +71,7 @@ def ventana():
         def __init__(self, n, p):
             super().__init__(asistentes.NOMBRES[n] + ("" if instalado(n) else "  (sin instalar: se instala al abrirlo)"))
             self.n = n
+            self.original = p                       # por si los permisos guardados no encajan en ningún nivel
             v = QtWidgets.QVBoxLayout(self)
             arriba = QtWidgets.QHBoxLayout()
             self.activo = QtWidgets.QCheckBox("Usar este asistente")
@@ -81,57 +82,45 @@ def ventana():
             self.abrir.setObjectName("accion")
             arriba.addWidget(self.abrir)
             v.addLayout(arriba)
-            pre = QtWidgets.QHBoxLayout()
-            pre.addWidget(QtWidgets.QLabel("Nivel:"))
+            niv = QtWidgets.QHBoxLayout()
+            niv.addWidget(QtWidgets.QLabel("Nivel:"))
+            self.nivel = QtWidgets.QComboBox()
             for clave, texto in asistentes.NOMBRE_PREAJUSTE.items():
-                b = QtWidgets.QPushButton(texto)
-                b.clicked.connect(lambda _=False, c=clave: self.poner(asistentes.PREAJUSTES[c]))
-                pre.addWidget(b)
-            pre.addStretch()
-            v.addLayout(pre)
-            self.archivos = QtWidgets.QCheckBox("Archivos de mi carpeta personal sin pedirme permiso cada vez")
-            self.comandos = QtWidgets.QCheckBox("Ejecutar órdenes en el equipo con mi usuario")
-            v.addWidget(self.archivos)
-            v.addWidget(self.comandos)
-            adm = QtWidgets.QHBoxLayout()
-            adm.addWidget(QtWidgets.QLabel("Tareas de administrador:"))
-            self.admin = QtWidgets.QComboBox()
-            for clave, texto in (("no", "No"), ("preguntar", "Sí, preguntándome cada vez"), ("libre", "Sí, sin preguntar")):
-                self.admin.addItem(texto, clave)
-            adm.addWidget(self.admin)
-            adm.addStretch()
-            v.addLayout(adm)
+                self.nivel.addItem(f"{list(asistentes.NOMBRE_PREAJUSTE).index(clave) + 1}. {texto}", clave)
+            actual = next((c for c, val in asistentes.PREAJUSTES.items()
+                           if all(p[k] == x for k, x in val.items())), None)
+            if actual is None:                      # permisos sueltos de una versión antigua: se enseñan tal cual
+                self.nivel.addItem("Personalizado (" + asistentes.resumen(p) + ")", None)
+                actual = None
+            self.nivel.setCurrentIndex(max(self.nivel.findData(actual), 0))
+            niv.addWidget(self.nivel)
+            niv.addStretch()
+            v.addLayout(niv)
             self.aviso = QtWidgets.QLabel("")
             self.aviso.setWordWrap(True)
             self.aviso.setMinimumHeight(66)
             self.aviso.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
             v.addWidget(self.aviso)
-            self.admin.currentIndexChanged.connect(self.coherencia)
-            self.comandos.toggled.connect(self.coherencia)
-            self.poner(p)
+            self.nivel.currentIndexChanged.connect(self.coherencia)
+            self.coherencia()
 
         def poner(self, p):
-            self.archivos.setChecked(p["archivos"] == "libre")
-            self.comandos.setChecked(p["comandos"])
-            self.admin.setCurrentIndex(max(self.admin.findData(p["admin"]), 0))
+            self.nivel.setCurrentIndex(max(self.nivel.findData(next(
+                (c for c, val in asistentes.PREAJUSTES.items() if all(p[k] == x for k, x in val.items())), None)), 0))
             self.coherencia()
 
         def coherencia(self):
-            adm = self.admin.currentData()
-            if adm != "no":
-                self.comandos.setChecked(True)
-            self.comandos.setEnabled(adm == "no")
-            if adm == "libre":
-                self.aviso.setText("Acceso total: podrá cambiar cualquier cosa del equipo sin preguntarte. "
-                                   "Lo destructivo (borrar el sistema, formatear, contraseñas) te lo preguntará igualmente.")
-            elif self.comandos.isChecked():
-                self.aviso.setText("Podrá ejecutar órdenes y ver todos tus archivos. Todo queda en el registro del panel de la IA.")
+            clave = self.nivel.currentData()
+            if clave is None:
+                self.aviso.setText("Permisos de una versión anterior que no son ninguno de los cinco niveles. "
+                                   "Elige un nivel para sustituirlos.")
             else:
-                self.aviso.setText("Solo toca los archivos de las carpetas que le concedas.")
+                self.aviso.setText(asistentes.DESCRIPCION_PREAJUSTE[clave])
 
         def valor(self):
-            return {"activo": self.activo.isChecked(), "archivos": "libre" if self.archivos.isChecked() else "preguntar",
-                    "comandos": self.comandos.isChecked(), "admin": self.admin.currentData()}
+            clave = self.nivel.currentData()
+            base = dict(asistentes.PREAJUSTES[clave]) if clave else {k: self.original[k] for k in ("archivos", "comandos", "admin")}
+            return dict(base, activo=self.activo.isChecked())
 
     class V(QtWidgets.QWidget):
         def __init__(self):
