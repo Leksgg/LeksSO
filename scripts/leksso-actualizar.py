@@ -37,6 +37,7 @@ ARCHIVOS_DE_LEKSSO = [
     "/usr/local/lib/leksso-ia/*", "/usr/local/lib/leksso-ui/*", "/usr/local/share/leksso/*", "/usr/share/leksso/*",
     "/etc/systemd/system/leksso-*", "/etc/systemd/user/leksso-*", "/etc/udev/rules.d/70-leksso-*",
     "/etc/apt/apt.conf.d/99leksso-*", "/etc/fonts/conf.d/65-leksso-*", "/etc/grub.d/42_leksso_*",
+    "/etc/default/grub.d/90-leksso*",
 ]
 SIN_FIRMA = "/etc/leksso/sin-firma"                # fase de pruebas: si existe, no se exige firma (lo crea el USB de pruebas)
 INSTALADA = "/var/lib/leksso/instalada.json"      # versión, commit y firmante de lo instalado
@@ -391,8 +392,11 @@ def limpiar_sobrantes(marca, zonas=None, respaldo=None):
         try:
             if os.lstat(ruta).st_mtime >= marca:          # lo ha escrito la versión a la que se vuelve: se queda
                 continue
-            if ruta.startswith("/etc/systemd/system/") and ruta.endswith((".service", ".timer")):
-                subprocess.run(["systemctl", "disable", "--now", os.path.basename(ruta)], capture_output=True)
+            if "/systemd/system/" in ruta and ruta.endswith((".service", ".timer")):
+                # SIN --now: al volver desde el menú de arranque, quien ejecuta esto ES leksso-volver-arranque.service, y pararlo
+                # (como hacía «disable --now») mataba la vuelta atrás a mitad: sin apartar nada, sin reiniciar y sin actualizar
+                # el menú. Se probó en una VM. Lo desactivado deja de arrancar; lo que ya corre se para al reiniciar.
+                subprocess.run(["systemctl", "disable", os.path.basename(ruta)], capture_output=True)
             destino = os.path.join(respaldo, ruta.lstrip("/"))
             os.makedirs(os.path.dirname(destino), exist_ok=True)
             shutil.move(ruta, destino)
@@ -426,8 +430,6 @@ def volver(arranque=False):
         for ruta in apartados[:30]:
             print("  " + ruta)
         print(f"Están en {respaldo} (con su ruta original), por si quieres recuperar alguno.")
-    if os.path.exists("/usr/sbin/update-grub") and any(r.startswith("/etc/grub.d/") for r in apartados):
-        subprocess.run(["update-grub"], capture_output=True)       # la entrada de arranque «volver» ya no existe en esa versión
     try:
         os.remove(ANTERIOR)                                # no se vuelve más atrás; para ir hacia delante, «Actualizar ahora»
     except OSError:

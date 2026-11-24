@@ -3,6 +3,12 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
+## RC 0.1.55 · 2026-11-24
+
+~ **El menú de arranque se ve 2 segundos** (`/etc/default/grub.d/90-leksso.cfg`), para poder elegir «LeksSO: volver a la versión anterior». Con `GRUB_TIMEOUT=0`, que es lo habitual tras instalar, el menú no llegaba a mostrarse y esa entrada no se podía elegir. Cuesta 2 segundos en cada arranque; para quitarlo: `sudo rm /etc/default/grub.d/90-leksso.cfg && sudo update-grub` (entonces el menú se ve manteniendo pulsada la tecla Mayús al encender).
+
+~ **Arreglo de «volver» desde el menú de arranque**, visto probándolo en una máquina virtual: al apartar las unidades de la versión nueva se paraba la propia unidad que ejecutaba la vuelta atrás, que se quedaba a mitad (versión reinstalada, pero sin apartar nada, sin reiniciar y sin actualizar el menú). Ahora las unidades se desactivan sin pararlas.
+
 ## RC 0.1.54 · 2026-11-24
 
 + **Volver a la versión anterior de verdad: también sin red y desde el menú de arranque.** Antes «volver» reinstalaba la versión anterior pero dejaba todo lo que había añadido la nueva (órdenes, unidades, reglas). Ahora, tras reinstalar esa versión (con su firma comprobada), **aparta** a un respaldo (`/var/lib/leksso/respaldo-volver/…`, con su ruta original; nada se borra) los archivos de LeksSO que esa versión no usa, y te dice cuáles. Tus ajustes, los permisos de los asistentes, las claves y tus archivos no se tocan. Funciona sin conexión, porque la versión anterior ya está en la copia local. La ventana de Actualizaciones dice a qué versión vuelves («Volver a 0.1.53») y lo explica. Y si el escritorio no arrancara, el menú de arranque tiene una entrada nueva, **«LeksSO: volver a la versión anterior»**, que arranca con el mismo kernel y el mismo disco de siempre, vuelve a la versión anterior y reinicia sola (la unidad `leksso-volver-arranque.service` solo actúa con esa entrada). Solo hay un paso atrás: tras volver, para ir hacia delante se usa «Actualizar ahora». La entrada del menú aparece al actualizar y se actualiza con `update-grub`; si el equipo no usa GRUB, no se instala.

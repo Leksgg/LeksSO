@@ -66,6 +66,19 @@ class Apartar(unittest.TestCase):
         self.assertEqual(apartados, [])
         self.assertFalse(os.path.exists(destino))
 
+    def test_desactiva_las_unidades_sin_pararlas(self):
+        """Fallo visto en una VM: al volver desde el arranque, la unidad que ejecuta la vuelta es una de las que se apartan, y
+        «disable --now» la paraba a mitad."""
+        unidad = self.t + "/etc/systemd/system/leksso-volver-arranque.service"
+        poner(unidad, antiguedad=3600)
+        ordenes = []
+        with mock.patch("subprocess.run", lambda cmd, **kw: ordenes.append(cmd) or subprocess.CompletedProcess(cmd, 0, "", "")):
+            apartados, _ = act.limpiar_sobrantes(time.time() - 2, zonas=[self.t + "/etc/systemd/system/leksso-*"], respaldo=self.resp)
+        self.assertEqual(apartados, [unidad])
+        self.assertEqual(ordenes, [["systemctl", "disable", "leksso-volver-arranque.service"]])
+        for o in ordenes:
+            self.assertNotIn("--now", o)
+
     def test_las_zonas_no_incluyen_lo_del_usuario_ni_los_ajustes(self):
         for z in act.ARCHIVOS_DE_LEKSSO:
             self.assertFalse(z.startswith("/etc/leksso"), z)             # ajustes, permisos de los asistentes, claves
@@ -73,7 +86,8 @@ class Apartar(unittest.TestCase):
             self.assertFalse(z.startswith("/etc/sudoers"), z)
             self.assertFalse(z.startswith("/home"), z)
             self.assertTrue(z.startswith(("/usr/local/", "/usr/share/leksso", "/etc/systemd/", "/etc/udev/rules.d/70-leksso",
-                                          "/etc/apt/apt.conf.d/99leksso", "/etc/fonts/conf.d/65-leksso", "/etc/grub.d/42_leksso")), z)
+                                          "/etc/apt/apt.conf.d/99leksso", "/etc/fonts/conf.d/65-leksso", "/etc/grub.d/42_leksso",
+                                          "/etc/default/grub.d/90-leksso")), z)
 
 
 class FlujoDeVolver(unittest.TestCase):
@@ -118,6 +132,10 @@ class FlujoDeVolver(unittest.TestCase):
         _, ordenes = self.correr(apartados=["/etc/systemd/system/leksso-nuevo.service", "/etc/grub.d/42_leksso_volver"])
         self.assertIn(["systemctl", "daemon-reload"], ordenes)
         self.assertIn(["update-grub"], ordenes)
+
+    def test_el_menu_se_actualiza_siempre_al_final_aunque_no_se_aparte_nada_de_grub(self):
+        _, ordenes = self.correr(apartados=[])
+        self.assertIn(["update-grub"], ordenes)                           # ya no hay versión anterior: la entrada sobra
 
     def test_sin_update_grub_no_lo_llama(self):
         _, ordenes = self.correr(update_grub=False, apartados=["/etc/grub.d/42_leksso_volver"])
@@ -258,12 +276,17 @@ class Cableado(unittest.TestCase):
         self.assertIn("ExecStartPost=/usr/bin/systemctl --no-block reboot", u)  # solo se reinicia si volver terminó bien
         self.assertNotIn("network-online", u)                             # no puede retrasar los arranques normales
         self.assertIn("Before=getty@tty1.service", u)
+        cfg = leer("config/grub/90-leksso.cfg")
+        self.assertIn("GRUB_TIMEOUT_STYLE=menu", cfg)
+        self.assertIn("GRUB_TIMEOUT=2", cfg)
+        self.assertIn("sudo rm /etc/default/grub.d/90-leksso.cfg", cfg)                          # y cómo quitarlo
 
     def test_la_provision_instala_la_unidad_y_la_entrada_y_actualiza_grub_con_cuidado(self):
         p = leer("scripts/provision-base.sh")
         self.assertIn('leksso-volver-arranque.service" /etc/systemd/system/', p)
         self.assertIn("systemctl enable leksso-volver-arranque.service", p)
         self.assertIn('config/grub/42_leksso_volver" /etc/grub.d/42_leksso_volver', p)
+        self.assertIn('config/grub/90-leksso.cfg" /etc/default/grub.d/90-leksso.cfg', p)       # menú visible 2 s
         i = p.index("42_leksso_volver")
         self.assertIn("command -v update-grub", p[i - 200:i + 300])       # solo si el equipo usa GRUB
         self.assertIn("||", p[i:i + 400])                                 # y un fallo de update-grub no detiene la instalación

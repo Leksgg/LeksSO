@@ -204,6 +204,9 @@ systemctl daemon-reload >/dev/null 2>&1 || true
 systemctl enable leksso-volver-arranque.service >/dev/null 2>&1 || true
 if [ -d /etc/grub.d ] && command -v update-grub >/dev/null 2>&1; then
   install -m 0755 "$RAIZ/config/grub/42_leksso_volver" /etc/grub.d/42_leksso_volver
+  # menú visible 2 s (con GRUB_TIMEOUT=0 la entrada anterior no se podría elegir); se quita borrando este archivo
+  install -d /etc/default/grub.d
+  install -m 0644 "$RAIZ/config/grub/90-leksso.cfg" /etc/default/grub.d/90-leksso.cfg
   update-grub >/dev/null 2>&1 || echo "AVISO: no se pudo actualizar el menú de arranque; la entrada «volver a la versión anterior» no estará."
 fi
 
