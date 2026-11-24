@@ -11,7 +11,7 @@ import sys
 from PySide6 import QtCore, QtGui, QtWidgets
 
 sys.path.insert(0, "/usr/local/lib/leksso-ui")
-from leksso_ui import ESTILO_BASE, alternar, pintar, tema_activo, tokens  # noqa: E402
+from leksso_ui import ESTILO_BASE, alternar, pintar, tema_activo, titulos_en_mayusculas, tokens  # noqa: E402
 
 NOMBRES = {"marea": ("Marea", "Petróleo oscuro con acento turquesa"), "pizarra": ("Pizarra", "Grafito cálido con acento azul"),
            "waves": ("Waves", "Azul marino con acento celeste"),
@@ -67,6 +67,7 @@ class Apariencia(QtWidgets.QWidget):
 
     def pintar(self):
         self.setStyleSheet(pintar(ESTILO_BASE))
+        titulos_en_mayusculas()
         while self.zona.count():
             it = self.zona.takeAt(0)
             if it.widget():

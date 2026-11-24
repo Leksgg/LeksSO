@@ -3,6 +3,10 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
+## Sin publicar
+
+~ **Tipografías por pieza.** Los títulos de las ventanas de LeksSO van en MAYÚSCULAS con Raxtor (familia nueva «Raxtor Titulos», de `Raxtor-Bold.ttf`: mayúsculas, cifras y signos); el cuerpo de las ventanas, la barra, los avisos, el lanzador y los títulos de ventana de sway pasan a Montserrat, con Raxtor solo para las cifras; la terminal usa JetBrains Mono. Las letras que Raxtor no trae (Ñ, vocales con tilde) salen de Montserrat, solo esa letra. Se instalan `fonts-montserrat` y `fonts-jetbrains-mono`. La regla de fontconfig pasa a llamarse `65-leksso-raxtor.conf` y se borra la anterior (`...-cifras.conf`) al actualizar.
+
 ## 0.1.56 · 2026-11-24
 
 - **labwc retirado.** El escritorio de LeksSO es solo sway. Se quitan la carpeta `config/labwc`, su instalación en `provision-base.sh`, el tema para labwc, y su recarga en `leksso-tema`. Al actualizar, si el equipo lo tenía instalado, se desinstala el paquete; lo que dejó en la carpeta personal no se toca.

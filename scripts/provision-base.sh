@@ -40,7 +40,7 @@ install -d /etc/apt/apt.conf.d
 install -m 0644 "$RAIZ/config/apt/99leksso-auditoria" /etc/apt/apt.conf.d/99leksso-auditoria
 
 # Paquetes por capa. Todos existen en Debian 13 (trixie); winetricks necesita la sección contrib.
-ESCRITORIO=(sway swaybg waybar kitty fuzzel grim pcmanfm-qt qt6-wayland qt6-svg-plugins qt6ct xwayland fonts-font-awesome seatd xdg-desktop-portal-wlr micro imv zathura zathura-pdf-poppler mpv vlc xarchiver udisks2 udiskie gvfs gvfs-backends polkitd ntfs-3g exfatprogs usbutils v4l-utils bluez pavucontrol-qt swaylock gtklock wayvnc tigervnc-viewer wl-clipboard mako-notifier libnotify-bin swayidle brightnessctl slurp cliphist wdisplays blueman cups avahi-daemon libnss-mdns system-config-printer fonts-noto-color-emoji fonts-liberation fonts-montserrat ffmpegthumbnailer power-profiles-daemon playerctl wlr-randr network-manager streamdeck-ui python3-pyside6.qtwidgets python3-pyside6.qtgui python3-pyside6.qtcore python3-pyside6.qtsvg)
+ESCRITORIO=(sway swaybg waybar kitty fuzzel grim pcmanfm-qt qt6-wayland qt6-svg-plugins qt6ct xwayland fonts-font-awesome fonts-montserrat fonts-jetbrains-mono seatd xdg-desktop-portal-wlr micro imv zathura zathura-pdf-poppler mpv vlc xarchiver udisks2 udiskie gvfs gvfs-backends polkitd ntfs-3g exfatprogs usbutils v4l-utils bluez pavucontrol-qt swaylock gtklock wayvnc tigervnc-viewer wl-clipboard mako-notifier libnotify-bin swayidle brightnessctl slurp cliphist wdisplays blueman cups avahi-daemon libnss-mdns system-config-printer fonts-noto-color-emoji fonts-liberation fonts-montserrat ffmpegthumbnailer power-profiles-daemon playerctl wlr-randr network-manager streamdeck-ui python3-pyside6.qtwidgets python3-pyside6.qtgui python3-pyside6.qtcore python3-pyside6.qtsvg)
 AUDIO=(pipewire pipewire-pulse wireplumber alsa-ucm-conf alsa-utils libspa-0.2-bluetooth)   # ucm: micrófono y altavoz del portátil; bluetooth: auriculares
 AISLAMIENTO=(bubblewrap python3-seccomp passt)    # firejail se quitó: nada lo llamaba y en Debian es un binario con privilegios de root
 HERRAMIENTAS=(git curl btop lm-sensors python3 bc pciutils mokutil fwupd plocate restic efibootmgr)   # plocate: búsqueda de archivos; restic: copias de seguridad
@@ -223,7 +223,8 @@ if [ -S "/run/user/$UID_USR/bus" ]; then
 fi
 install -m 0644 "$RAIZ/config/udev/70-leksso-streamdeck.rules" /etc/udev/rules.d/
 # Raxtor (si el usuario la instaló a mano) solo dibuja cifras: esta regla le quita el resto de glifos. fc-cache -f la aplica.
-install -m 0644 "$RAIZ/config/fontconfig/65-leksso-raxtor-cifras.conf" /etc/fonts/conf.d/65-leksso-raxtor-cifras.conf
+rm -f /etc/fonts/conf.d/65-leksso-raxtor-cifras.conf     # nombre anterior de la regla de Raxtor
+install -m 0644 "$RAIZ/config/fontconfig/65-leksso-raxtor.conf" /etc/fonts/conf.d/65-leksso-raxtor.conf
 fc-cache -f >/dev/null 2>&1 || true
 install -m 0644 "$RAIZ/config/udev/70-leksso-brillo.rules" /etc/udev/rules.d/      # brillo cambiable por el grupo video (teclas de brillo)
 # fluidsynth (sintetizador MIDI que traen Lutris y otros) abre la tarjeta de sonido directamente y deja a PipeWire sin audio:

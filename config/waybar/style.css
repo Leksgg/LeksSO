@@ -1,6 +1,6 @@
 /* Paleta de LeksSO. Fondo oscuro azulado, un solo acento cian y color de estado solo cuando importa. */
 * {
-  font-family: "Raxtor", "DejaVu Sans", sans-serif;      /* Raxtor solo dibuja cifras (ver 65-leksso-raxtor-cifras.conf) */
+  font-family: "Raxtor", "Montserrat", "DejaVu Sans", sans-serif;      /* Raxtor solo dibuja cifras (ver 65-leksso-raxtor.conf) */
   font-size: 13px;
   border: none;
   border-radius: 0;
@@ -40,7 +40,7 @@ window#waybar {
 #custom-ia.admin { color: #fdc357; font-weight: bold; }
 
 #cpu, #memory, #pulseaudio, #network, #custom-bateria, #clock {
-  font-family: "Raxtor", "DejaVu Sans", "Font Awesome 5 Free", "FontAwesome";
+  font-family: "Raxtor", "Montserrat", "DejaVu Sans", "Font Awesome 5 Free", "FontAwesome";
   padding: 0 12px;
   color: #e3edef;
 }
@@ -67,7 +67,7 @@ window#waybar.raiz {
   border-top: none;
 }
 #custom-juego, #custom-seguridad, #custom-portapapeles, #custom-camara, #custom-notificaciones, #custom-remoto, #custom-captura, #custom-actualizaciones, #custom-apps, #custom-asistente, #custom-archivos, #custom-config, #custom-vista, #custom-flotantes, #custom-energia {
-  font-family: "Raxtor", "FontAwesome", "DejaVu Sans";
+  font-family: "Raxtor", "FontAwesome", "Montserrat", "DejaVu Sans";
   font-size: 20px;
   padding: 14px 0;
   margin: 2px 6px;

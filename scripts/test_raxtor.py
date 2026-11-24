@@ -13,7 +13,7 @@ import xml.etree.ElementTree as ET
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.abspath(os.path.join(AQUI, ".."))
-CONF = os.path.join(RAIZ, "config", "fontconfig", "65-leksso-raxtor-cifras.conf")
+CONF = os.path.join(RAIZ, "config", "fontconfig", "65-leksso-raxtor.conf")
 
 
 def leer(ruta):
@@ -33,12 +33,14 @@ class Regla(unittest.TestCase):
         raiz = ET.parse(CONF).getroot()
         self.assertEqual(raiz.tag, "fontconfig")
         coincidencias = raiz.findall("match")
-        self.assertEqual(len(coincidencias), 1)
-        self.assertEqual(coincidencias[0].get("target"), "scan")
-        self.assertEqual(coincidencias[0].find("test/string").text, "Raxtor")
+        self.assertEqual(len(coincidencias), 2)
+        for m in coincidencias:
+            self.assertEqual(m.get("target"), "scan")
+        self.assertEqual(coincidencias[0].find("test/string").text, "Raxtor-Bold.ttf")     # primero el Bold, que cambia de familia
+        self.assertEqual(coincidencias[1].find("test/string").text, "Raxtor")
 
     def test_solo_deja_cifras_dos_puntos_y_porcentaje(self):
-        cs = ET.parse(CONF).getroot().find("match/edit/charset")
+        cs = ET.parse(CONF).getroot().findall("match")[1].find("edit/charset")
         puntos = set()
         for hijo in cs:
             if hijo.tag == "int":
@@ -50,6 +52,18 @@ class Regla(unittest.TestCase):
         for letra in "aeioun" "ÁÉÑñ¿¡":
             self.assertNotIn(ord(letra), puntos)
 
+    def test_titulos_solo_mayusculas_cifras_y_signos(self):
+        m = ET.parse(CONF).getroot().findall("match")[0]
+        self.assertEqual(m.find("edit[@name='family']/string").text, "Raxtor Titulos")
+        puntos = set()
+        for hijo in m.find("edit[@name='charset']/charset"):
+            a, b = (int(x.text, 0) for x in hijo.findall("int"))
+            puntos |= set(range(a, b + 1))
+        for c in "ABZ019 .:-%":
+            self.assertIn(ord(c), puntos, c)
+        for c in "aenzÁÉÑñ¿¡":
+            self.assertNotIn(ord(c), puntos, c)        # lo que Raxtor no trae sale de Montserrat
+
     def test_no_cambia_las_fuentes_genericas_ni_las_paginas_web(self):
         t = open(CONF, encoding="utf-8").read()
         sin_comentarios = re.sub(r"<!--.*?-->", "", t, flags=re.S)
@@ -59,7 +73,7 @@ class Regla(unittest.TestCase):
 
     def test_se_instala(self):
         p = leer("scripts/provision-base.sh")
-        self.assertIn("65-leksso-raxtor-cifras.conf", p)
+        self.assertIn("65-leksso-raxtor.conf", p)
         self.assertIn("/etc/fonts/conf.d/", p)
 
 
@@ -70,7 +84,7 @@ class DondeSeUsa(unittest.TestCase):
         self.assertEqual(len(familias), 3)
         for f in familias:
             self.assertTrue(f.strip().startswith('"Raxtor"'), f)
-            self.assertIn("DejaVu Sans", f)                      # las letras salen de la fuente de siempre
+            self.assertIn("Montserrat", f)                       # las letras salen de Montserrat
 
     def test_bloqueo_hora_y_fecha_si_contrasena_no(self):
         css = leer("config/bin/leksso-bloquear")
@@ -81,13 +95,19 @@ class DondeSeUsa(unittest.TestCase):
         self.assertNotIn("Raxtor", regla(css, "window"))
 
     def test_ventanas_avisos_y_lanzador(self):
-        self.assertIn('font-family: "Raxtor", "DejaVu Sans"', leer("config/ui/leksso_ui.py"))
-        self.assertIn("font=Raxtor,DejaVu Sans", leer("config/mako/config"))
-        self.assertIn("font=Raxtor:size=13,DejaVu Sans:size=13", leer("config/fuzzel/fuzzel.ini"))
+        ui = leer("config/ui/leksso_ui.py")
+        self.assertIn('font-family: "Raxtor", "Montserrat"', ui)                       # cuerpo: Montserrat, y Raxtor para las cifras
+        self.assertIn('QLabel#titulo { font-family: "Raxtor Titulos", "Montserrat"', ui)  # títulos: Raxtor en MAYÚSCULAS
+        self.assertIn("font=Raxtor,Montserrat", leer("config/mako/config"))
+        self.assertIn("font=Raxtor:size=13,Montserrat:size=13", leer("config/fuzzel/fuzzel.ini"))
+        p = leer("scripts/provision-base.sh")
+        self.assertIn("fonts-montserrat", p)
+        self.assertIn("fonts-jetbrains-mono", p)
+        self.assertIn("font pango:Montserrat", leer("config/sway/config"))
 
     def test_la_terminal_sigue_en_monoespaciada(self):
         k = leer("config/kitty/kitty.conf")
-        self.assertIn("DejaVu Sans Mono", k)
+        self.assertIn("JetBrains Mono", k)
         self.assertNotIn("Raxtor", k)                             # las cifras de una terminal tienen que alinearse
 
 
@@ -123,15 +143,21 @@ class ConFontconfigDeVerdad(unittest.TestCase):
 
     def lista(self, charset_hex):
         r = subprocess.run(["fc-list", f":charset={charset_hex}", "family"], capture_output=True, text=True, env=self.env)
-        return r.stdout.split()
+        return [l.strip() for l in r.stdout.splitlines() if l.strip()]
 
     def test_ofrece_las_cifras_y_los_dos_puntos(self):
         for c in ("30", "31", "39", "3a", "25"):
             self.assertIn("Raxtor", self.lista(c), c)
 
     def test_no_ofrece_letras_tildes_ni_signos_de_texto(self):
-        for c in ("61", "41", "e1", "f1", "bf", "2c", "2e", "20", "2d"):        # a A á ñ ¿ , . espacio -
+        for c in ("61", "e1", "f1", "bf", "2c", "2e", "20", "2d"):        # a á ñ ¿ , . espacio -  (en «Raxtor», la de las cifras)
             self.assertNotIn("Raxtor", self.lista(c), c)
+
+    def test_titulos_ofrece_mayusculas_cifras_y_signos_pero_no_minusculas_ni_tildes(self):
+        for c in ("41", "5a", "30", "20", "2d", "2e"):
+            self.assertIn("Raxtor Titulos", self.lista(c), c)
+        for c in ("61", "e1", "d1", "f1", "bf"):
+            self.assertNotIn("Raxtor Titulos", self.lista(c), c)
 
 
 if __name__ == "__main__":

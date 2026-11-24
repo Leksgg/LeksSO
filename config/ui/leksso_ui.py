@@ -71,8 +71,8 @@ def pintar(texto):
 
 
 ESTILO = """
-QWidget { background: #021012; color: #e3edef; font-size: 14px; font-family: "Raxtor", "DejaVu Sans"; }   /* Raxtor solo dibuja cifras */
-QLabel#titulo { font-size: 16px; font-weight: bold; color: #00c4bf; }
+QWidget { background: #021012; color: #e3edef; font-size: 14px; font-family: "Raxtor", "Montserrat", "DejaVu Sans"; }   /* Raxtor solo dibuja cifras; el texto es Montserrat */
+QLabel#titulo { font-family: "Raxtor Titulos", "Montserrat", "DejaVu Sans"; font-size: 17px; font-weight: bold; color: #00c4bf; }   /* títulos en MAYÚSCULAS */
 QLabel#nota { color: #94a1a3; font-size: 12px; }
 QLineEdit { background: #112123; border: 1px solid #25393c; padding: 8px 10px; color: #e3edef; }
 QLineEdit:focus { border: 1px solid #00c4bf; }
@@ -97,11 +97,37 @@ _VIVOS = []      # (ventana, hoja de estilo base) de las ventanas que siguen el 
 _VIGILANTE = []  # el observador de ~/.config/leksso, creado la primera vez
 
 
+class _TitulosEnMayusculas:
+    """Filtro de eventos: cada QLabel con nombre «titulo» se muestra en MAYÚSCULAS (Raxtor Titulos solo trae capitales)."""
+    _filtro = None
+
+    @classmethod
+    def instalar(cls):
+        if cls._filtro is not None:
+            return
+        from PySide6 import QtCore, QtWidgets
+
+        class Filtro(QtCore.QObject):
+            def eventFilter(self, obj, ev):
+                if ev.type() in (QtCore.QEvent.Show, QtCore.QEvent.Polish) and isinstance(obj, QtWidgets.QLabel)                         and obj.objectName() == "titulo" and obj.text() != obj.text().upper():
+                    obj.setText(obj.text().upper())
+                return False
+        app = QtWidgets.QApplication.instance()
+        if app is not None:
+            cls._filtro = Filtro(app)
+            app.installEventFilter(cls._filtro)
+
+
+def titulos_en_mayusculas():
+    _TitulosEnMayusculas.instalar()
+
+
 def estilo(widget, base):
     """Pone a `widget` la hoja de estilo `base` (escrita con los colores base) con los colores del tema activo y la
     repinta sola cuando se cambia de tema (leksso-tema), sin cerrar ni abrir la ventana."""
     import weakref
     widget.setStyleSheet(pintar(base))
+    titulos_en_mayusculas()
     _VIVOS.append((weakref.ref(widget), base))
     if not _VIGILANTE:
         from PySide6 import QtCore

@@ -14,7 +14,7 @@ titlebar_border_thickness 0
 # Las marcas ([centro], [panel-ia]) son internas: no se enseñan en los títulos.
 show_marks no
 titlebar_padding 8 4
-font pango:DejaVu Sans 11
+font pango:Montserrat 11
 workspace_layout default
 
 # Colores (misma paleta que la barra): una sola pestaña activa en cian, el resto apagado.
