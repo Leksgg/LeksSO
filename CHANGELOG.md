@@ -3,7 +3,7 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
-## Sin publicar
+## 0.1.57 · 2026-11-24
 
 ~ **Tipografías por pieza.** Los títulos de las ventanas de LeksSO van en MAYÚSCULAS con Raxtor (familia nueva «Raxtor Titulos», de `Raxtor-Bold.ttf`: mayúsculas, cifras y signos); el cuerpo de las ventanas (solo Montserrat: Qt dibuja Raxtor entera, no respeta la restricción a cifras), la barra, los avisos, el lanzador y los títulos de ventana de sway pasan a Montserrat, con Raxtor solo para las cifras; la terminal usa JetBrains Mono. Las letras que Raxtor no trae (Ñ, vocales con tilde) salen de Montserrat, solo esa letra. Se instalan `fonts-montserrat` y `fonts-jetbrains-mono`. La regla de fontconfig pasa a llamarse `65-leksso-raxtor.conf` y se borra la anterior (`...-cifras.conf`) al actualizar.
 
