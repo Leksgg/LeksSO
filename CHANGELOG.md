@@ -5,6 +5,8 @@ Lo más reciente, arriba.
 
 ## 0.1.55 · 2026-11-24
 
+~ **Las ventanas de LeksSO ya no heredan la entrada estándar de quien las lanza al pedir permisos de administrador** (`sudo -n`, `-S`): si esa entrada seguía abierta, la detección del modo de `sudo` podía quedarse esperando 15 segundos dos veces y concluir mal. Era además el origen de una prueba que fallaba de vez en cuando (`test_sudo`); ahora hay una prueba que lo reproduce.
+
 ~ **El menú de arranque se ve 2 segundos** (`/etc/default/grub.d/90-leksso.cfg`), para poder elegir «LeksSO: volver a la versión anterior». Con `GRUB_TIMEOUT=0`, que es lo habitual tras instalar, el menú no llegaba a mostrarse y esa entrada no se podía elegir. Cuesta 2 segundos en cada arranque; para quitarlo: `sudo rm /etc/default/grub.d/90-leksso.cfg && sudo update-grub` (entonces el menú se ve manteniendo pulsada la tecla Mayús al encender).
 
 ~ **Arreglo de «volver» desde el menú de arranque**, visto probándolo en una máquina virtual: al apartar las unidades de la versión nueva se paraba la propia unidad que ejecutaba la vuelta atrás, que se quedaba a mitad (versión reinstalada, pero sin apartar nada, sin reiniciar y sin actualizar el menú). Ahora las unidades se desactivan sin pararlas.

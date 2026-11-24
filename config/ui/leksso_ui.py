@@ -156,7 +156,10 @@ _SUDO = {"modo": None, "clave": None}
 def _sudo_correr(cmd, entrada=None, espera=60):
     import subprocess
     try:
-        r = subprocess.run(cmd, input=entrada, capture_output=True, text=True, timeout=espera)
+        # Sin entrada que pasar, el programa recibe una entrada vacía en vez de heredar la de quien lanzó la ventana: heredada y
+        # abierta, cualquier orden que la lea se quedaba esperando hasta agotar el tiempo (visto como fallo intermitente de test_sudo).
+        entrada_ = {"input": entrada} if entrada is not None else {"stdin": subprocess.DEVNULL}
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=espera, **entrada_)
         return r.returncode, r.stdout, r.stderr
     except (OSError, subprocess.SubprocessError) as e:
         return 1, "", str(e)
