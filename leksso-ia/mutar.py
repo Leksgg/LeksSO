@@ -14,14 +14,16 @@ import time
 from pathlib import Path
 
 AQUI = Path(__file__).parent
-PRUEBAS = ["test_nucleo", "test_ataques"]
+PRUEBAS = ["test_nucleo", "test_ataques", "test_revision", "test_ejecutar"]   # las dos últimas tardan ~1 s
 
 # (nombre, archivo, texto original, texto mutado)
 MUTANTES = [
     ("sin O_NOFOLLOW al recorrer carpetas", "nucleo.py",
      "FLAGS_DIR = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW", "FLAGS_DIR = os.O_RDONLY | os.O_DIRECTORY"),
-    ("acepta '..' en la ruta", "nucleo.py",
-     'or ".." in Path(ruta).parts', "or False"),
+    ("acepta '..' en la ruta de cada acceso", "nucleo.py",
+     'if not os.path.isabs(ruta) or ".." in Path(ruta).parts:', "if not os.path.isabs(ruta):"),
+    ("acepta '..' al crear una carpeta nueva", "nucleo.py",
+     'or "/" in nombre or ".." in Path(ruta).parts', 'or "/" in nombre'),
     ("deja usar archivos ocultos", "nucleo.py",
      'if any(x.startswith(".") for x in partes):', "if False:"),
     ("ignora los permisos r/w/d", "nucleo.py",
@@ -49,12 +51,20 @@ MUTANTES = [
      '_OCULTOS.subn("", texto)', "(texto, 0)"),
     ("escribe sobre algo que no es archivo normal", "nucleo.py",
      "if existia and not stat.S_ISREG(st.st_mode):", "if False:"),
-    ("sin tope de peticiones pendientes", "permisor.py",
-     "if len(self.pendientes) >= MAX_PENDIENTES:", "if False:"),
+    ("sin tope global de peticiones pendientes", "permisor.py",
+     "if len(self.pendientes) >= MAX_PENDIENTES or self._del_canal(destino, asistente) >= MAX_PENDIENTES_CANAL:",
+     "if self._del_canal(destino, asistente) >= MAX_PENDIENTES_CANAL:"),
+    ("sin tope de peticiones pendientes por asistente", "permisor.py",
+     "if len(self.pendientes) >= MAX_PENDIENTES or self._del_canal(destino, asistente) >= MAX_PENDIENTES_CANAL:",
+     "if len(self.pendientes) >= MAX_PENDIENTES:"),
+    ("sin tope de órdenes pendientes", "permisor.py",
+     'if len(self.pendientes) >= MAX_PENDIENTES or self._del_canal("nube", asistente) >= MAX_PENDIENTES_CANAL:',
+     "if False:"),
     ("sin tope de tareas abiertas", "permisor.py",
      "if len(self.n.tareas) >= MAX_TAREAS:", "if False:"),
     ("el destino lo declara la IA en el mensaje", "permisor.py",
-     'm["carpetas"], destino)', 'm["carpetas"], m.get("destino", "local"))'),
+     'self.pedir(m["titulo"], m["carpetas"], destino, asistente)',
+     'self.pedir(m["titulo"], m["carpetas"], m.get("destino", "local"), asistente)'),
     ("la nube usa carpetas recordadas sin preguntar", "permisor.py",
      'if self._cubre_recordada(carpetas) and destino == "local":', "if self._cubre_recordada(carpetas):"),
     ("se recuerda el permiso de borrar", "permisor.py",
@@ -62,8 +72,7 @@ MUTANTES = [
     ("títulos con caracteres de control", "nucleo.py",
      'not in ("Cc", "Cf", "Cs", "Co", "Cn")', 'not in ("Co",)'),
     ("no resuelve las carpetas al pedirlas", "permisor.py",
-     "carpetas = {k: \"\".join(sorted(v[\"perms\"])) for k, v in self.n.comprobar_carpetas(carpetas).items()}",
-     "self.n.comprobar_carpetas(carpetas)"),
+     'carpetas = {k: "".join(sorted(v["perms"])) for k, v in raices.items()}', "pass"),
     ("sin tope de tamaño de escritura", "permisor.py",
      'or len(m["texto"]) > MAX_ESCRIBIR:', "or False:"),
     ("sin tope de tamaño de mensaje", "permisor.py",

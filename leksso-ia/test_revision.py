@@ -41,6 +41,15 @@ class Aprobaciones(unittest.TestCase):
         self.assertEqual(r["estado"], "pendiente")
         return r["pid"]
 
+    def test_tope_de_ordenes_pendientes(self):
+        """Un asistente no puede llenar la cola con órdenes que esperan aprobación: al llegar a su tope, se deniega."""
+        fijar(claude={"activo": True, "comandos": True, "admin": "libre"})
+        for _ in range(permisor.MAX_PENDIENTES_CANAL):
+            self.pedir_destructiva()
+        with self.assertRaises(Denegado):
+            self.ia("claude", op="ejecutar", orden="reboot", admin=True)
+        self.assertEqual(len(self.p.pendientes), permisor.MAX_PENDIENTES_CANAL)
+
     def test_orden_aprobada_caduca(self):
         fijar(claude={"activo": True, "comandos": True, "admin": "libre"})
         pid = self.pedir_destructiva()
@@ -508,6 +517,27 @@ class SegundaRevision(unittest.TestCase):
         with self.assertRaises(Denegado):
             self.ia("claude", op="pedir", titulo="x", carpetas={d: "r"})
         self.assertEqual(self.ia("codex", op="pedir", titulo="x", carpetas={d: "r"})["estado"], "pendiente")
+
+
+    def test_tope_global_de_pendientes(self):
+        """Aunque ningún asistente llegue a su tope, entre todos no pasan de MAX_PENDIENTES peticiones sin responder."""
+        casa = str(self.p.n.casa)
+        fijar(claude={"activo": True}, codex={"activo": True})
+        n = 0
+        def pedir(canal, asistente):
+            nonlocal n
+            d = os.path.join(casa, f"c{n}")
+            n += 1
+            os.makedirs(d)
+            return self.p.manejar_ia({"op": "pedir", "titulo": "x", "carpetas": {d: "r"}}, canal, asistente)
+        for _ in range(permisor.MAX_PENDIENTES_CANAL):
+            self.assertEqual(pedir("nube", "claude")["estado"], "pendiente")
+        while len(self.p.pendientes) < permisor.MAX_PENDIENTES:
+            self.assertEqual(pedir("nube", "codex")["estado"], "pendiente")
+        self.assertLess(self.p._del_canal("local", None), permisor.MAX_PENDIENTES_CANAL)
+        with self.assertRaises(Denegado):
+            pedir("local", None)                      # la IA local tiene sitio en su canal, pero la cola está llena
+        self.assertEqual(len(self.p.pendientes), permisor.MAX_PENDIENTES)
 
 
 class PanelVeLaOrdenEntera(unittest.TestCase):
