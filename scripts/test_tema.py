@@ -77,8 +77,31 @@ class PruebasTema(unittest.TestCase):
         base = {d: open(os.path.join(RAIZ, "config", o), "rb").read() for o, d in COPIAS.items()}
         self.assertEqual(base, self.contenido())
 
-    def test_hay_seis_temas(self):
-        self.assertEqual(set(self.tema("listar").stdout.split()), {"marea", "pizarra", "waves", "alba", "grisrosa", "blancorosa"})
+    def test_hay_nueve_temas(self):
+        self.assertEqual(set(self.tema("listar").stdout.split()),
+                         {"marea", "pizarra", "waves", "alba", "grisrosa", "blancorosa", "grafito", "purpura", "blancopurpura"})
+
+    def test_grafito_y_purpuras_se_aplican_y_se_deshacen(self):
+        """Grafito (el de serie), Púrpura (oscuro) y Blanco y púrpura (claro): pintan todo y se vuelve a Marea sin diferencias."""
+        antes = self.contenido()
+        for nombre, claro in (("grafito", False), ("purpura", False), ("blancopurpura", True)):
+            self.assertEqual(self.tema("aplicar", nombre).returncode, 0)
+            t = leksso_ui.tokens(nombre)
+            texto = open(os.path.join(self.casa, ".config", "waybar", "style.css"), encoding="utf-8").read().lower()
+            self.assertIn(t["bg"], texto)
+            self.assertNotIn("021012", texto)
+            self.assertNotIn("00c4bf", texto)                 # ni el turquesa de Marea
+            kitty = open(os.path.join(self.casa, ".config", "kitty", "kitty.conf"), encoding="utf-8").read().lower()
+            self.assertIn("background #" + t["bg"], kitty)
+            self.assertEqual(leksso_ui.es_claro(nombre), claro)
+        self.assertEqual(self.tema("aplicar", "marea").returncode, 0)
+        self.assertEqual(antes, self.contenido())
+
+    def test_la_instalacion_pone_grafito_a_quien_no_eligio(self):
+        texto = open(os.path.join(RAIZ, "scripts", "provision-base.sh"), encoding="utf-8").read()
+        self.assertIn('if [ ! -e "$HOME_USR/.config/leksso/tema" ]; then', texto)
+        self.assertIn("echo grafito |", texto)
+        self.assertNotIn("echo waves |", texto)
 
     def test_waves_ida_y_vuelta_identica(self):
         antes = self.contenido()

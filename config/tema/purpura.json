@@ -1,0 +1,31 @@
+{
+  "tema": "purpura",
+  "modo": "oscuro",
+  "colores": {
+    "bg": "#0e0c13",
+    "s1": "#17141c",
+    "s2": "#1f1c25",
+    "line": "#37333e",
+    "off": "#131018",
+    "alt": "#141119",
+    "base2": "#16131b",
+    "mid": "#26242c",
+    "dark": "#060409",
+    "text": "#eceaf0",
+    "faint": "#727078",
+    "soft": "#35244b",
+    "muted": "#9f9da4",
+    "acc": "#be8fff",
+    "acc_hi": "#d1b3ff",
+    "acc_dim": "#7b649d",
+    "sec": "#81b4f6",
+    "magenta": "#e791c2",
+    "ok": "#85ce6c",
+    "warn": "#e9cd56",
+    "bad": "#ff735a",
+    "ok_soft": "#1a2c13",
+    "warn_soft": "#2e2605",
+    "warn_soft2": "#282105",
+    "bad_soft": "#3f1a13"
+  }
+}

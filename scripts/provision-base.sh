@@ -88,9 +88,6 @@ usermod -aG lpadmin "$USUARIO" 2>/dev/null || true
 systemctl enable --now seatd 2>/dev/null || true
 usermod -aG seatd "$USUARIO" 2>/dev/null || true
 
-# ¿Primera instalación en este usuario? (sin configuración del escritorio todavía). Se usa más abajo para el tema por defecto.
-PRIMERA_INSTALACION=0
-[ -e "$HOME_USR/.config/sway/config" ] || PRIMERA_INSTALACION=1
 # Configuración del escritorio.
 U install -d "$HOME_USR/.config/sway"
 U install -m 0644 "$RAIZ/config/sway/config" "$HOME_USR/.config/sway/config"
@@ -337,11 +334,12 @@ chmod 0440 /etc/sudoers.d/leksso-camara
 visudo -cf /etc/sudoers.d/leksso-camara >/dev/null || rm -f /etc/sudoers.d/leksso-camara
 install -d -m 0755 /usr/local/share/leksso
 install -m 0644 "$RAIZ/config/calendario/festivos.json" /usr/local/share/leksso/festivos.json
-# Apariencia base: Waves. Solo en una instalación nueva y si el usuario no eligió ya otro tema: un equipo que se actualiza conserva
-# el aspecto que tenía. La configuración base está pintada con Marea y `reaplicar` la repinta con el tema anotado en ~/.config/leksso/tema.
-if [ "$PRIMERA_INSTALACION" = 1 ] && [ ! -e "$HOME_USR/.config/leksso/tema" ]; then
+# Apariencia de serie: Grafito. Se pone a quien no eligió nunca un tema (sin ~/.config/leksso/tema), también al actualizar: sin
+# ese archivo el equipo se veía con Marea, la base, y no por elección. Quien eligió uno en Apariencia lo conserva.
+# La configuración base está pintada con Marea y `reaplicar` la repinta con el tema anotado en ~/.config/leksso/tema.
+if [ ! -e "$HOME_USR/.config/leksso/tema" ]; then
   U install -d "$HOME_USR/.config/leksso"
-  echo waves | U tee "$HOME_USR/.config/leksso/tema" >/dev/null
+  echo grafito | U tee "$HOME_USR/.config/leksso/tema" >/dev/null
 fi
 sudo -u "$USUARIO" leksso-tema reaplicar || true
 # La sesión abierta sigue con la configuración vieja (barra, atajos): se le pide que lea la nueva sin cerrar sesión.

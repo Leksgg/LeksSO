@@ -17,13 +17,17 @@ NOMBRES = {"marea": ("Marea", "Petróleo oscuro con acento turquesa"), "pizarra"
            "waves": ("Waves", "Azul marino con acento celeste"),
            "alba": ("Alba", "Claro: papel cálido con acento azul"),
            "grisrosa": ("Gris y rosa", "Gris suave con acento rosa"),
-           "blancorosa": ("Blanco y rosa", "Claro: blanco con acento rosa")}
+           "blancorosa": ("Blanco y rosa", "Claro: blanco con acento rosa"),
+           "grafito": ("Grafito", "Gris grafito con acento azul acero (el de serie)"),
+           "purpura": ("Púrpura", "Oscuro: gris violáceo con acento púrpura"),
+           "blancopurpura": ("Blanco y púrpura", "Claro: blanco con acento púrpura")}
 MUESTRA = ("bg", "s2", "line", "acc", "sec", "ok", "warn", "bad")
 
 
 def temas():
     r = subprocess.run(["leksso-tema", "listar"], capture_output=True, text=True)
-    return [t for t in r.stdout.split() if tokens(t)]
+    lista = [t for t in r.stdout.split() if tokens(t)]
+    return sorted(lista, key=lambda t: t != "grafito")   # el de serie, primero
 
 
 class Muestra(QtWidgets.QWidget):

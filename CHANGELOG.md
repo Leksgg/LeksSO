@@ -3,6 +3,12 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
+## Sin publicar
+
++ **Tres apariencias nuevas: Grafito, Púrpura y Blanco y púrpura.** Grafito es gris casi neutro (un punto frío), algo más claro que los otros oscuros, con acento azul acero apagado y secundario lila: nada tira a verde. Púrpura es oscuro con grises de un punto violeta y acento púrpura; Blanco y púrpura, su versión clara. Pasan la comprobación de contraste (4,5:1) de todos los temas.
+~ **Grafito es la apariencia de serie.** Se pone en las instalaciones nuevas y, al actualizar, a quien nunca eligió tema (esos equipos se veían con Marea, la base, sin haberla escogido). Quien eligió una en Apariencia la conserva. En Apariencia, Grafito sale la primera.
+* `aplicar-tema.py` admite por tema el croma del acento (`ac`) y cuánto se aclaran los neutros oscuros (`nl`); los temas existentes no cambian.
+
 ## 0.1.59 · 2026-11-24
 
 ~ **El botón de carpetas del raíl (y Súper+E) vuelve a funcionar.** Escondía una ventana «Carpetas» aparte que ya no existe desde que el explorador es PCManFM-Qt dentro de la zona central; ahora muestra u oculta su panel lateral de carpetas (F9, enviado con `wtype`, que se instala). Probado en la máquina virtual.

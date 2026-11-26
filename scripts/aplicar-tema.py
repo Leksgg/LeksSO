@@ -6,7 +6,8 @@ calculan en OKLCH para que acentos y estados tengan el mismo peso visual en todo
 matices. Este script cambia, en cada archivo, los colores del tema activo por los del
 nuevo tema, y apunta cuál queda activo en config/tema/activo.
 
-Temas: marea (por defecto), pizarra, waves y grisrosa (oscuros), alba y blancorosa (claros).
+Temas: marea (la base con la que está pintado el repo), grafito (el de serie en los equipos), pizarra, waves, grisrosa
+y purpura (oscuros), alba, blancorosa y blancopurpura (claros).
 
 Uso:
   python3 aplicar-tema.py marea            aplica y deja los .json de tokens al día
@@ -45,6 +46,12 @@ TEMAS = {
     # rosa: neutros grises con un punto rosado y acento rosa; el secundario va hacia el lila para no confundirse con el acento
     "grisrosa":   {"nh": 350, "nc": .008, "ah": 355, "sh": 295, "magenta": 310},
     "blancorosa": {"nh": 355, "nc": .008, "ah": 355, "sh": 295, "magenta": 310, "claro": True},
+    # grafito (el de serie): neutros grises casi sin color, con un punto frío y algo más claros que los demás oscuros
+    # (nl: cuánto suben); acento azul acero apagado (ac: croma del acento) y secundario lila, nada que tire a verde
+    "grafito": {"nh": 255, "nc": .006, "ah": 245, "sh": 290, "magenta": 340, "ac": .09, "nl": .045},
+    # púrpura: oscuro con neutros de un punto violeta y acento púrpura; el secundario va hacia el azul lavanda
+    "purpura":       {"nh": 300, "nc": .016, "ah": 302, "sh": 255, "magenta": 345},
+    "blancopurpura": {"nh": 300, "nc": .010, "ah": 302, "sh": 255, "magenta": 345, "claro": True},
 }
 ESTADOS = {"ok": (138, 148, 158), "warn": (80, 88, 96), "bad": (20, 26, 32)}
 
@@ -122,8 +129,9 @@ def ajustar(L, C, H, contra, minimo, paso=.01, sentido=1):
 def tokens(nombre):
     t = TEMAS[nombre]
     nh, nc, ah, sh = t["nh"], t["nc"], t["ah"], t["sh"]
-    N = lambda L, k=1: rgb(L, nc * k, nh)
     claro = t.get("claro", False)
+    nl = 0 if claro else t.get("nl", 0)
+    N = lambda L, k=1: rgb(L + nl, nc * k, nh)
     if claro:
         r = {
             "bg": N(.955, .8), "s1": rgb(.995, nc * .3, nh), "s2": N(.925, .9), "line": N(.80, .9),
@@ -136,15 +144,16 @@ def tokens(nombre):
         r = {
             "bg": N(.16), "s1": N(.20), "s2": N(.235), "line": N(.33, 1.2),
             "off": N(.18), "alt": N(.185), "base2": N(.195), "mid": N(.265), "dark": N(.115),
-            "text": rgb(.94, nc * .5, nh), "faint": rgb(.55, nc * .8, nh),
-            "soft": rgb(.30, .07, ah),
+            "text": rgb(.94, nc * .5, nh), "faint": rgb(.55 + nl, nc * .8, nh),
+            "soft": rgb(.30 + nl, .07, ah),
         }
         peor, sentido = r["s2"], 1
     luz = (lambda oscuro, claro_: claro_) if claro else (lambda oscuro, claro_: oscuro)
     r["muted"] = ajustar(luz(.70, .50), nc * .7, nh, peor, 4.5, sentido=sentido)
-    r["acc"] = ajustar(luz(.74, .55), .17, ah, peor, 4.5, sentido=sentido)
-    r["acc_hi"] = rgb(luz(.82, .45), .13, ah)
-    r["acc_dim"] = rgb(luz(.55, .72), .09, ah)
+    ac = t.get("ac", .17)   # croma del acento; las variantes se escalan con él (con el de serie, .13 y .09 exactos)
+    r["acc"] = ajustar(luz(.74, .55), ac, ah, peor, 4.5, sentido=sentido)
+    r["acc_hi"] = rgb(luz(.82, .45), .13 if ac == .17 else ac * .76, ah)
+    r["acc_dim"] = rgb(luz(.55, .72), .09 if ac == .17 else ac * .53, ah)
     r["sec"] = ajustar(luz(.76, .55), .11, sh, peor, 4.5, sentido=sentido)
     r["magenta"] = ajustar(luz(.76, .52), .12, t["magenta"], peor, 4.5, sentido=sentido)
     cerca = (ah, sh)
