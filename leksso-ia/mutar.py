@@ -81,12 +81,17 @@ MUTANTES = [
 
 
 def correr(carpeta):
-    try:
-        r = subprocess.run([sys.executable, "-m", "unittest", *PRUEBAS], cwd=carpeta, timeout=180,
-                           env={**os.environ, "PYTHONPATH": str(carpeta), "LEKSSO_SIN_AVISOS": "1"}, capture_output=True, text=True)
-        return r.returncode == 0
-    except subprocess.TimeoutExpired:
-        return False                       # un mutante que cuelga el sistema también se detecta
+    # un proceso por archivo de pruebas: test_revision y test_ejecutar fijan el entorno al importarse y no conviven
+    # con test_ataques en el mismo proceso
+    for prueba in PRUEBAS:
+        try:
+            r = subprocess.run([sys.executable, "-m", "unittest", prueba], cwd=carpeta, timeout=180,
+                               env={**os.environ, "PYTHONPATH": str(carpeta), "LEKSSO_SIN_AVISOS": "1"}, capture_output=True, text=True)
+        except subprocess.TimeoutExpired:
+            return False                   # un mutante que cuelga el sistema también se detecta
+        if r.returncode:
+            return False
+    return True
 
 
 def main():
