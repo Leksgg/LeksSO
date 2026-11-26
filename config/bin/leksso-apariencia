@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Apariencia de LeksSO: elegir el tema de color de todo el escritorio.
+"""Apariencia de LeksSO: elegir el tema de color de todo el escritorio y el tamaño de las cosas.
 
-Cada tarjeta es un tema. «Aplicar» lo cambia al momento (barra, terminal, menús, avisos, bordes, Archivos...) y la
-ventana se queda abierta con los colores nuevos.
+Cada tarjeta es un tema, con una miniatura del escritorio pintada con sus colores (barra, raíl, una ventana con su
+selección, el botón principal y los colores de estado). Al pulsarla se aplica al momento (barra, terminal, menús,
+avisos, bordes, Archivos...) y la ventana se queda abierta con los colores nuevos.
+«Tamaño»: el de las cifras de la barra (Raxtor) y la escala de todo el escritorio (leksso-escala).
 Se cierra con la X o con Esc.
 """
 import subprocess
@@ -21,7 +23,8 @@ NOMBRES = {"marea": ("Marea", "Petróleo oscuro con acento turquesa"), "pizarra"
            "grafito": ("Grafito", "Gris grafito con acento azul acero (el de serie)"),
            "purpura": ("Púrpura", "Oscuro: violeta profundo, #340091 y colores vivos"),
            "blancopurpura": ("Blanco y púrpura", "Claro: blanco, acento #340091 y colores vivos")}
-MUESTRA = ("bg", "s2", "line", "acc", "sec", "ok", "warn", "bad")
+CIFRAS = (("75", "Pequeñas"), ("85", "Medianas"), ("100", "Originales"))
+ESCRITORIO = (("100", "100 %"), ("125", "125 %"), ("150", "150 %"), ("200", "200 %"))
 
 
 def temas():
@@ -30,17 +33,70 @@ def temas():
     return sorted(lista, key=lambda t: t != "grafito")   # el de serie, primero
 
 
-class Muestra(QtWidgets.QWidget):
-    def __init__(self, colores):
+def vaciar(layout):
+    """Quita todo lo de un layout, también lo que va en layouts anidados (las filas de botones de Tamaño)."""
+    while layout.count():
+        it = layout.takeAt(0)
+        if it.widget():
+            it.widget().deleteLater()
+        elif it.layout():
+            vaciar(it.layout())
+            it.layout().deleteLater()
+
+
+def escala_actual():
+    r = subprocess.run(["leksso-escala", "actual"], capture_output=True, text=True)
+    return dict(l.split() for l in r.stdout.splitlines() if len(l.split()) == 2)
+
+
+class Vista(QtWidgets.QWidget):
+    """Miniatura del escritorio con los colores de un tema: raíl, barra de abajo, una ventana con su lista y su
+    selección, el botón principal y los colores de estado. Sirve para elegir sin tener que probar cada tema."""
+
+    def __init__(self, t):
         super().__init__()
-        self.colores = colores
-        self.setFixedHeight(22)
+        self.t = t
+        self.setFixedHeight(118)
+        self.setAccessibleName("Vista previa del tema")
 
     def paintEvent(self, _):
+        t = self.t
+        c = lambda k: QtGui.QColor("#" + t[k])
         p = QtGui.QPainter(self)
-        ancho = max(1, self.width() // len(self.colores))
-        for i, c in enumerate(self.colores):
-            p.fillRect(i * ancho, 0, ancho, self.height(), QtGui.QColor("#" + c))
+        p.setRenderHint(QtGui.QPainter.Antialiasing)
+        w, h = self.width(), self.height()
+        p.fillRect(0, 0, w, h, c("bg"))
+        # raíl a la izquierda, con el botón activo
+        p.fillRect(0, 0, 22, h - 18, c("s1"))
+        for i in range(5):
+            p.fillRect(6, 8 + i * 16, 10, 10, c("acc") if i == 1 else c("line"))
+        # barra de abajo: tareas, un aviso y la hora
+        p.fillRect(0, h - 18, w, 18, c("bg"))
+        p.fillRect(0, h - 18, w, 1, c("line"))
+        p.fillRect(28, h - 15, 46, 12, c("soft"))
+        p.fillRect(28, h - 4, 46, 1, c("acc"))
+        p.fillRect(80, h - 15, 40, 12, c("s1"))
+        p.fillRect(w - 112, h - 15, 46, 12, c("warn_soft"))
+        p.fillRect(w - 112, h - 15, 2, 12, c("warn"))
+        p.fillRect(w - 56, h - 13, 40, 8, c("muted"))
+        # ventana enfocada
+        x, y, ww, wh = 34, 8, min(w - 46, 300), h - 34
+        p.fillRect(x, y, ww, wh, c("s1"))
+        p.setPen(QtGui.QPen(c("acc"), 1.5))
+        p.drawRect(QtCore.QRectF(x, y, ww, wh))
+        p.setPen(QtCore.Qt.NoPen)
+        p.fillRect(x + 10, y + 9, 70, 7, c("acc"))                 # título
+        p.fillRect(x + 10, y + 22, ww - 20, 12, c("soft"))         # fila seleccionada
+        p.fillRect(x + 16, y + 26, 60, 4, c("text"))
+        p.fillRect(x + 16, y + 40, 80, 4, c("text"))
+        p.fillRect(x + 10, y + 49, ww - 20, 10, c("s2"))           # fila alterna
+        p.fillRect(x + 16, y + 52, 50, 4, c("muted"))
+        p.fillRect(x + 10, wh - 6, 44, 12, c("acc"))               # botón principal
+        p.fillRect(x + 18, wh - 2, 28, 4, c("bg"))
+        for i, k in enumerate(("ok", "warn", "bad", "sec", "magenta")):
+            p.setBrush(c(k))
+            p.drawEllipse(QtCore.QPointF(x + ww - 70 + i * 13, wh), 4.5, 4.5)
+        p.end()
 
 
 class Apariencia(QtWidgets.QWidget):
@@ -79,10 +135,7 @@ class Apariencia(QtWidgets.QWidget):
     def pintar(self):
         self.setStyleSheet(pintar(ESTILO_BASE))
         titulos_en_mayusculas()
-        while self.zona.count():
-            it = self.zona.takeAt(0)
-            if it.widget():
-                it.widget().deleteLater()
+        vaciar(self.zona)
         activo = tema_activo()
         for nombre in temas():
             nom, desc = NOMBRES.get(nombre, (nombre.capitalize(), ""))
@@ -91,8 +144,45 @@ class Apariencia(QtWidgets.QWidget):
             if nombre != activo:
                 b.clicked.connect(lambda _=False, n=nombre: self.aplicar(n))
             self.zona.addWidget(b)
-            self.zona.addWidget(Muestra([tokens(nombre)[k] for k in MUESTRA if k in tokens(nombre)]))
+            self.zona.addWidget(Vista(tokens(nombre)))
+            self.zona.addSpacing(10)
+        self.tamano()
+
+    def tamano(self):
+        t = QtWidgets.QLabel("Tamaño")
+        t.setObjectName("titulo")
+        self.zona.addSpacing(6)
+        self.zona.addWidget(t)
+        actual = escala_actual()
+        for clave, titulo, nota, opciones in (
+                ("cifras", "Cifras de la barra", "Los números de la barra, la hora y los avisos (Raxtor), para que casen con las letras.", CIFRAS),
+                ("escritorio", "Escala del escritorio", "Agranda todo: ventanas, letras y barra. Útil en pantallas grandes o lejanas.", ESCRITORIO)):
+            self.zona.addWidget(QtWidgets.QLabel(titulo))
+            n = QtWidgets.QLabel(nota)
+            n.setObjectName("nota")
+            n.setWordWrap(True)
+            self.zona.addWidget(n)
+            fila = QtWidgets.QHBoxLayout()
+            for valor, texto in opciones:
+                b = QtWidgets.QPushButton(texto)
+                usado = actual.get(clave) == valor
+                b.setObjectName("activo" if usado else "accion")
+                b.setAccessibleName(f"{titulo}: {texto}" + (" (en uso)" if usado else ""))
+                if not usado:
+                    b.clicked.connect(lambda _=False, k=clave, v=valor: self.cambiar_tamano(k, v))
+                fila.addWidget(b)
+            self.zona.addLayout(fila)
             self.zona.addSpacing(8)
+        self.zona.addStretch()
+
+    def cambiar_tamano(self, clave, valor):
+        r = subprocess.run(["leksso-escala", clave, valor], capture_output=True, text=True)
+        if r.returncode:
+            self.estado.setText("No se pudo cambiar: " + (r.stderr.strip() or r.stdout.strip())[:200])
+            return
+        self.pintar()
+        self.estado.setText("Hecho. La barra ya lo usa; avisos, lanzador y ventanas abiertas, al abrirlos de nuevo."
+                            if clave == "cifras" else "Hecho. Se guarda para las próximas sesiones.")
 
     def aplicar(self, nombre):
         r = subprocess.run(["leksso-tema", "aplicar", nombre], capture_output=True, text=True)
