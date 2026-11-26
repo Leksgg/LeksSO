@@ -96,7 +96,7 @@ FAMILIAS = {
 }
 
 HOJA = ('<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">'
-        '<path d="M10 4h20l10 10v28a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" fill="#112123"/>'
+        '<path d="M10 4h20l10 10v28a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" fill="#27292c"/>'
         '<path d="M10 4h20l10 10v28a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" fill="none" '
         'stroke="{c}" stroke-width="1.5"/>'
         '<path d="M30 4v8a2 2 0 0 0 2 2h8z" fill="{c}" opacity=".55"/>'
@@ -111,29 +111,29 @@ def icono(etiqueta, color):
         tam = 11 if t <= 3 else 8.5
         banda = (f'<rect x="8" y="24" width="32" height="13" fill="{color}"/>'
                  f'<text x="24" y="33.6" text-anchor="middle" font-family="DejaVu Sans,sans-serif" '
-                 f'font-weight="700" font-size="{tam}" fill="#021012">{etiqueta}</text>')
+                 f'font-weight="700" font-size="{tam}" fill="#15171a">{etiqueta}</text>')
     return HOJA.format(c=color, banda=banda)
 
 
 CARPETA = ('<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">'
            '<path d="M4 10a2 2 0 0 1 2-2h12l4 5h20a2 2 0 0 1 2 2v25a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" fill="#2c6f86"/>'
-           '<path d="M4 18a2 2 0 0 1 2-2h36a2 2 0 0 1 2 2v22a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" fill="#00c4bf"/>'
+           '<path d="M4 18a2 2 0 0 1 2-2h36a2 2 0 0 1 2 2v22a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" fill="#79b1e0"/>'
            '</svg>\n')
 
 MARCO = ('<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">'
-         '<rect x="4" y="7" width="40" height="34" rx="3" fill="#112123" stroke="#00c4bf" stroke-width="2"/>{dentro}</svg>\n')
+         '<rect x="4" y="7" width="40" height="34" rx="3" fill="#27292c" stroke="#79b1e0" stroke-width="2"/>{dentro}</svg>\n')
 APPS = {
-    "utilities-terminal": MARCO.format(dentro='<path d="M12 18l8 6-8 6" fill="none" stroke="#00c4bf" stroke-width="3" '
+    "utilities-terminal": MARCO.format(dentro='<path d="M12 18l8 6-8 6" fill="none" stroke="#79b1e0" stroke-width="3" '
                                       'stroke-linecap="round" stroke-linejoin="round"/>'
-                                      '<path d="M24 32h12" stroke="#e3edef" stroke-width="3" stroke-linecap="round"/>'),
-    "system-file-manager": MARCO.format(dentro='<path d="M4 15h40" stroke="#00c4bf" stroke-width="2"/>'
-                                       '<path d="M17 15v26" stroke="#00c4bf" stroke-width="2"/>'
-                                       '<path d="M8 21h6M8 27h6M8 33h6" stroke="#94a1a3" stroke-width="2" stroke-linecap="round"/>'
-                                       '<rect x="22" y="21" width="9" height="7" rx="1" fill="#00c4bf"/>'
+                                      '<path d="M24 32h12" stroke="#eaebed" stroke-width="3" stroke-linecap="round"/>'),
+    "system-file-manager": MARCO.format(dentro='<path d="M4 15h40" stroke="#79b1e0" stroke-width="2"/>'
+                                       '<path d="M17 15v26" stroke="#79b1e0" stroke-width="2"/>'
+                                       '<path d="M8 21h6M8 27h6M8 33h6" stroke="#9d9ea1" stroke-width="2" stroke-linecap="round"/>'
+                                       '<rect x="22" y="21" width="9" height="7" rx="1" fill="#79b1e0"/>'
                                        '<rect x="34" y="21" width="6" height="7" rx="1" fill="#2c6f86"/>'
                                        '<rect x="22" y="31" width="9" height="7" rx="1" fill="#2c6f86"/>'),
-    "leksso-ia": MARCO.format(dentro='<path d="M24 13l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" fill="#00c4bf"/>'
-                                    '<circle cx="35" cy="14" r="2" fill="#e3edef"/>'),
+    "leksso-ia": MARCO.format(dentro='<path d="M24 13l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" fill="#79b1e0"/>'
+                                    '<circle cx="35" cy="14" r="2" fill="#eaebed"/>'),
 }
 
 INDEX = """[Icon Theme]

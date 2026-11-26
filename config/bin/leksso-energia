@@ -138,7 +138,7 @@ class Energia(QtWidgets.QWidget):
     def marcar_perfil(self, actual):
         for clave, b in self.perfiles.items():
             b.setChecked(clave == actual)
-            b.setStyleSheet(pintar("background: #003635; color: #00c4bf; border: 1px solid #00c4bf;") if clave == actual else "")
+            b.setStyleSheet(pintar("background: #143c5b; color: #79b1e0; border: 1px solid #79b1e0;") if clave == actual else "")
         self.nota_perfil.setText(next((ayuda for clave, _, ayuda in PERFILES if clave == actual), ""))
 
     def poner_perfil(self, clave):

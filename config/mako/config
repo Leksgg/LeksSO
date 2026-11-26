@@ -1,11 +1,11 @@
 # Notificaciones de LeksSO: paleta propia, esquina superior derecha.
 font=Raxtor,Montserrat 11
-background-color=#112123f2
-text-color=#e3edef
-border-color=#00c4bf
+background-color=#27292cf2
+text-color=#eaebed
+border-color=#79b1e0
 border-size=1
 border-radius=0
-progress-color=over #003635
+progress-color=over #143c5b
 padding=12
 margin=14
 width=360
@@ -18,7 +18,7 @@ max-icon-size=40
 max-history=50
 
 [urgency=low]
-border-color=#25393c
+border-color=#3e4145
 default-timeout=3000
 
 [urgency=critical]
@@ -26,12 +26,12 @@ border-color=#ff735a
 default-timeout=0
 
 [app-name=leksso-actualizar]
-border-color=#fdc357
+border-color=#f4c855
 on-button-left=exec leksso-actualizaciones
 
 [app-name=leksso-ia]
-border-color=#fdc357
-background-color=#2d1f05f2
+border-color=#f4c855
+background-color=#2b2005f2
 on-button-left=exec leksso-panel-ia
 
 # «No molestar» (botón de Notificaciones): los avisos no salen en pantalla pero quedan en el historial

@@ -19,12 +19,12 @@ workspace_layout default
 
 # Colores (misma paleta que la barra): una sola pestaña activa en cian, el resto apagado.
 #                         borde    fondo    texto    indicador  borde hijo
-client.focused            #00c4bf  #003635  #e3edef  #00c4bf    #00c4bf
-client.focused_inactive   #25393c  #112123  #94a1a3  #25393c    #25393c
-client.unfocused          #25393c  #09191b  #94a1a3  #25393c    #25393c
-client.urgent             #fdc357  #332305  #fdc357  #fdc357    #fdc357
+client.focused            #79b1e0  #143c5b  #eaebed  #79b1e0    #79b1e0
+client.focused_inactive   #3e4145  #27292c  #9d9ea1  #3e4145    #3e4145
+client.unfocused          #3e4145  #1f2123  #9d9ea1  #3e4145    #3e4145
+client.urgent             #f4c855  #312504  #f4c855  #f4c855    #f4c855
 
-output * bg #021012 solid_color
+output * bg #15171a solid_color
 gaps inner 0
 
 # Los servicios de usuario (portales, avisos...) necesitan ver la pantalla de esta sesión: sin esto, un portal

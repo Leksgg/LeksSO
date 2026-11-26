@@ -19,10 +19,10 @@ from leksso_ui import ESTILO_BASE, alternar, estilo, olvidar_clave, pedir_permis
 
 EXTRA = """
 QLabel#estado { font-size: 17px; font-weight: bold; }
-QLabel#ok { color: #85ce6c; } QLabel#aviso { color: #fdc357; } QLabel#mal { color: #ff735a; }
-QLabel#dato { color: #94a1a3; }
-QComboBox, QTimeEdit { background: #112123; border: 1px solid #25393c; padding: 6px 8px; color: #e3edef; }
-QListWidget { background: #09191b; border: 1px solid #25393c; }
+QLabel#ok { color: #85ce6c; } QLabel#aviso { color: #f4c855; } QLabel#mal { color: #ff735a; }
+QLabel#dato { color: #9d9ea1; }
+QComboBox, QTimeEdit { background: #27292c; border: 1px solid #3e4145; padding: 6px 8px; color: #eaebed; }
+QListWidget { background: #1f2123; border: 1px solid #3e4145; }
 """
 FRECUENCIAS = [("diaria", "Cada día"), ("semanal", "Cada semana (los lunes)"), ("mensual", "Cada mes (el día 1)")]
 MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]

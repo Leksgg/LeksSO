@@ -9,7 +9,7 @@ Está en uso diario en equipos reales. Las versiones normales son solo un númer
 - **Un escritorio en tres zonas.** A la izquierda, una barra de botones (el raíl). En el centro, el explorador de archivos y tus programas, en pestañas. A la derecha, el panel de la IA. Los tamaños se guardan solos.
 - **El raíl.** Aplicaciones, archivos, seguridad, portapapeles, cámara y micrófono, notificaciones, acceso remoto, captura de pantalla, actualizaciones, asistentes de IA, modo juego y ajustes. Abajo: minimizar y apagar.
 - **La barra de abajo.** Programas abiertos, uso del procesador y la memoria, volumen, red, batería con su modo de energía, y la hora. Un clic en la hora abre un calendario con los festivos; un clic en la red, una ventana para elegir wifi.
-- **Nueve apariencias.** Grafito (la de serie), Púrpura, Blanco y púrpura, Waves, Marea, Pizarra, Alba, Gris y rosa y Blanco y rosa. Cambian todo el escritorio a la vez, también la pantalla de bloqueo. La ventana de Apariencia enseña una miniatura de cada una y, en «Tamaño», deja ajustar las cifras de la barra y la escala del escritorio.
+- **Siete apariencias.** Grafito (la de serie) y Grafito claro, Waves y Waves claro, Pizarra, Gris y rosa y Blanco y rosa. Cambian todo el escritorio a la vez, también la pantalla de bloqueo. La ventana de Apariencia enseña una miniatura de cada una y, en «Tamaño», deja ajustar las cifras de la barra y la escala del escritorio.
 - **Pantalla de bloqueo** con la hora en grande, de quién es la sesión y un ojo para ver la contraseña mientras la escribes.
 - **Ajustes en una sola ventana.** Sonido, red, pantallas, Bluetooth, apariencia, impresoras (también por wifi), discos, copias de seguridad, reposo, cifrado del disco y acceso remoto.
 

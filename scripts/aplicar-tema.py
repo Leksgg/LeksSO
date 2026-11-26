@@ -6,11 +6,11 @@ calculan en OKLCH para que acentos y estados tengan el mismo peso visual en todo
 matices. Este script cambia, en cada archivo, los colores del tema activo por los del
 nuevo tema, y apunta cuál queda activo en config/tema/activo.
 
-Temas: marea (la base con la que está pintado el repo), grafito (el de serie en los equipos), pizarra, waves, grisrosa
-y purpura (oscuros), alba, blancorosa y blancopurpura (claros).
+Temas: grafito (el de serie y la base con la que está pintado el repo), waves, pizarra y grisrosa (oscuros),
+grafitoclaro, wavesclaro y blancorosa (claros).
 
 Uso:
-  python3 aplicar-tema.py marea            aplica y deja los .json de tokens al día
+  python3 aplicar-tema.py grafito          aplica y deja los .json de tokens al día
   python3 aplicar-tema.py pizarra
   python3 aplicar-tema.py --comprobar      verifica contrastes y matices de todos los temas
   python3 aplicar-tema.py --json           escribe config/tema/<tema>.json de todos los temas sin tocar nada más
@@ -38,26 +38,19 @@ HEREDADO = {
 # nh/nc: matiz y croma de los neutros. ah: acento. sh: secundario.
 # estados: matices candidatos; se elige el más lejano a acento y secundario.
 TEMAS = {
-    "marea":   {"nh": 205, "nc": .022, "ah": 192, "sh": 245, "magenta": 320},
-    "pizarra": {"nh": 75,  "nc": .010, "ah": 238, "sh": 195, "magenta": 320},
-    "waves":   {"nh": 265, "nc": .050, "ah": 240, "sh": 200, "magenta": 320},
-    # claro: neutros casi blancos con un punto cálido, texto oscuro; los acentos bajan de luminosidad en vez de subir
-    "alba":    {"nh": 85,  "nc": .012, "ah": 250, "sh": 195, "magenta": 320, "claro": True},
+    # grafito (el de serie y la base con la que está pintado el repositorio): neutros grises casi sin color, con un punto
+    # frío y algo más claros que los demás oscuros (nl: cuánto suben); acento azul acero apagado (ac: croma del acento) y
+    # secundario lila, nada que tire a verde
+    "grafito":      {"nh": 255, "nc": .006, "ah": 245, "sh": 290, "magenta": 340, "ac": .09, "nl": .045},
+    # claro: neutros casi blancos, texto oscuro; los acentos bajan de luminosidad en vez de subir
+    "grafitoclaro": {"nh": 255, "nc": .006, "ah": 245, "sh": 290, "magenta": 340, "ac": .09, "claro": True},
+    "waves":        {"nh": 265, "nc": .050, "ah": 240, "sh": 200, "magenta": 320},
+    # waves claro: blanco con un punto azul hielo (menos croma que el oscuro: sobre blanco se nota mucho más)
+    "wavesclaro":   {"nh": 265, "nc": .030, "ah": 240, "sh": 200, "magenta": 320, "claro": True},
+    "pizarra":      {"nh": 75,  "nc": .010, "ah": 238, "sh": 195, "magenta": 320},
     # rosa: neutros grises con un punto rosado y acento rosa; el secundario va hacia el lila para no confundirse con el acento
-    "grisrosa":   {"nh": 350, "nc": .008, "ah": 355, "sh": 295, "magenta": 310},
-    "blancorosa": {"nh": 355, "nc": .008, "ah": 355, "sh": 295, "magenta": 310, "claro": True},
-    # grafito (el de serie): neutros grises casi sin color, con un punto frío y algo más claros que los demás oscuros
-    # (nl: cuánto suben); acento azul acero apagado (ac: croma del acento) y secundario lila, nada que tire a verde
-    "grafito": {"nh": 255, "nc": .006, "ah": 245, "sh": 290, "magenta": 340, "ac": .09, "nl": .045},
-    # púrpura: el de marca es #340091 (índigo profundo, matiz 284). En el claro es el acento tal cual (acc_hex). En el
-    # oscuro no se leería como texto (1,4:1), así que es el relleno de selección y foco (soft_hex), los neutros se tiñen
-    # de ese violeta y el acento de texto empieza oscuro (al) y sube solo hasta leerse (4,5:1). Colores vivos (vivo):
-    # secundario azul eléctrico, magenta fucsia y estados radiantes. En el claro el aviso tira a ámbar (estados): un
-    # amarillo puro solo se lee sobre blanco si se oscurece hasta el oliva.
-    "purpura":       {"nh": 284, "nc": .045, "ah": 284, "sh": 235, "magenta": 345, "ac": .22, "al": .55, "soft_hex": "340091",
-                      "vivo": True, "estados": {"warn": 100}},
-    "blancopurpura": {"nh": 284, "nc": .012, "ah": 284, "sh": 235, "magenta": 345, "acc_hex": "340091", "claro": True,
-                      "vivo": True, "estados": {"warn": 62}},
+    "grisrosa":     {"nh": 350, "nc": .008, "ah": 355, "sh": 295, "magenta": 310},
+    "blancorosa":   {"nh": 355, "nc": .008, "ah": 355, "sh": 295, "magenta": 310, "claro": True},
 }
 ESTADOS = {"ok": (138, 148, 158), "warn": (80, 88, 96), "bad": (20, 26, 32)}
 
@@ -156,42 +149,24 @@ def tokens(nombre):
         peor, sentido = r["s2"], 1
     luz = (lambda oscuro, claro_: claro_) if claro else (lambda oscuro, claro_: oscuro)
     r["muted"] = ajustar(luz(.70, .50), nc * .7, nh, peor, 4.5, sentido=sentido)
+    # gris tenue (desactivado, «sin instalar»): también es texto, así que se lee sobre el fondo (4,5:1; en la 0.1.58 se
+    # corrigió a mano solo en Marea). Se mide contra el fondo y no contra el panel más oscuro: sigue más apagado que «muted».
+    fL = (.62 if claro else .55 + nl)
+    r["faint"] = ajustar(fL, nc * (1 if claro else .8), nh, r["bg"], 4.5, sentido=sentido)
     ac = t.get("ac", .17)   # croma del acento; las variantes se escalan con él (con el de serie, .13 y .09 exactos)
-    r["acc"] = ajustar(t.get("al", luz(.74, .55)), ac, ah, peor, 4.5, sentido=sentido)
-    if "acc_hex" in t:
-        r["acc"] = tuple(int(t["acc_hex"][i:i + 2], 16) for i in (0, 2, 4))
-    if "soft_hex" in t:
-        r["soft"] = tuple(int(t["soft_hex"][i:i + 2], 16) for i in (0, 2, 4))
+    r["acc"] = ajustar(luz(.74, .55), ac, ah, peor, 4.5, sentido=sentido)
     r["acc_hi"] = rgb(luz(.82, .45), .13 if ac == .17 else ac * .76, ah)
     r["acc_dim"] = rgb(luz(.55, .72), .09 if ac == .17 else ac * .53, ah)
     cerca = (ah, sh)
     def elegir(cands):
         return max(cands, key=lambda h: min(dist_matiz(x, h) for x in cerca))
     mt = {k: elegir(v) for k, v in ESTADOS.items()}
-    mt.update(t.get("estados", {}))   # matices de estado fijados por el tema
-    if t.get("vivo"):
-        # vivo: secundario, magenta y estados al máximo croma que cabe en la pantalla (rgb() lo recorta al gamut),
-        # empezando en la luminosidad más luminosa que se sigue leyendo: amarillo, rojo y verde radiantes, no mates
-        V = .32
-        r["sec"] = ajustar(luz(.74, .56), V, sh, peor, 4.5, sentido=sentido)
-        r["magenta"] = ajustar(luz(.74, .56), V, t["magenta"], peor, 4.5, sentido=sentido)
-        r["ok"] = ajustar(luz(.86, .62), V, mt["ok"], peor, 4.5, sentido=sentido)
-        r["warn"] = ajustar(luz(.92, .70), V, mt["warn"], peor, 4.5, sentido=sentido)
-        r["bad"] = ajustar(luz(.70, .60), V, mt["bad"], peor, 4.5, sentido=sentido)
-    else:
-        r["sec"] = ajustar(luz(.76, .55), .11, sh, peor, 4.5, sentido=sentido)
-        r["magenta"] = ajustar(luz(.76, .52), .12, t["magenta"], peor, 4.5, sentido=sentido)
-        r["ok"] = ajustar(luz(.78, .55), .15, mt["ok"], peor, 4.5, sentido=sentido)
-        r["warn"] = ajustar(luz(.85, .60), .14, mt["warn"], peor, 4.5, sentido=sentido)
-        r["bad"] = ajustar(luz(.72, .55), .18, mt["bad"], peor, 4.5, sentido=sentido)
-    if t.get("vivo") and claro:
-        # rellenos radiantes (el aviso, amarillo puro de fondo) con el texto del estado oscuro encima
-        r["ok_soft"], r["warn_soft"] = rgb(.92, .20, mt["ok"]), rgb(.93, .20, 100)
-        r["warn_soft2"], r["bad_soft"] = rgb(.89, .20, 100), rgb(.90, .10, mt["bad"])
-    elif t.get("vivo"):
-        r["ok_soft"], r["warn_soft"] = rgb(.28, .08, mt["ok"]), rgb(.28, .08, mt["warn"])
-        r["warn_soft2"], r["bad_soft"] = rgb(.25, .07, mt["warn"]), rgb(.28, .10, mt["bad"])
-    elif claro:
+    r["sec"] = ajustar(luz(.76, .55), .11, sh, peor, 4.5, sentido=sentido)
+    r["magenta"] = ajustar(luz(.76, .52), .12, t["magenta"], peor, 4.5, sentido=sentido)
+    r["ok"] = ajustar(luz(.78, .55), .15, mt["ok"], peor, 4.5, sentido=sentido)
+    r["warn"] = ajustar(luz(.85, .60), .14, mt["warn"], peor, 4.5, sentido=sentido)
+    r["bad"] = ajustar(luz(.72, .55), .18, mt["bad"], peor, 4.5, sentido=sentido)
+    if claro:
         r["ok_soft"], r["warn_soft"] = rgb(.92, .05, mt["ok"]), rgb(.93, .05, mt["warn"])
         r["warn_soft2"], r["bad_soft"] = rgb(.89, .045, mt["warn"]), rgb(.92, .05, mt["bad"])
     else:
@@ -210,6 +185,8 @@ def comprobar():
     for nombre, t in TEMAS.items():
         p, mt = tokens(nombre)
         c = {k: tuple(int(v[i:i + 2], 16) for i in (0, 2, 4)) for k, v in p.items()}
+        if contraste(c["faint"], c["bg"]) < 4.5:
+            print(f"CONTRASTE {nombre}: faint sobre bg = {contraste(c['faint'], c['bg']):.2f}"); fallos += 1
         for k in ("text", "muted", "acc", "sec", "magenta", "ok", "warn", "bad"):
             for fondo in ("bg", "s1", "s2"):
                 if contraste(c[k], c[fondo]) < 4.5:

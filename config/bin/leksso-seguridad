@@ -24,18 +24,18 @@ import leksso_conexiones_ui  # noqa: E402
 SIN_FIRMA = "/etc/leksso/sin-firma"      # lo crea el USB de fase de pruebas; leksso-actualizar lo mira (hallazgo 6 de la revisión)
 
 EXTRA = """
-QLabel#ok { color: #85ce6c; } QLabel#aviso { color: #fdc357; } QLabel#mal { color: #ff735a; }
-QLabel#dato { color: #94a1a3; }
-QTreeWidget { background: #09191b; border: 1px solid #25393c; alternate-background-color: #0a1b1d; }
-QHeaderView::section { background: #112123; color: #94a1a3; border: 0; padding: 6px 8px; }
-QTabWidget::pane { border: 1px solid #25393c; }
-QTabBar::tab { background: #112123; color: #94a1a3; padding: 8px 16px; border: 1px solid #25393c; }
-QTabBar::tab:selected { background: #003635; color: #e3edef; }
+QLabel#ok { color: #85ce6c; } QLabel#aviso { color: #f4c855; } QLabel#mal { color: #ff735a; }
+QLabel#dato { color: #9d9ea1; }
+QTreeWidget { background: #1f2123; border: 1px solid #3e4145; alternate-background-color: #0a1b1d; }
+QHeaderView::section { background: #27292c; color: #9d9ea1; border: 0; padding: 6px 8px; }
+QTabWidget::pane { border: 1px solid #3e4145; }
+QTabBar::tab { background: #27292c; color: #9d9ea1; padding: 8px 16px; border: 1px solid #3e4145; }
+QTabBar::tab:selected { background: #143c5b; color: #eaebed; }
 QCheckBox { spacing: 8px; }
-QLineEdit { background: #112123; border: 1px solid #25393c; padding: 6px 8px; color: #e3edef; }
+QLineEdit { background: #27292c; border: 1px solid #3e4145; padding: 6px 8px; color: #eaebed; }
 """
 MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
-COLOR_CERTEZA = {"confirmado": "#85ce6c", "inferido": "#fdc357", "desconocido": "#ff735a"}
+COLOR_CERTEZA = {"confirmado": "#85ce6c", "inferido": "#f4c855", "desconocido": "#ff735a"}
 ACCION = {"instalado": "Instalado", "eliminado": "Eliminado", "actualizado": "Actualizados", "apareció": "Apareció fuera de apt",
           "desapareció": "Desapareció", "línea base": "Primera foto"}
 
@@ -158,7 +158,7 @@ class Instalaciones(QtWidgets.QWidget):
             nombre = r.get("nombre", "") + (f" {r['version']}" if r.get("version") else "")
             it = QtWidgets.QTreeWidgetItem([bonita(r.get("t")), nombre, ACCION.get(r.get("accion"), r.get("accion", "")),
                                             f"{r.get('modo', '')} · {r.get('origen', '')}", r.get("nivel", "") + (" ✓" if r.get("revisada") else "")])
-            it.setForeground(4, QtGui.QBrush(QtGui.QColor(pintar(COLOR_CERTEZA.get(r.get("nivel"), "#94a1a3")))))
+            it.setForeground(4, QtGui.QBrush(QtGui.QColor(pintar(COLOR_CERTEZA.get(r.get("nivel"), "#9d9ea1")))))
             it.setData(0, QtCore.Qt.UserRole, r)
             self.arbol.addTopLevelItem(it)
         for c, ancho in ((0, 110), (1, 190), (2, 150), (4, 110)):

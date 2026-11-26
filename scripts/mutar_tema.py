@@ -51,10 +51,6 @@ MUTANTES = [
     # aplicar-tema.py: el generador de los archivos de colores
     ("las variantes del acento cambian en los temas de siempre", GEN,
      ".13 if ac == .17 else ac * .76", "ac * .76"),
-    ("ignora el acento fijo (#340091 en Blanco y púrpura)", GEN,
-     'if "acc_hex" in t:', "if False:"),
-    ("ignora el relleno fijo (#340091 en Púrpura)", GEN,
-     'if "soft_hex" in t:', "if False:"),
     ("Grafito no aclara sus grises", GEN,
      'nl = 0 if claro else t.get("nl", 0)', "nl = 0"),
     ("no sube la luminosidad hasta alcanzar el contraste", GEN,
@@ -67,8 +63,6 @@ MUTANTES = [
      "if dist_matiz(a, mt[e]) < 30:", "if False:"),
     ("la comprobación no mira los colores repetidos", GEN,
      "if len(set(p.values())) != len(p):", "if False:"),
-    ("los púrpura pierden los colores vivos", GEN,
-     'if t.get("vivo"):\n        # vivo:', 'if False:\n        # vivo:'),
     ("la comprobación no mira el texto de un estado sobre su relleno", GEN,
      'if contraste(c[e], c[e + "_soft"]) < 4.5:', "if False:"),
     # leksso-escala
@@ -88,11 +82,23 @@ MUTANTES = [
      "include ~/.config/sway/escala.conf", "# sin escala"),
     ("la instalación no escribe la escala", PROV,
      "leksso-escala reaplicar ||", "true ||"),
+    ("la comprobación no mira el gris tenue", GEN,
+     'if contraste(c["faint"], c["bg"]) < 4.5:', "if False:"),
+    ("el gris tenue no se ajusta al contraste", GEN,
+     'r["faint"] = ajustar(fL,', 'r["faint"] = rgb(fL,'),
     # instalación
-    ("el tema de serie no es Grafito", PROV,
-     "echo grafito | U tee", "echo marea | U tee"),
-    ("el tema de serie pisa el que eligió el usuario", PROV,
-     'if [ ! -e "$HOME_USR/.config/leksso/tema" ]; then', "if true; then"),
+    ("la base no es Grafito", UI,
+     'BASE = "grafito"', 'BASE = "waves"'),
+    ("Alba no pasa a Waves claro", PROV,
+     "nuevo=wavesclaro", "nuevo=grafito"),
+    ("un tema retirado se queda elegido", PROV,
+     'elif [ ! -e "/usr/local/share/leksso/temas/$elegido.json" ]; then', "elif false; then"),
+    ("la migración cambia también temas que siguen", PROV,
+     'elif [ ! -e "/usr/local/share/leksso/temas/$elegido.json" ]; then', "else"),
+    ("lee nombres con rutas en el tema guardado", PROV,
+     "tr -cd 'a-z0-9'", "cat"),
+    ("los temas retirados siguen instalados", PROV,
+     "rm -f /usr/local/share/leksso/temas/marea.json /usr/local/share/leksso/temas/alba.json", "true"),
 ]
 
 

@@ -5,7 +5,7 @@ DIR="${XDG_PICTURES_DIR:-$HOME/Imágenes}/Capturas"
 mkdir -p "$DIR"
 ARCH="$DIR/captura-$(date +%Y%m%d-%H%M%S).png"
 case "${1:-region}" in
-  region)   AREA="$(slurp -b 021012cc -c 00c4bfff -w 2)" || exit 0 ; grim -g "$AREA" "$ARCH" ;;
+  region)   AREA="$(slurp -b 15171acc -c 79b1e0ff -w 2)" || exit 0 ; grim -g "$AREA" "$ARCH" ;;
   pantalla) grim "$ARCH" ;;
   ventana)  AREA="$(swaymsg -t get_tree | python3 -c '
 import json,sys

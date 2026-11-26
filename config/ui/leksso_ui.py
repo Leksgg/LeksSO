@@ -4,9 +4,9 @@ import os
 import re
 
 # ---- tema de color ----------------------------------------------------------------------------
-# Los colores de abajo son los del tema BASE (Marea). Si el usuario eligió otro (leksso-tema), cada color
+# Los colores de abajo son los del tema BASE (Grafito, el de serie). Si el usuario eligió otro (leksso-tema), cada color
 # se cambia por el del mismo papel en el tema activo, al abrir la ventana.
-BASE = "marea"
+BASE = "grafito"
 _AQUI = os.path.dirname(os.path.abspath(__file__))
 _CARPETAS = ("/usr/local/share/leksso/temas", os.path.join(_AQUI, "..", "tema"))
 _HEX = re.compile(r"(?<![0-9A-Za-z])[0-9A-Fa-f]{6,8}(?![0-9A-Za-z])")
@@ -21,7 +21,7 @@ def tema_activo():
 
 
 def tokens(nombre):
-    """Colores de un tema por papel ({'bg': '021012', ...}) o {} si no existe."""
+    """Colores de un tema por papel ({'bg': '15171a', ...}) o {} si no existe."""
     for carpeta in _CARPETAS:
         try:
             datos = json.load(open(os.path.join(carpeta, nombre + ".json"), encoding="utf-8"))
@@ -71,31 +71,31 @@ def pintar(texto):
 
 
 ESTILO = """
-QWidget { background: #021012; color: #e3edef; font-size: 14px; font-family: "Montserrat", "DejaVu Sans"; }   /* Qt no respeta la restricción de Raxtor a cifras: el cuerpo no la usa */
-QLabel#titulo { font-family: "Raxtor Titulos", "Montserrat", "DejaVu Sans"; font-size: 17px; font-weight: bold; color: #00c4bf; }   /* títulos en MAYÚSCULAS */
-QLabel#nota { color: #94a1a3; font-size: 12px; }
-QLineEdit { background: #112123; border: 1px solid #25393c; padding: 8px 10px; color: #e3edef; }
-QLineEdit:focus { border: 1px solid #00c4bf; }
-QPushButton#cerrar { background: transparent; color: #94a1a3; border: none; font-size: 20px; padding: 2px 12px; }
+QWidget { background: #15171a; color: #eaebed; font-size: 14px; font-family: "Montserrat", "DejaVu Sans"; }   /* Qt no respeta la restricción de Raxtor a cifras: el cuerpo no la usa */
+QLabel#titulo { font-family: "Raxtor Titulos", "Montserrat", "DejaVu Sans"; font-size: 17px; font-weight: bold; color: #79b1e0; }   /* títulos en MAYÚSCULAS */
+QLabel#nota { color: #9d9ea1; font-size: 12px; }
+QLineEdit { background: #27292c; border: 1px solid #3e4145; padding: 8px 10px; color: #eaebed; }
+QLineEdit:focus { border: 1px solid #79b1e0; }
+QPushButton#cerrar { background: transparent; color: #9d9ea1; border: none; font-size: 20px; padding: 2px 12px; }
 QPushButton#cerrar:hover { background: #3f1a13; color: #ff735a; }
-QPushButton#accion { background: #112123; border: 1px solid #25393c; padding: 12px 14px; text-align: left; }
-QPushButton#accion:hover { background: #003635; border: 1px solid #00c4bf; }
-QPushButton#accion:disabled { color: #7f8f91; background: #051416; }
-QPushButton#activo { background: #003635; border: 1px solid #00c4bf; padding: 12px 14px; text-align: left; }
-QPushButton:focus { border: 1px solid #00c4bf; }
-QPushButton#cerrar:focus { border: 1px solid #00c4bf; }
-QPushButton:disabled { color: #7f8f91; border: 1px dashed #25393c; }
-QPushButton#principal { background: #00c4bf; color: #021012; border: 1px solid #00c4bf; padding: 10px 18px; font-weight: bold; }
-QPushButton#principal:hover { background: #003635; color: #e3edef; }
-QPushButton#principal:focus { border: 2px solid #e3edef; }
-QPushButton#principal:disabled { background: #051416; color: #7f8f91; border: 1px dashed #25393c; }
-QPushButton#peligro { background: #112123; border: 1px solid #25393c; padding: 12px 14px; text-align: left; }
+QPushButton#accion { background: #27292c; border: 1px solid #3e4145; padding: 12px 14px; text-align: left; }
+QPushButton#accion:hover { background: #143c5b; border: 1px solid #79b1e0; }
+QPushButton#accion:disabled { color: #808285; background: #1a1c1f; }
+QPushButton#activo { background: #143c5b; border: 1px solid #79b1e0; padding: 12px 14px; text-align: left; }
+QPushButton:focus { border: 1px solid #79b1e0; }
+QPushButton#cerrar:focus { border: 1px solid #79b1e0; }
+QPushButton:disabled { color: #808285; border: 1px dashed #3e4145; }
+QPushButton#principal { background: #79b1e0; color: #15171a; border: 1px solid #79b1e0; padding: 10px 18px; font-weight: bold; }
+QPushButton#principal:hover { background: #143c5b; color: #eaebed; }
+QPushButton#principal:focus { border: 2px solid #eaebed; }
+QPushButton#principal:disabled { background: #1a1c1f; color: #808285; border: 1px dashed #3e4145; }
+QPushButton#peligro { background: #27292c; border: 1px solid #3e4145; padding: 12px 14px; text-align: left; }
 QPushButton#peligro:hover { background: #3f1a13; border: 1px solid #ff735a; }
-QListWidget { background: #021012; border: none; outline: none; }
+QListWidget { background: #15171a; border: none; outline: none; }
 QListWidget::item { padding: 8px 10px; border: none; }
-QListWidget::item:hover { background: #112123; }
-QListWidget::item:selected { background: #003635; color: #e3edef; }
-QMessageBox { background: #021012; }
+QListWidget::item:hover { background: #27292c; }
+QListWidget::item:selected { background: #143c5b; color: #eaebed; }
+QMessageBox { background: #15171a; }
 """
 ESTILO_BASE = ESTILO  # sin recolorear: para volver a pintar una ventana abierta al cambiar de tema
 ESTILO = pintar(ESTILO)

@@ -8,62 +8,62 @@
 }
 
 window#waybar {
-  background: #021012;
-  color: #e3edef;
-  border-top: 1px solid #25393c;
+  background: #15171a;
+  color: #eaebed;
+  border-top: 1px solid #3e4145;
 }
 
 #taskbar button {
   padding: 0 12px;
   margin: 0 2px;
-  color: #94a1a3;
-  background: #09191b;
+  color: #9d9ea1;
+  background: #1f2123;
 }
 #taskbar button:hover {
-  background: #112123;
-  color: #e3edef;
+  background: #27292c;
+  color: #eaebed;
 }
 #taskbar button.active {
-  color: #00c4bf;
-  background: #003635;
-  box-shadow: inset 0 -2px #00c4bf;
+  color: #79b1e0;
+  background: #143c5b;
+  box-shadow: inset 0 -2px #79b1e0;
 }
 
 #custom-ia {
   padding: 0 12px;
   margin-left: 6px;
-  color: #94a1a3;
+  color: #9d9ea1;
 }
 #custom-ia.activa { color: #85ce6c; }
-#custom-ia.sin-instalar { color: #7f8f91; }
-#custom-ia.asistente { color: #00c4bf; }
-#custom-ia.admin { color: #fdc357; font-weight: bold; }
+#custom-ia.sin-instalar { color: #808285; }
+#custom-ia.asistente { color: #79b1e0; }
+#custom-ia.admin { color: #f4c855; font-weight: bold; }
 
 #cpu, #memory, #pulseaudio, #network, #custom-bateria, #clock {
   font-family: "Raxtor", "Montserrat", "DejaVu Sans", "Font Awesome 5 Free", "FontAwesome";
   padding: 0 12px;
-  color: #e3edef;
+  color: #eaebed;
 }
 #clock { font-weight: bold; }
 /* CPU y RAM: gris en calma; ámbar y rojo solo cuando importa */
-#cpu, #memory { color: #94a1a3; min-width: 52px; }
-#cpu.warning, #memory.warning { color: #fdc357; }
+#cpu, #memory { color: #9d9ea1; min-width: 52px; }
+#cpu.warning, #memory.warning { color: #f4c855; }
 #cpu.critical, #memory.critical { color: #ff735a; }
 #pulseaudio { min-width: 60px; }
 #network { min-width: 44px; }
-#pulseaudio.muted, #network.disconnected { color: #94a1a3; }
+#pulseaudio.muted, #network.disconnected { color: #9d9ea1; }
 
 tooltip {
-  background: #112123;
-  border: 1px solid #25393c;
-  color: #e3edef;
+  background: #27292c;
+  border: 1px solid #3e4145;
+  color: #eaebed;
 }
-tooltip label { color: #e3edef; }
+tooltip label { color: #eaebed; }
 
 /* Raíl de iconos (izquierda) */
 window#waybar.raiz {
-  background: #021012;
-  border-right: 1px solid #25393c;
+  background: #15171a;
+  border-right: 1px solid #3e4145;
   border-top: none;
 }
 #custom-juego, #custom-seguridad, #custom-portapapeles, #custom-camara, #custom-notificaciones, #custom-remoto, #custom-captura, #custom-actualizaciones, #custom-apps, #custom-asistente, #custom-archivos, #custom-config, #custom-vista, #custom-flotantes, #custom-energia {
@@ -71,39 +71,39 @@ window#waybar.raiz {
   font-size: 20px;
   padding: 14px 0;
   margin: 2px 6px;
-  color: #94a1a3;
+  color: #9d9ea1;
   background: transparent;
 }
 #custom-juego:hover, #custom-seguridad:hover, #custom-portapapeles:hover, #custom-camara:hover, #custom-notificaciones:hover, #custom-remoto:hover, #custom-captura:hover, #custom-actualizaciones:hover, #custom-apps:hover, #custom-asistente:hover, #custom-archivos:hover, #custom-config:hover, #custom-vista:hover, #custom-flotantes:hover {
-  color: #00c4bf;
-  background: #003635;
+  color: #79b1e0;
+  background: #143c5b;
 }
 
 #custom-energia:hover { color: #ff735a; background: #3f1a13; }
 
 /* Batería: verde por encima del 50 %, ámbar del 21 al 50 %, rojo del 20 % o menos, parpadeo al 10 % o menos; enchufada, verde */
 #custom-bateria { min-width: 104px; }
-#custom-bateria:hover { background: #112123; }
+#custom-bateria:hover { background: #27292c; }
 #custom-bateria.bien, #custom-bateria.cargando { color: #85ce6c; }
-#custom-bateria.media { color: #fdc357; }
+#custom-bateria.media { color: #f4c855; }
 #custom-bateria.baja { color: #ff735a; }
 #custom-bateria.critica { animation: parpadeo 1s steps(1) infinite; }
 @keyframes parpadeo {
   0% { color: #ff735a; background: #3f1a13; }
-  50% { color: #021012; background: #ff735a; }
+  50% { color: #15171a; background: #ff735a; }
 }
 
 
-#custom-actualizacion { padding: 0 12px; color: #fdc357; font-weight: bold; }
-#custom-actualizacion:hover { background: #332305; }
-#custom-copias { padding: 0 12px; color: #fdc357; font-weight: bold; }
-#custom-copias:hover { background: #332305; }
+#custom-actualizacion { padding: 0 12px; color: #f4c855; font-weight: bold; }
+#custom-actualizacion:hover { background: #312504; }
+#custom-copias { padding: 0 12px; color: #f4c855; font-weight: bold; }
+#custom-copias:hover { background: #312504; }
 #custom-pantalla { padding: 0 12px; font-weight: bold; background: #3f1a13; }
-#custom-actualizaciones.hay { color: #fdc357; background: #332305; box-shadow: inset 2px 0 #fdc357; }
-#custom-seguridad.novedad { color: #fdc357; background: #332305; box-shadow: inset 2px 0 #fdc357; }
+#custom-actualizaciones.hay { color: #f4c855; background: #312504; box-shadow: inset 2px 0 #f4c855; }
+#custom-seguridad.novedad { color: #f4c855; background: #312504; box-shadow: inset 2px 0 #f4c855; }
 
 #custom-juego.encendido { color: #85ce6c; background: #1a2c13; box-shadow: inset 2px 0 #85ce6c; }
 
 /* Cámara y micrófono (barra de abajo): solo se ve cuando la cámara está en uso o bloqueada, o el micrófono silenciado */
 #custom-dispositivos { padding: 0 10px; }
-#custom-dispositivos:hover { background: #112123; }
+#custom-dispositivos:hover { background: #27292c; }

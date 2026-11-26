@@ -2,7 +2,7 @@
 """Genera la imagen de la pantalla de bloqueo de LeksSO: un mensaje claro de que está bloqueada y qué hacer.
 
 Se coloca centrada sobre el color de fondo; el anillo de la contraseña de swaylock queda justo debajo.
-Uso: python3 generar-pantalla-bloqueo.py [destino] [tema]   (por defecto /usr/share/leksso/bloqueo.png y el tema Marea)
+Uso: python3 generar-pantalla-bloqueo.py [destino] [tema]   (por defecto /usr/share/leksso/bloqueo.png y el tema base, Grafito)
 """
 import os
 import sys

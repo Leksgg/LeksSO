@@ -69,11 +69,11 @@ def estado_barra(camara_en_uso, camara_bloqueada, micro_silenciado):
         clases.append("camara-en-uso")
         avisos.append("La cámara está en uso")
     elif camara_bloqueada:
-        partes.append(f'<span foreground="#94a1a3">{ICONO_CAMARA}✕</span>')
+        partes.append(f'<span foreground="#9d9ea1">{ICONO_CAMARA}✕</span>')
         clases.append("camara-bloqueada")
         avisos.append("Cámara bloqueada")
     if micro_silenciado:
-        partes.append(f'<span foreground="#fdc357">{ICONO_MICRO_NO}</span>')
+        partes.append(f'<span foreground="#f4c855">{ICONO_MICRO_NO}</span>')
         clases.append("micro-silenciado")
         avisos.append("Micrófono silenciado")
     if not partes:
@@ -199,7 +199,7 @@ def ventana(captura=None):
 
     def titulo(texto):
         e = QtWidgets.QLabel(texto)
-        e.setStyleSheet(pintar("font-size: 15px; font-weight: bold; color: #00c4bf; margin-top: 6px;"))
+        e.setStyleSheet(pintar("font-size: 15px; font-weight: bold; color: #79b1e0; margin-top: 6px;"))
         return e
 
     class Dispositivos(QtWidgets.QWidget):
@@ -311,7 +311,7 @@ def ventana(captura=None):
                 self.b_micro.setEnabled(False)
             else:
                 self.b_micro.setEnabled(True)
-                self.t_micro.setText(pintar(f"{m[2] or 'Micrófono por defecto'}: " + ("<span style='color:#fdc357'><b>silenciado</b></span>" if m[1] else f"activo ({m[0]} %)")))
+                self.t_micro.setText(pintar(f"{m[2] or 'Micrófono por defecto'}: " + ("<span style='color:#f4c855'><b>silenciado</b></span>" if m[1] else f"activo ({m[0]} %)")))
                 self.b_micro.setText("Activar el micrófono" if m[1] else "Silenciar el micrófono")
             a = f["altavoz"]
             if a is None:

@@ -16,7 +16,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from leksso_ui import confirmar, pedir_permiso, pintar, sudo_cmd
 
 CATEGORIAS = [("entrante", "Entra desde fuera"), ("internet", "Sale a Internet"), ("red_local", "Red local"), ("escuchando", "Escuchando (servicios)")]
-COLOR = {"validada": "#85ce6c", "sin validar": "#fdc357", "bloqueada": "#ff735a"}
+COLOR = {"validada": "#85ce6c", "sin validar": "#f4c855", "bloqueada": "#ff735a"}
 LIMITES = ("Lo que ves es una foto cada minuto: las conexiones más cortas no salen y UDP no cuenta bytes. «Validada» no es «segura»: "
            "un destino en el que confías puede usarse para sacar datos. Bloquear corta el destino (IP y puerto), no al programa. "
            "Quien tenga permisos de administrador puede apagar este monitor.")
@@ -175,7 +175,7 @@ class Conexiones(QtWidgets.QWidget):
                 extra = (" · nueva" if c.get("nueva") else "") + (f" · {c['por_que']}" if c.get("por_que") and estado == "validada" else "")
                 dest = f"{c['destino']}:{c['puerto']}" + (f" ({c['servicio']})" if c.get("servicio") else "") + (f"  ×{c['conexiones']}" if c.get("conexiones", 1) > 1 else "")
                 it = QtWidgets.QTreeWidgetItem([c["nombre"] + (f"  [{c['paquete']}]" if c.get("paquete") else ""), dest, tamano(c["enviados"]), estado + extra])
-                it.setForeground(3, QtGui.QBrush(QtGui.QColor(pintar(COLOR.get(estado, "#94a1a3")))))
+                it.setForeground(3, QtGui.QBrush(QtGui.QColor(pintar(COLOR.get(estado, "#9d9ea1")))))
                 it.setData(0, QtCore.Qt.UserRole, c)
                 raiz.addChild(it)
             raiz.setExpanded(clave != "escuchando" or True)

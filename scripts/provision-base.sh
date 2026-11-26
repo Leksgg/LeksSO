@@ -314,9 +314,11 @@ fi
 sudo -u "$USUARIO" leksso-asociar
 
 # Temas de color: los archivos de colores por papel, el comando que los aplica y la ventana de Apariencia.
-# La configuración base se acaba de copiar con los colores de Marea; si el usuario eligió otro tema, se vuelve a poner.
+# La configuración base se acaba de copiar con los colores de Grafito; si el usuario eligió otro tema, se vuelve a poner.
 install -d -m 0755 /usr/local/share/leksso/temas
 install -m 0644 "$RAIZ"/config/tema/*.json /usr/local/share/leksso/temas/
+# Temas retirados: install no borra los archivos que ya estaban, y seguirían saliendo en Apariencia.
+rm -f /usr/local/share/leksso/temas/marea.json /usr/local/share/leksso/temas/alba.json
 install -m 0755 "$RAIZ/scripts/leksso-tema.py" /usr/local/bin/leksso-tema
 install -m 0755 "$RAIZ/scripts/leksso-escala.py" /usr/local/bin/leksso-escala
 install -m 0755 "$RAIZ/config/bin/leksso-apariencia" /usr/local/bin/leksso-apariencia
@@ -335,12 +337,22 @@ chmod 0440 /etc/sudoers.d/leksso-camara
 visudo -cf /etc/sudoers.d/leksso-camara >/dev/null || rm -f /etc/sudoers.d/leksso-camara
 install -d -m 0755 /usr/local/share/leksso
 install -m 0644 "$RAIZ/config/calendario/festivos.json" /usr/local/share/leksso/festivos.json
-# Apariencia de serie: Grafito. Se pone a quien no eligió nunca un tema (sin ~/.config/leksso/tema), también al actualizar: sin
-# ese archivo el equipo se veía con Marea, la base, y no por elección. Quien eligió uno en Apariencia lo conserva.
-# La configuración base está pintada con Marea y `reaplicar` la repinta con el tema anotado en ~/.config/leksso/tema.
-if [ ! -e "$HOME_USR/.config/leksso/tema" ]; then
-  U install -d "$HOME_USR/.config/leksso"
-  echo grafito | U tee "$HOME_USR/.config/leksso/tema" >/dev/null
+# Apariencia de serie: Grafito, que es también la base con la que está pintada la configuración; sin ~/.config/leksso/tema
+# se usa ella. Quien eligió un tema retirado pasa al más parecido (Alba → Waves claro) y cualquier otro nombre que no sea un
+# tema instalado (Marea incluida), a Grafito. El archivo lo lee el usuario, no root: es suyo y podría ser un enlace.
+# `reaplicar` repinta la base con el tema anotado.
+TEMA_USR="$HOME_USR/.config/leksso/tema"
+if [ -e "$TEMA_USR" ]; then
+  elegido=$(U head -c 64 "$TEMA_USR" 2>/dev/null | tr -cd 'a-z0-9' || true)
+  nuevo=""
+  if [ "$elegido" = alba ]; then
+    nuevo=wavesclaro
+  elif [ ! -e "/usr/local/share/leksso/temas/$elegido.json" ]; then
+    nuevo=grafito
+  fi
+  if [ -n "$nuevo" ]; then
+    echo "$nuevo" | U tee "$TEMA_USR" >/dev/null
+  fi
 fi
 sudo -u "$USUARIO" leksso-tema reaplicar || true
 # Tamaño de las cifras de Raxtor y escala del escritorio: se escriben según lo guardado (de serie, cifras al 85 % y escala 100 %).

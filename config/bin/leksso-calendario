@@ -118,7 +118,7 @@ def ventana(anio, mes, captura=None):
             self.sig = self.boton("›", "Mes siguiente (→)", lambda: self.ir(1))
             self.titulo_mes = QtWidgets.QLabel("")
             self.titulo_mes.setAlignment(QtCore.Qt.AlignCenter)
-            self.titulo_mes.setStyleSheet(pintar("font-size: 17px; font-weight: bold; color: #e3edef;"))
+            self.titulo_mes.setStyleSheet(pintar("font-size: 17px; font-weight: bold; color: #eaebed;"))
             self.boton_hoy = self.boton("Hoy", "Volver al mes de hoy (Inicio)", self.ir_a_hoy)
             nav.addWidget(self.ant)
             nav.addWidget(self.titulo_mes, 1)
@@ -130,7 +130,7 @@ def ventana(anio, mes, captura=None):
             for i, d in enumerate(DIAS):
                 e = QtWidgets.QLabel(d)
                 e.setAlignment(QtCore.Qt.AlignCenter)
-                e.setStyleSheet(pintar("color: #94a1a3; font-size: 12px; font-weight: bold;"))
+                e.setStyleSheet(pintar("color: #9d9ea1; font-size: 12px; font-weight: bold;"))
                 malla.addWidget(e, 0, i)
             self.celdas = []
             for f in range(6):
@@ -156,8 +156,8 @@ def ventana(anio, mes, captura=None):
             b = QtWidgets.QPushButton(texto)
             b.setToolTip(ayuda)
             b.setFocusPolicy(QtCore.Qt.TabFocus)
-            b.setStyleSheet(pintar("QPushButton { background: #112123; border: 1px solid #25393c; padding: 4px 12px; font-size: 15px; }"
-                                   "QPushButton:hover { background: #003635; border: 1px solid #00c4bf; }"))
+            b.setStyleSheet(pintar("QPushButton { background: #27292c; border: 1px solid #3e4145; padding: 4px 12px; font-size: 15px; }"
+                                   "QPushButton:hover { background: #143c5b; border: 1px solid #79b1e0; }"))
             b.clicked.connect(accion)
             return b
 
@@ -178,35 +178,35 @@ def ventana(anio, mes, captura=None):
             for e, d in zip(self.celdas, rejilla(self.anio, self.mes)):
                 dentro = d.month == self.mes
                 es_fest = d in fest
-                color = "#e3edef" if dentro else "#7f8f91"
+                color = "#eaebed" if dentro else "#808285"
                 fondo = "transparent"
                 borde = "1px solid transparent"
                 peso = "normal"
                 if d.weekday() >= 5 and dentro:
-                    color = "#94a1a3"
+                    color = "#9d9ea1"
                 if es_fest:
-                    color = "#fdc357" if dentro else "#7f8f91"
-                    fondo = "#332305" if dentro else "transparent"
+                    color = "#f4c855" if dentro else "#808285"
+                    fondo = "#312504" if dentro else "transparent"
                     peso = "bold"
                 if d == hoy:
-                    fondo = "#003635"
-                    borde = "2px solid #00c4bf"
+                    fondo = "#143c5b"
+                    borde = "2px solid #79b1e0"
                     if not es_fest:
-                        color = "#e3edef"
+                        color = "#eaebed"
                 e.setText(str(d.day))
                 e.setStyleSheet(pintar(f"background: {fondo}; color: {color}; border: {borde}; font-weight: {peso}; font-size: 14px;"))
                 e.setToolTip(f"{fest[d][0]}" if es_fest else "")
             lineas = []
             for d, nombre, ambito in festivos_del_mes(datos, self.anio, self.mes):
-                lineas.append(f"<span style='color:#fdc357'><b>{d.day}</b></span> {nombre_dia(d)} · {nombre} "
-                              f"<span style='color:#94a1a3'>({AMBITOS.get(ambito, ambito)})</span>")
+                lineas.append(f"<span style='color:#f4c855'><b>{d.day}</b></span> {nombre_dia(d)} · {nombre} "
+                              f"<span style='color:#9d9ea1'>({AMBITOS.get(ambito, ambito)})</span>")
             estado, aviso = estado_anio(datos, self.anio)
             if lineas:
                 self.lista.setText(pintar("<br>".join(lineas)))
             elif estado == "ausente":
-                self.lista.setText(pintar("<span style='color:#94a1a3'>Sin datos de festivos para este año.</span>"))
+                self.lista.setText(pintar("<span style='color:#9d9ea1'>Sin datos de festivos para este año.</span>"))
             else:
-                self.lista.setText(pintar("<span style='color:#94a1a3'>Sin festivos este mes.</span>"))
+                self.lista.setText(pintar("<span style='color:#9d9ea1'>Sin festivos este mes.</span>"))
             self.nota.setText(aviso if estado != "completo" else "Festivos de Madrid: nacionales, de la Comunidad y de Madrid capital.")
 
         def keyPressEvent(self, ev):

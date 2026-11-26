@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Cambia el tema de color de todo el escritorio de LeksSO, sin reiniciar.
 
-Los temas (Marea, Pizarra...) son archivos de colores por papel en /usr/local/share/leksso/temas. Aquí se
+Los temas (Grafito, Waves...) son archivos de colores por papel en /usr/local/share/leksso/temas. Aquí se
 cambian, en la configuración del usuario, los colores del tema actual por los del nuevo (barra, terminal,
 menús, avisos, bordes de ventana, bloqueo, colores de Qt) y se recarga lo que se puede recargar al momento.
 Las ventanas propias (Archivos, Ajustes...) leen el tema activo cada vez que se abren.
@@ -97,7 +97,7 @@ BLOQUEO_USUARIO = os.path.join(CASA, ".config", "leksso", "bloqueo.png")
 
 
 def imagen_de_bloqueo(nombre):
-    """La imagen de la pantalla de bloqueo lleva los colores del tema: para Marea sirve la del sistema; para los
+    """La imagen de la pantalla de bloqueo lleva los colores del tema: para el tema base (Grafito) sirve la del sistema; para los
     demás se genera una en la carpeta del usuario y swaylock apunta a ella."""
     ruta = os.path.join(CASA, ".config", "swaylock", "config")
     destino = BLOQUEO_BASE
@@ -139,7 +139,7 @@ def blanco_brillante(nombre):
 
 
 def iconos(nombre):
-    """Los iconos llevan los colores del tema (cuerpo de archivo, carpeta, marcos). Con Marea sirven los del sistema; con
+    """Los iconos llevan los colores del tema (cuerpo de archivo, carpeta, marcos). Con el tema base (Grafito) sirven los del sistema; con
     otro tema se hace una copia en la carpeta del usuario, que tiene prioridad, con los colores cambiados. En un tema claro
     el texto de las etiquetas (que va sobre un color de tipo de archivo) pasa a ser oscuro."""
     if os.path.isdir(ICONOS_USUARIO):
@@ -198,7 +198,7 @@ def main(a):
     elif a[0] == "recargar":
         recargar()
     elif a[0] == "reaplicar":
-        # la instalación acaba de copiar la configuración base (colores de Marea): se vuelve a poner el tema elegido
+        # la instalación acaba de copiar la configuración base (colores del tema base, Grafito): se vuelve a poner el tema elegido
         elegido = tema_activo()
         n = aplicar(elegido, BASE) if elegido != BASE else 0
         print(f"Tema {elegido} puesto de nuevo ({n} archivos).")

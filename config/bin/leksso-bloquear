@@ -20,30 +20,30 @@ for _ruta in ("/usr/local/lib/leksso-ui", os.path.join(os.path.dirname(os.path.a
         sys.path.insert(0, _ruta)
 
 # Dirección «reloj de estación»: columna a la izquierda con una regla de color y la hora a escala de cartel.
-# Colores del tema base (Marea); al escribir el archivo se pasan a los del tema activo.
+# Colores del tema base (Grafito); al escribir el archivo se pasan a los del tema activo.
 ESTILO = """
-window { background-color: #021012; color: #e3edef; font-family: "Montserrat", "DejaVu Sans", sans-serif; }
-#columna { border-left: 8px solid #00c4bf; padding: 0 0 0 48px; }
+window { background-color: #15171a; color: #eaebed; font-family: "Montserrat", "DejaVu Sans", sans-serif; }
+#columna { border-left: 8px solid #79b1e0; padding: 0 0 0 48px; }
 /* La hora y la fecha usan Raxtor si está instalada: la regla de fontconfig de LeksSO la limita a las CIFRAS (y «:»), así
    que las letras de la fecha, con sus tildes, salen en Montserrat. Sin la fuente, Montserrat como siempre. La parte de la
    contraseña no se toca. La fuente NO va en este repositorio (derechos reservados del autor): se instala en cada equipo. */
-#clock-label { font-family: "Raxtor", "Montserrat", "DejaVu Sans", sans-serif; font-size: 224px; font-weight: 700; color: #e3edef; margin: -24px 0 -8px 0; }
-#date-label { font-family: "Raxtor", "Montserrat", "DejaVu Sans", sans-serif; font-size: 32px; font-weight: 500; color: #e3edef; margin-bottom: 48px; }
-#input-label { font-size: 22px; font-weight: 500; color: #e3edef; }
-#input-field { font-size: 24px; min-height: 56px; padding: 0 16px; background-color: #112123; color: #e3edef;
-               border: 2px solid #25393c; border-radius: 0; box-shadow: none; caret-color: #00c4bf; }
-#input-field:focus { border: 2px solid #00c4bf; }
-#input-field image { color: #94a1a3; margin: 0 8px; -gtk-icon-transform: scale(1.5); }
-#input-field image:hover { color: #00c4bf; }
+#clock-label { font-family: "Raxtor", "Montserrat", "DejaVu Sans", sans-serif; font-size: 224px; font-weight: 700; color: #eaebed; margin: -24px 0 -8px 0; }
+#date-label { font-family: "Raxtor", "Montserrat", "DejaVu Sans", sans-serif; font-size: 32px; font-weight: 500; color: #eaebed; margin-bottom: 48px; }
+#input-label { font-size: 22px; font-weight: 500; color: #eaebed; }
+#input-field { font-size: 24px; min-height: 56px; padding: 0 16px; background-color: #27292c; color: #eaebed;
+               border: 2px solid #3e4145; border-radius: 0; box-shadow: none; caret-color: #79b1e0; }
+#input-field:focus { border: 2px solid #79b1e0; }
+#input-field image { color: #9d9ea1; margin: 0 8px; -gtk-icon-transform: scale(1.5); }
+#input-field image:hover { color: #79b1e0; }
 #unlock-button { font-size: 20px; font-weight: 700; min-height: 56px; min-width: 160px; padding: 0 32px; margin-left: 8px; background-image: none;
-                 background-color: #00c4bf; color: #021012; border: 2px solid #00c4bf; border-radius: 0;
+                 background-color: #79b1e0; color: #15171a; border: 2px solid #79b1e0; border-radius: 0;
                  box-shadow: none; text-shadow: none; }
-#unlock-button:hover { background-color: #e3edef; border-color: #e3edef; }
-#unlock-button label { color: #021012; }
-#ayuda-label { font-size: 18px; color: #94a1a3; margin-top: 8px; }
+#unlock-button:hover { background-color: #eaebed; border-color: #eaebed; }
+#unlock-button label { color: #15171a; }
+#ayuda-label { font-size: 18px; color: #9d9ea1; margin-top: 8px; }
 #error-label { font-size: 18px; font-weight: 700; color: #ff735a; }
-#warning-label { font-size: 18px; font-weight: 700; color: #fdc357; }
-#sistema-label { font-size: 18px; color: #94a1a3; margin-top: 48px; }
+#warning-label { font-size: 18px; font-weight: 700; color: #f4c855; }
+#sistema-label { font-size: 18px; color: #9d9ea1; margin-top: 48px; }
 """
 
 

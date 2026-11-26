@@ -100,7 +100,7 @@ class AvisosDeLaBarra(unittest.TestCase):
     def test_micro_silenciado_en_ambar_y_se_suma(self):
         t, c, a = disp.estado_barra(True, False, True)
         self.assertEqual(c, ["camara-en-uso", "micro-silenciado"])
-        self.assertIn("#fdc357", t)
+        self.assertIn("#f4c855", t)
         self.assertIn("Clic para abrir", a)
 
 

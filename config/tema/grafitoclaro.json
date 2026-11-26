@@ -1,0 +1,31 @@
+{
+  "tema": "grafitoclaro",
+  "modo": "claro",
+  "colores": {
+    "bg": "#eef0f3",
+    "s1": "#fdfdff",
+    "s2": "#e4e6ea",
+    "line": "#bbbec1",
+    "off": "#f3f5f8",
+    "alt": "#ebedf0",
+    "base2": "#e7eaed",
+    "mid": "#dcdee2",
+    "dark": "#f7f8fa",
+    "text": "#181b1e",
+    "faint": "#696c6f",
+    "soft": "#c3e2fe",
+    "muted": "#5f6063",
+    "acc": "#2f6590",
+    "acc_hi": "#335979",
+    "acc_dim": "#8ca8c1",
+    "sec": "#63579d",
+    "magenta": "#92477b",
+    "ok": "#2a7000",
+    "warn": "#785c00",
+    "bad": "#b62a12",
+    "ok_soft": "#d5edcd",
+    "warn_soft": "#f6e7c3",
+    "warn_soft2": "#e7daba",
+    "bad_soft": "#ffdbd4"
+  }
+}

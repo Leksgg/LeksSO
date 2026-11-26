@@ -15,14 +15,13 @@ from PySide6 import QtCore, QtGui, QtWidgets
 sys.path.insert(0, "/usr/local/lib/leksso-ui")
 from leksso_ui import ESTILO_BASE, alternar, pintar, tema_activo, titulos_en_mayusculas, tokens  # noqa: E402
 
-NOMBRES = {"marea": ("Marea", "Petróleo oscuro con acento turquesa"), "pizarra": ("Pizarra", "Grafito cálido con acento azul"),
+NOMBRES = {"grafito": ("Grafito", "Gris grafito con acento azul acero (el de serie)"),
+           "grafitoclaro": ("Grafito claro", "Claro: blanco grisáceo con acento azul acero"),
            "waves": ("Waves", "Azul marino con acento celeste"),
-           "alba": ("Alba", "Claro: papel cálido con acento azul"),
+           "wavesclaro": ("Waves claro", "Claro: blanco azulado con acento celeste"),
+           "pizarra": ("Pizarra", "Grafito cálido con acento azul"),
            "grisrosa": ("Gris y rosa", "Gris suave con acento rosa"),
-           "blancorosa": ("Blanco y rosa", "Claro: blanco con acento rosa"),
-           "grafito": ("Grafito", "Gris grafito con acento azul acero (el de serie)"),
-           "purpura": ("Púrpura", "Oscuro: violeta profundo, #340091 y colores vivos"),
-           "blancopurpura": ("Blanco y púrpura", "Claro: blanco, acento #340091 y colores vivos")}
+           "blancorosa": ("Blanco y rosa", "Claro: blanco con acento rosa")}
 CIFRAS = (("75", "Pequeñas"), ("85", "Medianas"), ("100", "Originales"))
 ESCRITORIO = (("100", "100 %"), ("125", "125 %"), ("150", "150 %"), ("200", "200 %"))
 
@@ -30,7 +29,8 @@ ESCRITORIO = (("100", "100 %"), ("125", "125 %"), ("150", "150 %"), ("200", "200
 def temas():
     r = subprocess.run(["leksso-tema", "listar"], capture_output=True, text=True)
     lista = [t for t in r.stdout.split() if tokens(t)]
-    return sorted(lista, key=lambda t: t != "grafito")   # el de serie, primero
+    orden = list(NOMBRES)   # el de serie primero y cada tema junto a su versión clara
+    return sorted(lista, key=lambda t: (orden.index(t) if t in orden else len(orden), t))
 
 
 def vaciar(layout):

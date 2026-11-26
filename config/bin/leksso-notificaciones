@@ -139,7 +139,7 @@ def ventana(captura=None):
             activo = modo_silencio_activo(_makoctl("mode") or "")
             self.silencio.setText("No molestar: ACTIVADO (pulsa para volver a ver los avisos)" if activo
                                   else "No molestar: desactivado (pulsa para silenciar los avisos)")
-            self.silencio.setStyleSheet(pintar("QPushButton { background: #332305; border: 1px solid #fdc357; padding: 12px 14px; text-align: left; }")
+            self.silencio.setStyleSheet(pintar("QPushButton { background: #312504; border: 1px solid #f4c855; padding: 12px 14px; text-align: left; }")
                                         if activo else "")
             h = historial()
             self.lista.clear()

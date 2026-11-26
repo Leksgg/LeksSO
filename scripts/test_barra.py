@@ -74,7 +74,7 @@ class Bateria(unittest.TestCase):
         self.assertNotIn(bateria.ENCHUFE, leer(40)["text"])
 
     def test_rayo_y_hoja_segun_el_modo(self):
-        for clave, color, hoja in (("power-saver", "#85ce6c", True), ("balanced", "#85ce6c", False), ("performance", "#fdc357", False)):
+        for clave, color, hoja in (("power-saver", "#85ce6c", True), ("balanced", "#85ce6c", False), ("performance", "#f4c855", False)):
             with mock.patch.object(bateria, "modo", return_value=clave):
                 t = leer(60)["text"]
             self.assertIn(bateria.RAYO, t)

@@ -26,7 +26,7 @@ PILAS = ["", "", "", "", ""]
 RAYO = ""
 ENCHUFE = ""   # enchufada y cargando (el rayo es del modo de energía)
 HOJA = ""
-VERDE, AMARILLO = "#85ce6c", "#fdc357"
+VERDE, AMARILLO = "#85ce6c", "#f4c855"
 MODOS = {  # modo de power-profiles-daemon -> (nombre, color del rayo, lleva hoja)
     "power-saver": ("Ahorro", VERDE, True),
     "balanced": ("Equilibrado", VERDE, False),

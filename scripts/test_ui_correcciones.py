@@ -46,8 +46,8 @@ class Pruebas(unittest.TestCase):
             c = [int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)]
             c = [x / 12.92 if x <= 0.03928 else ((x + 0.055) / 1.055) ** 2.4 for x in c]
             return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
-        m = re.search(r'"faint":\s*"#([0-9a-fA-F]{6})"', leer("config/tema/marea.json"))
-        fondo = re.search(r'"bg":\s*"#([0-9a-fA-F]{6})"', leer("config/tema/marea.json")).group(1)
+        m = re.search(r'"faint":\s*"#([0-9a-fA-F]{6})"', leer("config/tema/grafito.json"))
+        fondo = re.search(r'"bg":\s*"#([0-9a-fA-F]{6})"', leer("config/tema/grafito.json")).group(1)
         a, b = sorted((lum(m.group(1)), lum(fondo)), reverse=True)
         self.assertGreaterEqual((a + 0.05) / (b + 0.05), 4.5)
         self.assertNotIn("667576", leer("config/ui/leksso_ui.py"))

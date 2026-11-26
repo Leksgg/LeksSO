@@ -88,7 +88,7 @@ def ventana(ahora):
                 b = QtWidgets.QPushButton(f"{icono}  {nombre}\n{texto}")
                 b.setObjectName("accion")
                 if clave == ahora:
-                    b.setStyleSheet(pintar("background: #003635; color: #00c4bf; border: 1px solid #00c4bf;"))
+                    b.setStyleSheet(pintar("background: #143c5b; color: #79b1e0; border: 1px solid #79b1e0;"))
                 b.clicked.connect(lambda _=False, c=clave: self.elegir(c))
                 raiz.addWidget(b)
 

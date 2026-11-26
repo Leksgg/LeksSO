@@ -1,17 +1,17 @@
-color=021012
+color=15171a
 image=/usr/share/leksso/bloqueo.png
 scaling=center
 indicator-idle-visible
 indicator-radius=90
 indicator-thickness=6
-inside-color=021012
-ring-color=25393c
-key-hl-color=00c4bf
+inside-color=15171a
+ring-color=3e4145
+key-hl-color=79b1e0
 bs-hl-color=ff735a
 line-color=00000000
-text-color=e3edef
-inside-ver-color=003635
-ring-ver-color=00c4bf
+text-color=eaebed
+inside-ver-color=143c5b
+ring-ver-color=79b1e0
 inside-wrong-color=3f1a13
 ring-wrong-color=ff735a
 font=DejaVu Sans

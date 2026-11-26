@@ -176,7 +176,7 @@ class Menu(QtWidgets.QWidget):
         self.pestana = pestana
         for clave, b in self.botones.items():
             b.setChecked(clave == pestana)
-            b.setStyleSheet(pintar("QPushButton { background: #003635; border: 1px solid #00c4bf; padding: 12px 14px; text-align: left; }")
+            b.setStyleSheet(pintar("QPushButton { background: #143c5b; border: 1px solid #79b1e0; padding: 12px 14px; text-align: left; }")
                             if clave == pestana else "")
         if pestana == "instalar" and self.catalogo is None:
             m = cargar_catalogo()
