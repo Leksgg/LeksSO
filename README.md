@@ -70,11 +70,13 @@ Cada pieza tiene sus pruebas en `scripts/test_*.py` y en `leksso-ia/`. Requieren
 
 ```sh
 for t in scripts/test_*.py; do python3 "$t"; done
+python3 scripts/mutar_tema.py           # mutación de los temas: rompe cada pieza en una copia y exige que una prueba lo note
 
 cd leksso-ia
 PYTHONPATH=. python3 -m unittest test_nucleo test_modelo test_ataques
 bash prueba_e2e.sh
 bash ../scripts/test_caja_ataques.sh
+python3 mutar.py                        # mutación del permisor (defensas de la IA)
 ```
 
 ## Licencia
