@@ -123,5 +123,7 @@ bindsym $mod+l exec leksso-bloquear
 # Dejar de compartir la pantalla al instante
 bindsym $mod+Escape exec leksso-pantalla cortar
 
+# Escala del escritorio elegida en Apariencia (leksso-escala). Va antes de local.conf, que sigue mandando.
+include ~/.config/sway/escala.conf
 # Ajustes locales de este equipo (por ejemplo, la resolución en una máquina virtual).
 include ~/.config/sway/local.conf

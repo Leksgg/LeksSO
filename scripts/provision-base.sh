@@ -318,6 +318,7 @@ sudo -u "$USUARIO" leksso-asociar
 install -d -m 0755 /usr/local/share/leksso/temas
 install -m 0644 "$RAIZ"/config/tema/*.json /usr/local/share/leksso/temas/
 install -m 0755 "$RAIZ/scripts/leksso-tema.py" /usr/local/bin/leksso-tema
+install -m 0755 "$RAIZ/scripts/leksso-escala.py" /usr/local/bin/leksso-escala
 install -m 0755 "$RAIZ/config/bin/leksso-apariencia" /usr/local/bin/leksso-apariencia
 install -m 0755 "$RAIZ/config/bin/leksso-copias-ui" /usr/local/bin/leksso-copias-ui
 install -m 0755 "$RAIZ/config/bin/leksso-barra-bateria" "$RAIZ/config/bin/leksso-barra-perfil" /usr/local/bin/
@@ -342,6 +343,8 @@ if [ ! -e "$HOME_USR/.config/leksso/tema" ]; then
   echo grafito | U tee "$HOME_USR/.config/leksso/tema" >/dev/null
 fi
 sudo -u "$USUARIO" leksso-tema reaplicar || true
+# Tamaño de las cifras de Raxtor y escala del escritorio: se escriben según lo guardado (de serie, cifras al 85 % y escala 100 %).
+sudo -u "$USUARIO" leksso-escala reaplicar || true
 # La sesión abierta sigue con la configuración vieja (barra, atajos): se le pide que lea la nueva sin cerrar sesión.
 sudo -u "$USUARIO" leksso-tema recargar || true
 

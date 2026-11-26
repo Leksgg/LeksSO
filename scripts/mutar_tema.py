@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Pruebas de mutación de los temas de color: rompe a propósito una pieza de leksso-tema, del generador de
-temas (aplicar-tema.py), de leksso_ui o del tema de serie de la instalación, en una copia temporal del
+"""Pruebas de mutación de la apariencia: rompe a propósito una pieza de leksso-tema, del generador de temas
+(aplicar-tema.py), de leksso_ui, de leksso-escala (cifras y escala) o de la instalación, en una copia temporal del
 repositorio, y comprueba que las pruebas lo detectan. Un mutante «vivo» es una pieza que ninguna prueba vigila.
 
 Mismo diseño que leksso-ia/mutar.py.
@@ -16,8 +16,9 @@ import time
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
-PRUEBAS = ["scripts/test_tema.py", "scripts/test_ui_correcciones.py"]
+PRUEBAS = ["scripts/test_tema.py", "scripts/test_ui_correcciones.py", "scripts/test_escala.py"]
 UI, TEMA, GEN, PROV = "config/ui/leksso_ui.py", "scripts/leksso-tema.py", "scripts/aplicar-tema.py", "scripts/provision-base.sh"
+ESC, SWAY = "scripts/leksso-escala.py", "config/sway/config"
 
 # (nombre, archivo, texto original, texto mutado)
 MUTANTES = [
@@ -70,6 +71,23 @@ MUTANTES = [
      'if t.get("vivo"):\n        # vivo:', 'if False:\n        # vivo:'),
     ("la comprobación no mira el texto de un estado sobre su relleno", GEN,
      'if contraste(c[e], c[e + "_soft"]) < 4.5:', "if False:"),
+    # leksso-escala
+    ("acepta cualquier valor de escala", ESC,
+     "if n not in permitidos:", "if n is None:"),
+    ("se fía del archivo de estado", ESC,
+     'if datos.get("cifras") in CIFRAS:', 'if "cifras" in datos:'),
+    ("las cifras no cambian de tamaño", ESC,
+     'f=valores["cifras"] / 100', "f=1"),
+    ("al 100 % deja la regla puesta", ESC,
+     'if valores["cifras"] == 100:', "if False:"),
+    ("la escala del escritorio no se guarda", ESC,
+     "f\"output * scale {valores['escritorio'] / 100:g}\\n\"", '"output * scale 1\\n"'),
+    ("la barra no se reinicia al cambiar las cifras", ESC,
+     'ejecutar(["pkill", "-u", str(os.getuid()), "-x", "waybar"])', "pass"),
+    ("sway no lee la escala guardada", SWAY,
+     "include ~/.config/sway/escala.conf", "# sin escala"),
+    ("la instalación no escribe la escala", PROV,
+     "leksso-escala reaplicar ||", "true ||"),
     # instalación
     ("el tema de serie no es Grafito", PROV,
      "echo grafito | U tee", "echo marea | U tee"),
