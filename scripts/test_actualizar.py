@@ -5,6 +5,7 @@ Usan repositorios y claves temporales. Requieren git y ssh-keygen. Uso: python3 
 import importlib.machinery
 import importlib.util
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -29,6 +30,31 @@ def clave_nueva(carpeta, nombre):
 
 
 class Versiones(unittest.TestCase):
+    def test_notas_solo_de_la_version_nueva(self):
+        texto = "# Changelog\n\nIntro.\n\n## 0.1.60 · 2026-11-26\n\n+ nuevo\n\n## 0.1.59 · 2026-11-24\n\n~ viejo\n"
+        notas = act.notas_recientes(texto)
+        self.assertTrue(notas.startswith("## 0.1.60"))
+        self.assertIn("+ nuevo", notas)
+        self.assertNotIn("0.1.59", notas)
+        self.assertNotIn("viejo", notas)
+        self.assertNotIn("Intro", notas)
+
+    def test_changelog_coherente_con_la_version(self):
+        """Lo que ve el usuario al actualizar es la primera sección del CHANGELOG de la etiqueta: tiene que ser la versión
+        del archivo VERSION, y ninguna versión puede salir dos veces. Entre versiones puede haber arriba «Sin publicar»
+        (publicar-version.sh --auto la renombra después de pasar estas pruebas); entonces la versión es la siguiente."""
+        raiz = os.path.dirname(AQUI)
+        version = open(os.path.join(raiz, "VERSION"), encoding="utf-8").read().strip()
+        cabeceras = [l[3:].split(" · ")[0].strip() for l in open(os.path.join(raiz, "CHANGELOG.md"), encoding="utf-8")
+                     if l.startswith("## ")]
+        if cabeceras[0] == "Sin publicar":
+            cabeceras = cabeceras[1:]
+        self.assertEqual(cabeceras[0], version)
+        versiones = [c for c in cabeceras if re.fullmatch(r"\d+\.\d+\.\d+(-[a-z]+\.?\d*)?", c)]   # las antiguas son fechas
+        self.assertGreater(len(versiones), 10)
+        repetidas = sorted({c for c in versiones if versiones.count(c) > 1})
+        self.assertEqual(repetidas, [], f"versiones repetidas en el CHANGELOG: {repetidas}")
+
     def test_el_texto_de_fuera_se_limpia_antes_de_enseñarlo(self):
         sucio = "## 0.1.99\n\x1b[2J\x1b]0;titulo\x07texto\x08\x08normal\r\notra \u202eatrás\u200b\x00fin\ttab\x7f\x9b31m"
         limpio = act.limpiar_para_terminal(sucio)

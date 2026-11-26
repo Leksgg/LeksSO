@@ -3,7 +3,7 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
-## Sin publicar
+## 0.1.60 · 2026-11-26
 
 ~ **Apariencias: siete, por parejas.** Grafito (la de serie) y Grafito claro; Waves y Waves claro; Pizarra; Gris y rosa y Blanco y rosa.
   + **Grafito**: gris casi neutro con un punto frío, algo más claro que los otros oscuros, acento azul acero apagado y secundario lila; nada tira a verde. **Grafito claro** y **Waves claro** son sus versiones claras: mismos matices de acento y de grises.
@@ -15,17 +15,13 @@ Lo más reciente, arriba.
 ~ **Apariencia con vista previa y tamaño.** Cada tema enseña una miniatura del escritorio con sus colores (raíl, barra con un aviso, ventana con su selección, botón principal y colores de estado) en lugar de una tira de colores, y cada tema sale junto a su versión clara. Al final, «Tamaño»: cifras de la barra (Pequeñas, Medianas, Originales) y escala del escritorio (100 a 200 %).
 + **Pruebas de mutación de la apariencia** (`scripts/mutar_tema.py`, mismo diseño que `leksso-ia/mutar.py`): 36 mutantes sobre `leksso-tema`, el generador `aplicar-tema.py`, `leksso_ui`, `leksso-escala`, la configuración de sway y la instalación (incluida la migración de temas retirados, que se prueba ejecutando su bloque real). Con las pruebas que había solo se detectaban 9 de los 23 primeros. `scripts/test_escala.py` comprueba con Pango que la regla encoge las cifras y no las letras.
 * `aplicar-tema.py` admite por tema el croma del acento (`ac`) y cuánto se aclaran los neutros oscuros (`nl`).
+~ **Las notas de una actualización enseñan solo la versión nueva.** Actualizaciones mostraba también la sección de la versión anterior (cortaba en la tercera cabecera del CHANGELOG en vez de en la segunda) y, con la 0.1.59 escrita dos veces, se veían las mismas notas repetidas. Se quita la 0.1.59 duplicada y una prueba vigila que la primera sección del CHANGELOG sea la versión de `VERSION` y que ninguna salga dos veces.
 * **Pruebas de mutación del permisor de la IA al día** (`leksso-ia/mutar.py`). Cuatro mutantes ya no encontraban su texto en el código y esas defensas no se ponían a prueba: el `..` en las rutas, el tope de peticiones pendientes, que el destino (local o nube) lo fije el canal y no la IA, y la resolución de carpetas al pedirlas. Se redefinen contra el código actual, uno por cada sitio donde vive la defensa (27 mutantes). Pruebas nuevas en `test_revision.py`: tope global de pendientes entre varios asistentes y tope de órdenes pendientes. La mutación ejecuta también `test_revision` y `test_ejecutar` (alrededor de 1 s).
 
 ## 0.1.59 · 2026-11-24
 
-~ **El botón de carpetas del raíl (y Súper+E) vuelve a funcionar.** Escondía una ventana «Carpetas» aparte que ya no existe desde que el explorador es PCManFM-Qt dentro de la zona central; ahora muestra u oculta su panel lateral de carpetas (F9, enviado con `wtype`, que se instala). Probado en la máquina virtual.
+~ **El botón de carpetas del raíl (y Súper+E) vuelve a funcionar.** Escondía una ventana «Carpetas» aparte que ya no existe desde que el explorador es PCManFM-Qt dentro de la zona central; ahora muestra u oculta su panel lateral de carpetas (F9, enviado con `wtype`, que se instala); si falta `wtype`, avisa y trae el explorador al frente. Probado en la máquina virtual.
 ~ **El panel de la IA solo existe cuando hace falta.** Ya no se monta al arrancar: la zona de la derecha se crea al abrir un asistente (y se cierra sola con el último) o al abrir el panel a mano (Súper+A, la barra o un aviso; esa se queda hasta que la cierres). Sin asistente, el explorador y las apps ocupan todo el ancho. Orden nueva `leksso-zonas --zona-ia [--auto]`.
-
-## 0.1.59 · 2026-11-24
-
-~ **El botón de carpetas del raíl (y Súper+E) vuelve a funcionar.** Escondía una ventana «Carpetas» aparte que ya no existe desde que el explorador es el centro; ahora muestra u oculta el panel de carpetas del explorador (le manda F9 con `wtype`, que se instala con el sistema). Si falta `wtype`, avisa y trae el explorador al frente.
-~ **El panel de la IA solo existe cuando hace falta.** Ya no se monta al iniciar sesión: la zona de la derecha se crea al abrir un asistente (y se cierra sola al cerrar el último) o al abrir el panel a mano (Súper+A, la barra o el aviso de la IA), que se queda hasta que lo cierres. Sin asistentes, el explorador y las apps ocupan todo el ancho. Nueva orden `leksso-zonas --zona-ia [--auto]`.
 
 ## 0.1.58 · 2026-11-24
 

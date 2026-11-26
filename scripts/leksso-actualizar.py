@@ -220,18 +220,22 @@ def cambios(tag=None):
     req = urllib.request.Request(url, headers={"User-Agent": "leksso-actualizar"})
     with urllib.request.urlopen(req, timeout=20) as r:
         texto = r.read(300000).decode("utf-8", "replace")
-    # solo la parte más reciente: hasta la segunda cabecera de versión o de fecha
-    lineas, vistas, dentro = [], 0, False
+    print(limpiar_para_terminal(notas_recientes(texto)))
+    return 0
+
+
+def notas_recientes(texto):
+    """Solo la sección más reciente del CHANGELOG: desde la primera cabecera «## » hasta la siguiente (máximo 80 líneas).
+    Antes se cortaba en la tercera y salían dos versiones: la nueva y la anterior, como si todo fuera nuevo."""
+    lineas, dentro = [], False
     for linea in texto.splitlines():
         if linea.startswith("## "):
-            dentro = True
-            vistas += 1
-            if vistas > 2:
+            if dentro:
                 break
+            dentro = True
         if dentro:
             lineas.append(linea)
-    print(limpiar_para_terminal("\n".join(lineas[:80])))
-    return 0
+    return "\n".join(lineas[:80]).rstrip()
 
 
 def raiz_o_salir():
