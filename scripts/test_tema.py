@@ -263,6 +263,31 @@ class PruebasGenerador(unittest.TestCase):
         fallos, salida = self.comprobar_con({"x": {"nh": 255, "nc": .006, "ah": 148, "sh": 148, "magenta": 320}})
         self.assertIn("MATIZ x: ok", salida)
 
+    def test_comprobacion_detecta_estado_ilegible_sobre_su_relleno(self):
+        """El aviso de la barra pinta el texto del estado sobre su relleno (*_soft): tiene que leerse."""
+        reales = generador.tokens
+        def tokens(nombre):
+            p, mt = reales(nombre)
+            return dict(p, warn_soft="ffe14a", warn="fff06a"), mt     # amarillo sobre amarillo
+        generador.tokens = tokens
+        try:
+            fallos, salida = self.comprobar_con({"grafito": generador.TEMAS["grafito"]})
+        finally:
+            generador.tokens = reales
+        self.assertIn("CONTRASTE grafito: warn sobre warn_soft", salida)
+
+    def test_purpuras_con_colores_vivos(self):
+        """Púrpura y Blanco y púrpura llevan estados radiantes: más croma que los mismos papeles en Grafito."""
+        def croma(h):
+            r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
+            return max(r, g, b) - min(r, g, b)
+        # en el claro el verde como texto ya está en el máximo que cabe a esa luminosidad: ganan sus rellenos
+        for nombre, comparado, papeles in (("purpura", "grafito", ("ok", "warn", "bad", "sec", "magenta")),
+                                           ("blancopurpura", "alba", ("bad", "sec", "magenta", "ok_soft", "warn_soft"))):
+            vivo, normal = generador.tokens(nombre)[0], generador.tokens(comparado)[0]
+            for k in papeles:
+                self.assertGreater(croma(vivo[k]), croma(normal[k]), f"{nombre}.{k}")
+
     def test_comprobacion_detecta_colores_repetidos(self):
         fondo = generador.tokens("grafito")[0]["s1"]
         fallos, salida = self.comprobar_con({"x": dict(generador.TEMAS["grafito"], acc_hex=fondo)})

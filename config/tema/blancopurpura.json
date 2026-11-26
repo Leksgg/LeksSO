@@ -18,14 +18,14 @@
     "acc": "#340091",
     "acc_hi": "#4f479a",
     "acc_dim": "#9d9ddb",
-    "sec": "#814f8d",
-    "magenta": "#974670",
+    "sec": "#006993",
+    "magenta": "#b70085",
     "ok": "#2a7000",
-    "warn": "#725f00",
-    "bad": "#b62a12",
-    "ok_soft": "#d5edcd",
-    "warn_soft": "#f1e8c3",
-    "warn_soft2": "#e3dbba",
-    "bad_soft": "#ffdbd4"
+    "warn": "#915100",
+    "bad": "#bc1e00",
+    "ok_soft": "#aaff8c",
+    "warn_soft": "#ffea6a",
+    "warn_soft2": "#f8dc00",
+    "bad_soft": "#ffd2c9"
   }
 }

@@ -19,8 +19,8 @@ NOMBRES = {"marea": ("Marea", "Petróleo oscuro con acento turquesa"), "pizarra"
            "grisrosa": ("Gris y rosa", "Gris suave con acento rosa"),
            "blancorosa": ("Blanco y rosa", "Claro: blanco con acento rosa"),
            "grafito": ("Grafito", "Gris grafito con acento azul acero (el de serie)"),
-           "purpura": ("Púrpura", "Oscuro: violeta profundo con relleno púrpura #340091"),
-           "blancopurpura": ("Blanco y púrpura", "Claro: blanco con acento púrpura #340091")}
+           "purpura": ("Púrpura", "Oscuro: violeta profundo, #340091 y colores vivos"),
+           "blancopurpura": ("Blanco y púrpura", "Claro: blanco, acento #340091 y colores vivos")}
 MUESTRA = ("bg", "s2", "line", "acc", "sec", "ok", "warn", "bad")
 
 

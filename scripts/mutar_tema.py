@@ -66,6 +66,10 @@ MUTANTES = [
      "if dist_matiz(a, mt[e]) < 30:", "if False:"),
     ("la comprobación no mira los colores repetidos", GEN,
      "if len(set(p.values())) != len(p):", "if False:"),
+    ("los púrpura pierden los colores vivos", GEN,
+     'if t.get("vivo"):\n        # vivo:', 'if False:\n        # vivo:'),
+    ("la comprobación no mira el texto de un estado sobre su relleno", GEN,
+     'if contraste(c[e], c[e + "_soft"]) < 4.5:', "if False:"),
     # instalación
     ("el tema de serie no es Grafito", PROV,
      "echo grafito | U tee", "echo marea | U tee"),

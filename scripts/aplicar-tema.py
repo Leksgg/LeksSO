@@ -51,9 +51,13 @@ TEMAS = {
     "grafito": {"nh": 255, "nc": .006, "ah": 245, "sh": 290, "magenta": 340, "ac": .09, "nl": .045},
     # púrpura: el de marca es #340091 (índigo profundo, matiz 284). En el claro es el acento tal cual (acc_hex). En el
     # oscuro no se leería como texto (1,4:1), así que es el relleno de selección y foco (soft_hex), los neutros se tiñen
-    # de ese violeta y el acento de texto empieza oscuro (al) y sube solo hasta leerse (4,5:1). Secundario hacia el rosa.
-    "purpura":       {"nh": 284, "nc": .045, "ah": 284, "sh": 320, "magenta": 350, "ac": .22, "al": .55, "soft_hex": "340091"},
-    "blancopurpura": {"nh": 284, "nc": .012, "ah": 284, "sh": 320, "magenta": 350, "acc_hex": "340091", "claro": True},
+    # de ese violeta y el acento de texto empieza oscuro (al) y sube solo hasta leerse (4,5:1). Colores vivos (vivo):
+    # secundario azul eléctrico, magenta fucsia y estados radiantes. En el claro el aviso tira a ámbar (estados): un
+    # amarillo puro solo se lee sobre blanco si se oscurece hasta el oliva.
+    "purpura":       {"nh": 284, "nc": .045, "ah": 284, "sh": 235, "magenta": 345, "ac": .22, "al": .55, "soft_hex": "340091",
+                      "vivo": True, "estados": {"warn": 100}},
+    "blancopurpura": {"nh": 284, "nc": .012, "ah": 284, "sh": 235, "magenta": 345, "acc_hex": "340091", "claro": True,
+                      "vivo": True, "estados": {"warn": 62}},
 }
 ESTADOS = {"ok": (138, 148, 158), "warn": (80, 88, 96), "bad": (20, 26, 32)}
 
@@ -160,16 +164,34 @@ def tokens(nombre):
         r["soft"] = tuple(int(t["soft_hex"][i:i + 2], 16) for i in (0, 2, 4))
     r["acc_hi"] = rgb(luz(.82, .45), .13 if ac == .17 else ac * .76, ah)
     r["acc_dim"] = rgb(luz(.55, .72), .09 if ac == .17 else ac * .53, ah)
-    r["sec"] = ajustar(luz(.76, .55), .11, sh, peor, 4.5, sentido=sentido)
-    r["magenta"] = ajustar(luz(.76, .52), .12, t["magenta"], peor, 4.5, sentido=sentido)
     cerca = (ah, sh)
     def elegir(cands):
         return max(cands, key=lambda h: min(dist_matiz(x, h) for x in cerca))
     mt = {k: elegir(v) for k, v in ESTADOS.items()}
-    r["ok"] = ajustar(luz(.78, .55), .15, mt["ok"], peor, 4.5, sentido=sentido)
-    r["warn"] = ajustar(luz(.85, .60), .14, mt["warn"], peor, 4.5, sentido=sentido)
-    r["bad"] = ajustar(luz(.72, .55), .18, mt["bad"], peor, 4.5, sentido=sentido)
-    if claro:
+    mt.update(t.get("estados", {}))   # matices de estado fijados por el tema
+    if t.get("vivo"):
+        # vivo: secundario, magenta y estados al máximo croma que cabe en la pantalla (rgb() lo recorta al gamut),
+        # empezando en la luminosidad más luminosa que se sigue leyendo: amarillo, rojo y verde radiantes, no mates
+        V = .32
+        r["sec"] = ajustar(luz(.74, .56), V, sh, peor, 4.5, sentido=sentido)
+        r["magenta"] = ajustar(luz(.74, .56), V, t["magenta"], peor, 4.5, sentido=sentido)
+        r["ok"] = ajustar(luz(.86, .62), V, mt["ok"], peor, 4.5, sentido=sentido)
+        r["warn"] = ajustar(luz(.92, .70), V, mt["warn"], peor, 4.5, sentido=sentido)
+        r["bad"] = ajustar(luz(.70, .60), V, mt["bad"], peor, 4.5, sentido=sentido)
+    else:
+        r["sec"] = ajustar(luz(.76, .55), .11, sh, peor, 4.5, sentido=sentido)
+        r["magenta"] = ajustar(luz(.76, .52), .12, t["magenta"], peor, 4.5, sentido=sentido)
+        r["ok"] = ajustar(luz(.78, .55), .15, mt["ok"], peor, 4.5, sentido=sentido)
+        r["warn"] = ajustar(luz(.85, .60), .14, mt["warn"], peor, 4.5, sentido=sentido)
+        r["bad"] = ajustar(luz(.72, .55), .18, mt["bad"], peor, 4.5, sentido=sentido)
+    if t.get("vivo") and claro:
+        # rellenos radiantes (el aviso, amarillo puro de fondo) con el texto del estado oscuro encima
+        r["ok_soft"], r["warn_soft"] = rgb(.92, .20, mt["ok"]), rgb(.93, .20, 100)
+        r["warn_soft2"], r["bad_soft"] = rgb(.89, .20, 100), rgb(.90, .10, mt["bad"])
+    elif t.get("vivo"):
+        r["ok_soft"], r["warn_soft"] = rgb(.28, .08, mt["ok"]), rgb(.28, .08, mt["warn"])
+        r["warn_soft2"], r["bad_soft"] = rgb(.25, .07, mt["warn"]), rgb(.28, .10, mt["bad"])
+    elif claro:
         r["ok_soft"], r["warn_soft"] = rgb(.92, .05, mt["ok"]), rgb(.93, .05, mt["warn"])
         r["warn_soft2"], r["bad_soft"] = rgb(.89, .045, mt["warn"]), rgb(.92, .05, mt["bad"])
     else:
@@ -193,6 +215,8 @@ def comprobar():
                 if contraste(c[k], c[fondo]) < 4.5:
                     print(f"CONTRASTE {nombre}: {k} sobre {fondo} = {contraste(c[k], c[fondo]):.2f}"); fallos += 1
         for e in ("ok", "warn", "bad"):
+            if contraste(c[e], c[e + "_soft"]) < 4.5:
+                print(f"CONTRASTE {nombre}: {e} sobre {e}_soft = {contraste(c[e], c[e + '_soft']):.2f}"); fallos += 1
             for a in (t["ah"], t["sh"]):
                 if dist_matiz(a, mt[e]) < 30:
                     print(f"MATIZ {nombre}: {e} a {dist_matiz(a, mt[e])}° de un acento"); fallos += 1
