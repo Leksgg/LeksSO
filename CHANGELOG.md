@@ -5,9 +5,9 @@ Lo más reciente, arriba.
 
 ## Sin publicar
 
-+ **Tres apariencias nuevas: Grafito, Púrpura y Blanco y púrpura.** Grafito es gris casi neutro (un punto frío), algo más claro que los otros oscuros, con acento azul acero apagado y secundario lila: nada tira a verde. Púrpura es oscuro con grises de un punto violeta y acento púrpura; Blanco y púrpura, su versión clara. Pasan la comprobación de contraste (4,5:1) de todos los temas.
++ **Tres apariencias nuevas: Grafito, Púrpura y Blanco y púrpura.** Grafito es gris casi neutro (un punto frío), algo más claro que los otros oscuros, con acento azul acero apagado y secundario lila: nada tira a verde. Púrpura y Blanco y púrpura giran en torno al púrpura de marca #340091 (índigo profundo): en el claro es el acento tal cual (11,8:1 sobre el fondo); en el oscuro, donde como texto no se leería (1,4:1), es el relleno de selección, ventana enfocada y botón activo (texto encima a 11,3:1), los fondos se tiñen de ese violeta y el acento de texto es el tono más oscuro que todavía se lee (#8273ff). Pasan la comprobación de contraste (4,5:1) de todos los temas.
 ~ **Grafito es la apariencia de serie.** Se pone en las instalaciones nuevas y, al actualizar, a quien nunca eligió tema (esos equipos se veían con Marea, la base, sin haberla escogido). Quien eligió una en Apariencia la conserva. En Apariencia, Grafito sale la primera.
-* `aplicar-tema.py` admite por tema el croma del acento (`ac`) y cuánto se aclaran los neutros oscuros (`nl`); los temas existentes no cambian.
+* `aplicar-tema.py` admite por tema el croma del acento (`ac`), su luminosidad de partida (`al`), cuánto se aclaran los neutros oscuros (`nl`) y colores fijos de acento o relleno (`acc_hex`, `soft_hex`); los temas existentes no cambian.
 
 ## 0.1.59 · 2026-11-24
 

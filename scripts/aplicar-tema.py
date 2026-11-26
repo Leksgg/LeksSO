@@ -49,9 +49,11 @@ TEMAS = {
     # grafito (el de serie): neutros grises casi sin color, con un punto frío y algo más claros que los demás oscuros
     # (nl: cuánto suben); acento azul acero apagado (ac: croma del acento) y secundario lila, nada que tire a verde
     "grafito": {"nh": 255, "nc": .006, "ah": 245, "sh": 290, "magenta": 340, "ac": .09, "nl": .045},
-    # púrpura: oscuro con neutros de un punto violeta y acento púrpura; el secundario va hacia el azul lavanda
-    "purpura":       {"nh": 300, "nc": .016, "ah": 302, "sh": 255, "magenta": 345},
-    "blancopurpura": {"nh": 300, "nc": .010, "ah": 302, "sh": 255, "magenta": 345, "claro": True},
+    # púrpura: el de marca es #340091 (índigo profundo, matiz 284). En el claro es el acento tal cual (acc_hex). En el
+    # oscuro no se leería como texto (1,4:1), así que es el relleno de selección y foco (soft_hex), los neutros se tiñen
+    # de ese violeta y el acento de texto empieza oscuro (al) y sube solo hasta leerse (4,5:1). Secundario hacia el rosa.
+    "purpura":       {"nh": 284, "nc": .045, "ah": 284, "sh": 320, "magenta": 350, "ac": .22, "al": .55, "soft_hex": "340091"},
+    "blancopurpura": {"nh": 284, "nc": .012, "ah": 284, "sh": 320, "magenta": 350, "acc_hex": "340091", "claro": True},
 }
 ESTADOS = {"ok": (138, 148, 158), "warn": (80, 88, 96), "bad": (20, 26, 32)}
 
@@ -151,7 +153,11 @@ def tokens(nombre):
     luz = (lambda oscuro, claro_: claro_) if claro else (lambda oscuro, claro_: oscuro)
     r["muted"] = ajustar(luz(.70, .50), nc * .7, nh, peor, 4.5, sentido=sentido)
     ac = t.get("ac", .17)   # croma del acento; las variantes se escalan con él (con el de serie, .13 y .09 exactos)
-    r["acc"] = ajustar(luz(.74, .55), ac, ah, peor, 4.5, sentido=sentido)
+    r["acc"] = ajustar(t.get("al", luz(.74, .55)), ac, ah, peor, 4.5, sentido=sentido)
+    if "acc_hex" in t:
+        r["acc"] = tuple(int(t["acc_hex"][i:i + 2], 16) for i in (0, 2, 4))
+    if "soft_hex" in t:
+        r["soft"] = tuple(int(t["soft_hex"][i:i + 2], 16) for i in (0, 2, 4))
     r["acc_hi"] = rgb(luz(.82, .45), .13 if ac == .17 else ac * .76, ah)
     r["acc_dim"] = rgb(luz(.55, .72), .09 if ac == .17 else ac * .53, ah)
     r["sec"] = ajustar(luz(.76, .55), .11, sh, peor, 4.5, sentido=sentido)
