@@ -3,6 +3,10 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
+## Sin publicar
+
++ **Selector de archivos del sistema.** «Abrir» y «Guardar» de las aplicaciones usan ahora el selector de LXQt a través del portal de escritorio, con el tema de LeksSO y en español; antes sway no ofrecía ninguno y cada programa recurría al suyo, o no abría nada.
+
 ## 0.1.60 · 2026-11-26
 
 ~ **Apariencias: siete, por parejas.** Grafito (la de serie) y Grafito claro; Waves y Waves claro; Pizarra; Gris y rosa y Blanco y rosa.

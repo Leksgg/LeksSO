@@ -1,0 +1,5 @@
+[D-BUS Service]
+Name=org.freedesktop.impl.portal.desktop.lxqt
+# El de Debian fuerza QT_QPA_PLATFORMTHEME=lxqt, que LeksSO no tiene (el selector salía en claro). Este, en
+# /usr/local/share, manda sobre aquel y usa el mismo tema Qt que el resto del escritorio.
+Exec=/usr/bin/env QT_QPA_PLATFORMTHEME=qt6ct /usr/libexec/xdg-desktop-portal-lxqt

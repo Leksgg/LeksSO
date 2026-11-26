@@ -30,7 +30,7 @@ gaps inner 0
 # Los servicios de usuario (portales, avisos...) necesitan ver la pantalla de esta sesión: sin esto, un portal
 # (p. ej. el de GTK que instalan algunos programas) no arranca, el portal principal se queda esperando y la barra muere.
 # La barra espera a que el entorno esté pasado.
-exec sh -c 'dbus-update-activation-environment --systemd WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP=sway 2>/dev/null; exec leksso-barra'
+exec sh -c 'dbus-update-activation-environment --systemd WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP=sway QT_QPA_PLATFORMTHEME=qt6ct 2>/dev/null; exec leksso-barra'
 exec systemctl --user start leksso-permisor.service
 exec leksso-zonas
 exec leksso-actualizar comprobar --avisar

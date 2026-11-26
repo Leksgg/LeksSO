@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Comprobaciones estáticas de provision-base.sh, que corre con `set -u` y se reejecuta en cada actualización: una variable
 usada antes de definirse la rompería entera (pasó con RAIZ). Uso: python3 scripts/test_provision.py"""
+import configparser
 import os
 import re
 import subprocess
@@ -48,6 +49,24 @@ class Pruebas(unittest.TestCase):
         self.assertNotIn("labwc", array.replace("(", " ").replace(")", " ").split())
         self.assertFalse([l for l in codigo if "labwc" in l and "purge" not in l and "dpkg -s" not in l], "solo puede quedar la retirada")
         self.assertTrue([l for l in codigo if "apt-get purge -y labwc" in l])
+
+    def test_el_portal_ofrece_selector_de_archivos_con_el_tema_de_leksso(self):
+        array = [l for l in self.lineas if l.startswith("ESCRITORIO=")][0].split("#")[0].replace("(", " ").replace(")", " ").split()
+        self.assertIn("xdg-desktop-portal-wlr", array)           # compartir pantalla y capturas
+        self.assertIn("xdg-desktop-portal-lxqt", array)          # abrir y guardar archivos
+        self.assertIn("/etc/xdg-desktop-portal/sway-portals.conf", "\n".join(self.lineas))
+        raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        portales = configparser.ConfigParser()
+        portales.read(os.path.join(raiz, "config", "xdg-desktop-portal", "sway-portals.conf"), encoding="utf-8")
+        self.assertEqual(portales["preferred"]["org.freedesktop.impl.portal.filechooser"], "lxqt")
+        self.assertTrue(portales["preferred"]["default"].startswith("wlr"))
+        sway = open(os.path.join(raiz, "config", "sway", "config"), encoding="utf-8").read()
+        self.assertRegex(sway, r"dbus-update-activation-environment [^\n]*QT_QPA_PLATFORMTHEME=qt6ct")   # el selector es Qt
+        # Debian arranca ese selector con el tema de LXQt: nuestro servicio, en /usr/local/share, lo cambia por el de LeksSO
+        self.assertIn("/usr/local/share/dbus-1/services/", "\n".join(self.lineas))
+        servicio = open(os.path.join(raiz, "config", "xdg-desktop-portal", "org.freedesktop.impl.portal.desktop.lxqt.service"), encoding="utf-8").read()
+        self.assertIn("Exec=/usr/bin/env QT_QPA_PLATFORMTHEME=qt6ct /usr/libexec/xdg-desktop-portal-lxqt", servicio)
+        self.assertIn("libfm-qt-l10n", array)                    # el selector en español
 
     def test_no_instala_npm_ni_los_asistentes_en_cada_provision(self):
         for l in self.lineas:

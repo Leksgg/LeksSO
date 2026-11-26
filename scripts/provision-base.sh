@@ -40,7 +40,7 @@ install -d /etc/apt/apt.conf.d
 install -m 0644 "$RAIZ/config/apt/99leksso-auditoria" /etc/apt/apt.conf.d/99leksso-auditoria
 
 # Paquetes por capa. Todos existen en Debian 13 (trixie); winetricks necesita la sección contrib.
-ESCRITORIO=(sway swaybg waybar kitty fuzzel grim pcmanfm-qt qt6-wayland qt6-svg-plugins qt6ct xwayland wtype fonts-font-awesome fonts-montserrat fonts-jetbrains-mono seatd xdg-desktop-portal-wlr micro imv zathura zathura-pdf-poppler mpv vlc xarchiver udisks2 udiskie gvfs gvfs-backends polkitd ntfs-3g exfatprogs usbutils v4l-utils bluez pavucontrol-qt swaylock gtklock wayvnc tigervnc-viewer wl-clipboard mako-notifier libnotify-bin swayidle brightnessctl slurp cliphist wdisplays blueman cups avahi-daemon libnss-mdns system-config-printer fonts-noto-color-emoji fonts-liberation fonts-montserrat ffmpegthumbnailer power-profiles-daemon playerctl wlr-randr network-manager streamdeck-ui python3-pyside6.qtwidgets python3-pyside6.qtgui python3-pyside6.qtcore python3-pyside6.qtsvg)
+ESCRITORIO=(sway swaybg waybar kitty fuzzel grim pcmanfm-qt qt6-wayland qt6-svg-plugins qt6ct xwayland wtype fonts-font-awesome fonts-montserrat fonts-jetbrains-mono seatd xdg-desktop-portal-wlr xdg-desktop-portal-lxqt libfm-qt-l10n qt6-translations-l10n micro imv zathura zathura-pdf-poppler mpv vlc xarchiver udisks2 udiskie gvfs gvfs-backends polkitd ntfs-3g exfatprogs usbutils v4l-utils bluez pavucontrol-qt swaylock gtklock wayvnc tigervnc-viewer wl-clipboard mako-notifier libnotify-bin swayidle brightnessctl slurp cliphist wdisplays blueman cups avahi-daemon libnss-mdns system-config-printer fonts-noto-color-emoji fonts-liberation fonts-montserrat ffmpegthumbnailer power-profiles-daemon playerctl wlr-randr network-manager streamdeck-ui python3-pyside6.qtwidgets python3-pyside6.qtgui python3-pyside6.qtcore python3-pyside6.qtsvg)
 AUDIO=(pipewire pipewire-pulse wireplumber alsa-ucm-conf alsa-utils libspa-0.2-bluetooth)   # ucm: micrófono y altavoz del portátil; bluetooth: auriculares
 AISLAMIENTO=(bubblewrap python3-seccomp passt)    # firejail se quitó: nada lo llamaba y en Debian es un binario con privilegios de root
 HERRAMIENTAS=(git curl btop lm-sensors python3 bc pciutils mokutil fwupd plocate restic efibootmgr)   # plocate: búsqueda de archivos; restic: copias de seguridad
@@ -109,6 +109,11 @@ install -d /usr/share/icons
 cp -r "$RAIZ/config/iconos/LeksSO" /usr/share/icons/
 gtk-update-icon-cache -f /usr/share/icons/LeksSO 2>/dev/null || true
 grep -q '^QT_QPA_PLATFORMTHEME=' /etc/environment 2>/dev/null || echo 'QT_QPA_PLATFORMTHEME=qt6ct' >> /etc/environment
+# Selectores de archivo del portal: sin esto, sway no ofrece ninguno y cada programa improvisa el suyo (o no abre nada).
+install -d -m 0755 /etc/xdg-desktop-portal
+install -m 0644 "$RAIZ/config/xdg-desktop-portal/sway-portals.conf" /etc/xdg-desktop-portal/sway-portals.conf
+install -d -m 0755 /usr/local/share/dbus-1/services
+install -m 0644 "$RAIZ/config/xdg-desktop-portal/org.freedesktop.impl.portal.desktop.lxqt.service" /usr/local/share/dbus-1/services/
 
 # Permisor de IA, panel, gestor de modelos y caja (en /usr/local, solo lectura para el usuario).
 install -d -m 0755 /usr/local/lib/leksso-ia
