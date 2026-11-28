@@ -3,7 +3,7 @@
 Formato: `+` nuevo · `-` eliminado o retirado · `~` modificado · `*` otros.
 Lo más reciente, arriba.
 
-## Sin publicar
+## 0.1.61 · 2026-11-28
 
 * **Vídeo por la gráfica.** La base no traía ningún controlador de decodificación (VA-API) y el vídeo se decodificaba en el procesador; ahora vienen los de AMD e Intel, y el de NVIDIA se añade con su controlador. También rtkit, y la salida HDMI queda en PCM para que el audio comprimido no atasque la reproducción.
 + **Proyectar.** Botón nuevo en el raíl (y Súper+P): extender, duplicar (con wl-mirror) o usar solo una pantalla, con vuelta atrás si no se confirma en 15 s. Una pantalla nueva se extiende sola.
