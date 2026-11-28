@@ -50,6 +50,8 @@ exec leksso-hora
 exec leksso-solicitud vigilar
 # Pantalla compartida: ventana de permiso, botón PARAR y corte por tiempo o al bloquear
 exec leksso-pantalla vigilar
+# Pantallas: al conectar o quitar una se rehace la barra (ver leksso-proyectar)
+exec leksso-proyectar vigilar
 exec udiskie --no-tray --no-notify --automount
 
 # El menú de aplicaciones flota en el centro de la pantalla
@@ -64,6 +66,7 @@ for_window [app_id="leksso-calendario"] floating enable, resize set 380 520, mov
 for_window [app_id="leksso-dispositivos"] floating enable, resize set 420 520, move position center
 for_window [app_id="leksso-solicitud"] floating enable, resize set 480 330, move position center, sticky enable
 for_window [app_id="leksso-remoto"] floating enable, resize set 520 640, move position center
+for_window [app_id="leksso-proyectar"] floating enable, resize set 420 480, move position center
 for_window [app_id="leksso-pantalla"] floating enable, sticky enable, move position center, focus
 for_window [app_id="leksso-pantalla-parar"] floating enable, sticky enable, resize set 280 170, move position 78 ppt 3 ppt
 for_window [app_id="leksso-redes"] floating enable, resize set 460 480, move position center
@@ -84,6 +87,12 @@ bindsym $mod+q kill
 bindsym $mod+Shift+c reload
 bindsym $mod+Shift+e exec swaymsg exit
 bindsym $mod+a exec leksso-panel-ia
+
+# Pantallas: Súper+P elige el modo; la ventana se envía a otra con Súper+Mayús+flechas o con clic derecho en su pestaña
+bindsym $mod+p exec leksso-proyectar
+bindsym $mod+Shift+Right exec leksso-proyectar enviar siguiente
+bindsym $mod+Shift+Left exec leksso-proyectar enviar anterior
+bindsym button3 focus, exec leksso-proyectar menu
 
 # Cambiar de app en el centro
 bindsym $mod+Tab focus next

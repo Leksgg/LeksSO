@@ -80,6 +80,15 @@ class Pruebas(unittest.TestCase):
                          "leksso-bloqueos.service", "leksso_conexiones_ui.py", "confiables-de-fabrica.json"):
             self.assertIn(esperado, texto, esperado)
 
+    def test_el_video_tiene_controladores_de_la_grafica(self):
+        # La base se instala sin «recomendados»: los controladores de decodificación hay que pedirlos por su nombre.
+        grafica = next(l for l in self.lineas if l.startswith("GRAFICA=("))
+        for paquete in ("mesa-va-drivers", "intel-media-va-driver", "i965-va-driver"):
+            self.assertIn(paquete, grafica)
+        texto = "\n".join(self.lineas)
+        for esperado in ("nvidia-vaapi-driver", "intel-media-va-driver-non-free", "51-leksso-hdmi-pcm.conf", "rtkit"):
+            self.assertIn(esperado, texto, esperado)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -20,6 +20,9 @@ while [ "$fallos" -lt 20 ]; do
   waybar >> "$LOG" 2>&1
   rc=$?
   vivio=$(( $(date +%s) - inicio ))
+  # cierre pedido por leksso-proyectar (cambiaron las pantallas): no cuenta como caída
+  marca="${XDG_RUNTIME_DIR:-/tmp}/leksso-barra.reiniciar"
+  if [ -e "$marca" ]; then rm -f "$marca"; fallos=0; continue; fi
   printf '%s waybar terminó (código %s) tras %s s\n' "$(date '+%F %T')" "$rc" "$vivio" >> "$LOG"
   # una salida limpia a petición del usuario no se reinicia; un cierre rápido o por señal, sí
   [ "$rc" -eq 0 ] && [ "$vivio" -gt 5 ] && break

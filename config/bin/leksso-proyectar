@@ -1,0 +1,342 @@
+#!/usr/bin/env python3
+"""Proyectar: qué hacer con las pantallas y cómo pasar ventanas de una a otra.
+
+  leksso-proyectar                      abre la ventana (botón «Proyectar» del raíl o Súper+P; otro clic la cierra)
+  leksso-proyectar enviar siguiente     manda la ventana enfocada a la pantalla siguiente (o: anterior, o su nombre)
+  leksso-proyectar menu                 elige en un menú a qué pantalla mandarla (clic derecho en la pestaña)
+  leksso-proyectar vigilar              al conectar o quitar pantallas: rehace la barra y nunca deja todo apagado
+
+Una pantalla nueva se extiende sola (lo hace sway). Duplicar usa wl-mirror. La resolución y la posición siguen en
+Ajustes, Pantallas (wdisplays).
+"""
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+
+INTERNAS = ("eDP", "LVDS", "DSI")
+SEGUNDOS = 15        # tiempo para confirmar un modo que apaga una pantalla
+
+
+def correr(cmd, **kw):
+    try:
+        return subprocess.run(cmd, capture_output=True, text=True, timeout=10, **kw)
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
+# ---------- lógica (sin ventana ni pantallas, para poder probarla) ----------
+def ordenar(salidas):
+    """La principal primero (la del propio portátil si la hay; si no, por nombre) y las demás por nombre."""
+    return sorted(salidas, key=lambda s: (not s["name"].startswith(INTERNAS), s["name"]))
+
+
+def etiqueta(salida, numero):
+    quien = " ".join(x for x in (salida.get("make"), salida.get("model")) if x and x != "Unknown")
+    return f"Pantalla {numero} · {quien or salida['name']}"
+
+
+def ordenes(modo, salidas):
+    """Órdenes de sway para un modo. `modo`: extender, duplicar o solo:NOMBRE. Siempre se enciende antes de apagar, y
+    nunca se apaga nada si la pantalla que debe quedar no existe."""
+    nombres = [s["name"] for s in ordenar(salidas)]
+    if modo in ("extender", "duplicar"):
+        return [f"output {n} enable" for n in nombres]
+    if modo.startswith("solo:") and modo[5:] in nombres:
+        queda = modo[5:]
+        return [f"output {queda} enable"] + [f"output {n} disable" for n in nombres if n != queda]
+    return []
+
+
+def destino(activas, actual, cual):
+    """Nombre de la pantalla a la que mandar la ventana, o None si no hay otra."""
+    nombres = [s["name"] for s in ordenar(activas)]
+    otras = [n for n in nombres if n != actual]
+    if not otras:
+        return None
+    if cual in ("siguiente", "anterior"):
+        i = nombres.index(actual) if actual in nombres else 0
+        return nombres[(i + (1 if cual == "siguiente" else -1)) % len(nombres)]
+    return cual if cual in otras else None
+
+
+def firma(salidas):
+    """Cambia cuando se conecta, se quita, se enciende, se apaga o se mueve una pantalla (también si es la misma tele
+    que se vuelve a conectar: su identificador es otro)."""
+    return sorted((s["name"], s.get("id"), bool(s.get("active")), json.dumps(s.get("rect"), sort_keys=True))
+                  for s in salidas)
+
+
+def posiciones(salidas):
+    """Dónde está cada pantalla encendida: {nombre: [x, y]}."""
+    return {s["name"]: [s["rect"]["x"], s["rect"]["y"]] for s in salidas if s.get("active")}
+
+
+def recolocar(guardadas, salidas):
+    """Órdenes para devolver cada pantalla a su sitio: al apagar y encender, sway las recoloca por su cuenta. Solo si
+    siguen conectadas las mismas que cuando se guardó."""
+    if set(guardadas) != {s["name"] for s in salidas}:
+        return []
+    return [f"output {n} position {int(x)} {int(y)}" for n, (x, y) in sorted(guardadas.items())]
+
+
+# ---------- sistema ----------
+def archivo_posiciones():
+    return os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), "leksso-proyectar.posiciones")
+
+
+def salidas():
+    r = correr(["swaymsg", "-t", "get_outputs", "-r"])
+    try:
+        return [s for s in json.loads(r.stdout) if not s.get("non_desktop")]
+    except (AttributeError, ValueError):
+        return []
+
+
+def sway(orden):
+    r = correr(["swaymsg", orden])
+    return r is not None and r.returncode == 0
+
+
+def quitar_espejo():
+    correr(["pkill", "-u", str(os.getuid()), "-x", "wl-mirror"])
+
+
+def poner(modo, destino_espejo=None):
+    """Aplica un modo. Devuelve '' o el motivo por el que no se pudo."""
+    todas = salidas()
+    lista = ordenes(modo, todas)
+    if not lista:
+        return "Esa pantalla ya no está conectada."
+    if modo == "duplicar" and shutil.which("wl-mirror") is None:
+        return "Falta wl-mirror: sudo apt install wl-mirror"
+    quitar_espejo()
+    if modo.startswith("solo:"):
+        if len(todas) > 1 and all(s.get("active") for s in todas):       # antes de apagar: dónde estaba cada una
+            with open(archivo_posiciones(), "w", encoding="utf-8") as f:
+                json.dump(posiciones(todas), f)
+    else:
+        try:
+            with open(archivo_posiciones(), encoding="utf-8") as f:
+                lista = lista + recolocar(json.load(f), todas)
+        except (OSError, ValueError, TypeError):
+            pass
+    for o in lista:
+        if not sway(o):
+            return "sway no aceptó el cambio: " + o
+    if modo == "duplicar":
+        nombres = [s["name"] for s in ordenar(todas)]
+        if len(nombres) < 2:
+            return "Hace falta una segunda pantalla."
+        origen = nombres[0]
+        copia = destino_espejo if destino_espejo in nombres[1:] else nombres[1]
+        time.sleep(0.5)
+        subprocess.Popen(["wl-mirror", "--fullscreen-output", copia, origen], start_new_session=True,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return ""
+
+
+def foco():
+    """Nombre de la pantalla que tiene el foco."""
+    r = correr(["swaymsg", "-t", "get_workspaces", "-r"])
+    try:
+        return next((w["output"] for w in json.loads(r.stdout) if w.get("focused")), None)
+    except (AttributeError, ValueError):
+        return None
+
+
+def enviar(cual):
+    activas = [s for s in salidas() if s.get("active")]
+    a = destino(activas, foco(), cual)
+    if a is None:
+        correr(["notify-send", "Proyectar", "No hay otra pantalla a la que enviar la ventana."])
+        return 1
+    return 0 if sway(f'move container to output "{a}"; focus output "{a}"') else 1
+
+
+def menu():
+    activas = ordenar([s for s in salidas() if s.get("active")])
+    actual = foco()
+    opciones = [(s["name"], "Enviar a " + etiqueta(s, i)) for i, s in enumerate(activas, 1) if s["name"] != actual]
+    if not opciones:
+        return 0        # con una sola pantalla el clic derecho no hace nada
+    try:
+        r = subprocess.run(["fuzzel", "--dmenu", "--index", "--prompt", "Ventana: ", "--lines", str(len(opciones)),
+                            "--width", "56"], input="\n".join(t for _, t in opciones), capture_output=True, text=True)
+    except OSError:
+        return 1
+    n = r.stdout.strip()
+    if r.returncode == 0 and n.isdigit() and int(n) < len(opciones):
+        return enviar(opciones[int(n)][0])
+    return 0
+
+
+def reiniciar_barra():
+    """waybar puede dejar dos barras en una pantalla que se vuelve a conectar: se cierra y leksso-barra la abre limpia.
+    La marca le dice que es a propósito y no una caída."""
+    with open(os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), "leksso-barra.reiniciar"), "w"):
+        pass
+    correr(["pkill", "-u", str(os.getuid()), "-x", "waybar"])
+
+
+def revisar(anterior):
+    """Tras un aviso de sway: devuelve la firma nueva y actúa solo si algo cambió."""
+    todas = salidas()
+    if todas and not any(s.get("active") for s in todas):
+        for o in ordenes("extender", todas):        # se quitó la única encendida: se vuelve a encender el resto
+            sway(o)
+        todas = salidas()
+    nueva = firma(todas)
+    if anterior is not None and nueva != anterior:
+        if sum(bool(s.get("active")) for s in todas) < 2:
+            quitar_espejo()
+        reiniciar_barra()
+    return nueva
+
+
+def vigilar():
+    import select
+    p = subprocess.Popen(["swaymsg", "-t", "subscribe", "-m", '["output"]'], stdout=subprocess.PIPE)
+    vista = revisar(None)
+    fd = p.stdout.fileno()
+    while os.read(fd, 4096):
+        # una conexión llega en varios avisos: se espera a que pasen 2 s tranquilos
+        while select.select([fd], [], [], 2)[0]:
+            if not os.read(fd, 4096):
+                return 0
+        vista = revisar(vista)
+    return 0
+
+
+def ventana():
+    sys.path.insert(0, "/usr/local/lib/leksso-ui")
+    from PySide6 import QtCore, QtWidgets
+    from leksso_ui import ESTILO_BASE, alternar, estilo
+
+    if alternar("leksso-proyectar"):
+        return 0
+
+    class Proyectar(QtWidgets.QWidget):
+        tuvo_foco = False
+        cambiando = False
+
+        def __init__(self):
+            super().__init__()
+            self.setWindowTitle("Proyectar")
+            estilo(self, ESTILO_BASE)
+            raiz = QtWidgets.QVBoxLayout(self)
+            raiz.setContentsMargins(14, 10, 14, 14)
+            cab = QtWidgets.QHBoxLayout()
+            t = QtWidgets.QLabel("Proyectar")
+            t.setObjectName("titulo")
+            cab.addWidget(t)
+            cab.addStretch()
+            x = QtWidgets.QPushButton("✕")
+            x.setObjectName("cerrar")
+            x.setToolTip("Cerrar (Esc)")
+            x.clicked.connect(self.close)
+            cab.addWidget(x)
+            raiz.addLayout(cab)
+            todas = ordenar(salidas())
+            for i, s in enumerate(todas, 1):
+                e = QtWidgets.QLabel(etiqueta(s, i) + ("" if s.get("active") else " (apagada)"))
+                e.setObjectName("nota")
+                raiz.addWidget(e)
+            if len(todas) < 2:
+                e = QtWidgets.QLabel("Solo hay una pantalla. Conecta otra y se extenderá sola.")
+                e.setWordWrap(True)
+                raiz.addWidget(e)
+            else:
+                self.boton(raiz, "Extender\nCada pantalla con sus ventanas", "extender")
+                self.boton(raiz, "Duplicar\nLa segunda enseña lo mismo que la primera", "duplicar")
+                for i, s in enumerate(todas, 1):
+                    self.boton(raiz, f"Solo la pantalla {i}\nLas demás se apagan", "solo:" + s["name"])
+            self.aviso = QtWidgets.QLabel("")
+            self.aviso.setWordWrap(True)
+            raiz.addWidget(self.aviso)
+            raiz.addStretch(1)
+
+        def boton(self, raiz, texto, modo):
+            b = QtWidgets.QPushButton(texto)
+            b.setObjectName("accion")
+            b.clicked.connect(lambda _=False: self.elegir(modo))
+            raiz.addWidget(b)
+
+        def elegir(self, modo):
+            self.cambiando = True       # al apagar o encender pantallas la ventana pierde el foco: no se cierra
+            error = poner(modo)
+            if error:
+                self.aviso.setText(error)
+            elif modo.startswith("solo:") and not self.confirmar():
+                poner("extender")
+                self.aviso.setText("Se ha vuelto a «Extender».")
+            else:
+                self.close()
+            QtCore.QTimer.singleShot(1500, lambda: setattr(self, "cambiando", False))
+
+        def confirmar(self):
+            """Si no se confirma a tiempo (o se cierra), se deshace: así nadie se queda sin ver nada."""
+            m = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Question, "Proyectar", "", QtWidgets.QMessageBox.NoButton, self)
+            si = m.addButton("Dejarlo así", QtWidgets.QMessageBox.AcceptRole)
+            no = m.addButton("Deshacer", QtWidgets.QMessageBox.RejectRole)
+            m.setDefaultButton(no)
+            m.setEscapeButton(no)
+            quedan = [SEGUNDOS]
+
+            def paso():
+                m.setText(f"¿Se ve bien? Se deshace en {quedan[0]} s.")
+                if quedan[0] <= 0:
+                    m.reject()
+                quedan[0] -= 1
+            reloj = QtCore.QTimer(m)
+            reloj.timeout.connect(paso)
+            reloj.start(1000)
+            paso()
+            m.exec()
+            reloj.stop()
+            return m.clickedButton() is si
+
+        def keyPressEvent(self, ev):
+            if ev.key() == QtCore.Qt.Key_Escape:
+                self.close()
+            else:
+                super().keyPressEvent(ev)
+
+        def changeEvent(self, ev):
+            if ev.type() == QtCore.QEvent.ActivationChange and not self.cambiando:
+                if self.tuvo_foco and not self.isActiveWindow() and QtWidgets.QApplication.activeModalWidget() is None:
+                    self.close()
+                elif self.isActiveWindow():
+                    self.tuvo_foco = True
+            super().changeEvent(ev)
+
+    app = QtWidgets.QApplication(sys.argv)
+    app.setDesktopFileName("leksso-proyectar")
+    w = Proyectar()
+    w.resize(420, 480)
+    w.show()
+    return app.exec()
+
+
+def main(argv):
+    if not argv:
+        return ventana()
+    if argv[0] == "enviar" and len(argv) == 2:
+        return enviar(argv[1])
+    if argv == ["menu"]:
+        return menu()
+    if argv == ["vigilar"]:
+        return vigilar()
+    if argv[0] == "modo" and len(argv) == 2:
+        error = poner(argv[1])
+        if error:
+            print(error, file=sys.stderr)
+        return 1 if error else 0
+    print(__doc__)
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

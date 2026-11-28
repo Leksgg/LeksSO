@@ -4,12 +4,13 @@
 #
 # Uso:
 #   caja.sh [--rw CARPETA]... [--ro CARPETA]... [--env VAR=VALOR]... [--red] [--gui [--x11] | --gui-completa] [--audio]
-#           [--gpu] [--wine PREFIJO] -- programa [argumentos]
+#           [--gpu] [--sys] [--wine PREFIJO] -- programa [argumentos]
 #   --gui: ventana en el escritorio por un socket Wayland RESTRINGIDO (contexto de seguridad de sway: sin captura de
 #          pantalla, portapapeles global, teclado ni ratón virtuales, ni lista de ventanas). Si no se puede crear, no arranca.
 #   --x11: además, Xwayland (lo necesita Wine hoy; los programas X11 se ven entre sí y a los X11 de la sesión).
 #   --gui-completa: el socket de la sesión SIN restringir, con Xwayland. Solo para programas de plena confianza.
 #   --audio: PipeWire/Pulse. --gpu: /dev/dri.
+#   --sys: /sys en solo lectura (enseña el hardware del equipo) y /usr/sbin; lo necesita el contenedor de Proton (umu).
 #   --ia: caja para una IA local; solo ve el socket del permisor (leksso-ia.sock) y pide permiso para todo.
 #   --ia-nube: igual para una IA en la nube (usa el canal «nube», que siempre pregunta); necesita --red.
 #   --estricta: filtro seccomp para programas NO fiables (sin espacios de usuario, mount, ptrace, bpf...).
@@ -23,7 +24,7 @@
 # En Wine, la unidad Z: solo ve la caja, no tu sistema real.
 set -euo pipefail
 
-RW=(); RO=(); ENV=(); RED=0; PREFIJO=""; GUI=0; GUI_COMPLETA=0; X11=0; AUDIO=0; GPU=0; ESTRICTA=0; IA=""
+RW=(); RO=(); ENV=(); RED=0; PREFIJO=""; GUI=0; GUI_COMPLETA=0; X11=0; AUDIO=0; GPU=0; SIS=0; ESTRICTA=0; IA=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --ia)      [ -z "$IA" ] || { echo "Usa --ia o --ia-nube, no los dos" >&2; exit 2; }; IA="leksso-ia.sock"; shift ;;
@@ -36,6 +37,7 @@ while [ $# -gt 0 ]; do
     --x11)   X11=1; shift ;;
     --audio) AUDIO=1; shift ;;
     --gpu)   GPU=1; shift ;;
+    --sys)   SIS=1; shift ;;
     --estricta) ESTRICTA=1; shift ;;
     --rw)   RW+=("$(realpath "$2")"); shift 2 ;;
     --ro)   RO+=("$(realpath "$2")"); shift 2 ;;
@@ -69,6 +71,9 @@ if [ "$RED" -eq 1 ]; then
     echo "AVISO: la caja comparte la red del equipo (sockets locales y servicios en localhost incluidos)." >&2
   elif command -v pasta >/dev/null 2>&1; then
     PREFIJO_RED=(pasta --config-net --quiet -t none -u none -T none -U none --no-map-gw --)   # sin reenvío de puertos en ningún sentido
+    # pasta deja dentro de su espacio al usuario como uid 0: dentro de la caja vuelve a ser tu usuario (umu y otros
+    # programas se niegan a ejecutarse como root).
+    ARGS+=(--unshare-user --uid "$(id -u)" --gid "$(id -g)")
   else
     # Cerrada por defecto: sin pasta NO se arranca la caja con red (antes se compartía la del equipo en silencio).
     echo "ERROR: falta pasta (paquete passt): la caja con red no se arranca sin una red propia. Instálalo con «sudo apt install passt»." >&2
@@ -119,6 +124,7 @@ if [ "$AUDIO" -eq 1 ]; then
   [ -S "$RT/pulse/native" ] && ARGS+=(--bind "$RT/pulse/native" "$DENTRO/pulse/native" --setenv PULSE_SERVER "unix:$DENTRO/pulse/native")
 fi
 [ "$GPU" -eq 1 ] && [ -d /dev/dri ] && ARGS+=(--dev-bind /dev/dri /dev/dri)
+[ "$SIS" -eq 1 ] && ARGS+=(--ro-bind /sys /sys --symlink usr/sbin /sbin --setenv PATH /usr/local/bin:/usr/bin:/bin:/usr/sbin)
 
 [ "${#ENV[@]}" -gt 0 ] && ARGS+=("${ENV[@]}")
 for d in "${RW[@]}"; do ARGS+=(--bind "$d" "/home/caja/$(basename "$d")"); done

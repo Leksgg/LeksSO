@@ -5,6 +5,16 @@ Lo más reciente, arriba.
 
 ## Sin publicar
 
+* **Vídeo por la gráfica.** La base no traía ningún controlador de decodificación (VA-API) y el vídeo se decodificaba en el procesador; ahora vienen los de AMD e Intel, y el de NVIDIA se añade con su controlador. También rtkit, y la salida HDMI queda en PCM para que el audio comprimido no atasque la reproducción.
++ **Proyectar.** Botón nuevo en el raíl (y Súper+P): extender, duplicar (con wl-mirror) o usar solo una pantalla, con vuelta atrás si no se confirma en 15 s. Una pantalla nueva se extiende sola.
++ **Enviar ventanas a otra pantalla:** Súper+Mayús+flechas o clic derecho en la pestaña.
+* **Barra y raíl dobles en la segunda pantalla:** la barra se rehace al conectar, quitar o cambiar pantallas.
+~ **Solicitud de conexión con una clave protegida por contraseña.** `leksso-solicitud pedir` ya no insiste cada 4 segundos con una clave que no puede usar sola (decía «Nadie lo ha permitido» aunque se hubiera permitido). Ahora, cuando pulsas Intro, prueba una vez y deja que SSH pida la contraseña; sin terminal, explica cómo entrar.
++ **Proton en el catálogo** (grupo «Proton», se instala por nombre o grupo): Pass, Authenticator y Mail, comprobando la suma SHA-512 que publica Proton y con llavero para guardar la sesión (repetir el comando los actualiza); VPN desde el repositorio firmado de Proton, sin garantía fuera de GNOME y sin túnel dividido (su servicio queda apagado). El llavero pide crear una contraseña la primera vez y desbloquearlo tras cada arranque.
++ **umu-launcher** (de terceros) en Juegos y la orden `leksso-proton programa.exe`, que ejecuta programas de Windows con Proton dentro de la caja (con la opción nueva `caja --sys`: `/sys` en solo lectura).
+* **Caja con red:** los programas de dentro se ejecutaban con el usuario 0 del espacio de `pasta`; ahora, con tu usuario.
++ **Bandeja del sistema** en la barra de abajo, para los iconos de las aplicaciones.
++ **7-Zip y unrar-free de serie** (también en el pendrive sin red): zip, 7z y rar sin instalar nada. unrar-free no abre todos los RAR recientes.
 + **Selector de archivos del sistema.** «Abrir» y «Guardar» de las aplicaciones usan ahora el selector de LXQt a través del portal de escritorio, con el tema de LeksSO y en español; antes sway no ofrecía ninguno y cada programa recurría al suyo, o no abría nada.
 
 ## 0.1.60 · 2026-11-26

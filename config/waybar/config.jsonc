@@ -13,6 +13,7 @@
       "custom/camara",
       "custom/notificaciones",
       "custom/remoto",
+      "custom/proyectar",
       "custom/captura",
       "custom/actualizaciones",
       "custom/asistente",
@@ -41,6 +42,11 @@
       "format": "",
       "tooltip-format": "Cámara y micrófono",
       "on-click": "leksso-dispositivos"
+    },
+    "custom/proyectar": {
+      "format": "\uf24d",
+      "tooltip-format": "Proyectar: pantallas (Súper+P)",
+      "on-click": "leksso-proyectar"
     },
     "custom/notificaciones": {
       "format": "",
@@ -116,6 +122,7 @@
       "custom/ia",
       "custom/pantalla",
       "custom/dispositivos",
+      "tray",
       "cpu",
       "memory",
       "pulseaudio",
@@ -123,6 +130,10 @@
       "custom/bateria",
       "clock"
     ],
+    "tray": {
+      "icon-size": 18,
+      "spacing": 8
+    },
     "wlr/taskbar": {
       "format": "{icon} {title:.26}",
       "ignore-list": ["Operativa usuario", "Panel de la IA", "Carpetas"],

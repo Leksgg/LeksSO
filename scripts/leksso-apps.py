@@ -9,9 +9,10 @@
   Opciones: --simular (solo muestra lo que haría), --si (no pregunta)
 
 Fuentes: paquetes de Debian, repositorios firmados del proveedor (Brave, VS Code),
-descargas directas .deb del proveedor (Discord, Obsidian, Heroic, r2modman)
-y npm (Claude Code, Codex). Nada se ejecuta sin que lo pidas.
+descargas directas .deb del proveedor (Discord, Obsidian, Heroic, r2modman),
+descargas comprobadas por su suma (Proton, umu-launcher) y npm (Claude Code, Codex). Nada se ejecuta sin que lo pidas.
 """
+import hashlib
 import json
 import os
 import re
@@ -22,7 +23,7 @@ import tempfile
 import urllib.request
 
 # (grupo, id, equivale a (Windows), tipo, objetivo, comprobación, nota)
-# tipos: apt, repo-brave, repo-vscode, steam, deb-url, deb-github, npm, script, vscode-ext, manual
+# tipos: apt, repo-brave, repo-vscode, steam, deb-url, deb-github, deb-proton, vpn-proton, umu, npm, script, vscode-ext, manual
 CATALOGO = [
     # Desarrollo
     ("Desarrollo", "git", "Git", "apt", "git", "git", ""),
@@ -72,14 +73,26 @@ CATALOGO = [
      "Funciona sin conexión. En el menú también tienes Word, Excel y PowerPoint en su versión web (gratis, con cuenta de Microsoft)."),
     ("Multimedia", "pdf", "Wondershare PDFelement", "apt", "okular", "okular", "Leer y anotar. Edición avanzada de PDF: sin equivalente directo."),
     # Utilidades
-    ("Utilidades", "compresores", "WinRAR", "apt", "p7zip-full unrar-free", "p7zip-full", "Zip, 7z, rar y tar."),
+    ("Utilidades", "compresores", "WinRAR", "apt", "7zip unrar-free", "7zip", "Ya viene con LeksSO. Zip, 7z, rar y tar."),
     ("Utilidades", "discos", "Administración de discos (Windows: Administración de discos)", "apt", "gparted gnome-disk-utility smartmontools", "gparted", "GParted (particiones), Discos de GNOME (formatear, montar, salud) y smartmontools. Para el disco del propio sistema, ver Ajustes, Discos."),
     ("Utilidades", "monitor", "CPUID HWMonitor / SIV", "apt", "btop lm-sensors", "btop", ""),
     ("Utilidades", "logitech", "Logi Options+", "apt", "solaar", "solaar", ""),
     ("Utilidades", "copias", "Smart Backup", "apt", "timeshift", "timeshift", "Las copias de tus archivos ya vienen con LeksSO (Ajustes, Copias). Esto añade Timeshift, para puntos de restauración del sistema; es avanzado."),
     ("Utilidades", "antivirus", "Malwarebytes", "apt", "clamav", "clamav", "Opcional. En Linux con la caja y sin ejecución por doble clic suele sobrar."),
     ("Utilidades", "vpn", "ExpressVPN", "apt", "wireguard", "wireguard", "WireGuard con la configuración de tu proveedor."),
+    # Proton AG (la empresa de correo y VPN; no es la capa Proton de Steam). Piden cuenta: se instalan por nombre o grupo.
+    ("Proton", "proton-pass", "Proton Pass", "deb-proton", "https://proton.me/download/pass/linux/x64/version.json",
+     "proton-pass", "Gestor de contraseñas. Repite el comando para actualizar."),
+    ("Proton", "proton-authenticator", "Proton Authenticator", "deb-proton",
+     "https://proton.me/download/authenticator/linux/version.json", "proton-authenticator",
+     "Códigos de verificación en dos pasos. Repite el comando para actualizar."),
+    ("Proton", "proton-mail", "Proton Mail", "deb-proton", "https://proton.me/download/mail/linux/version.json",
+     "proton-mail", "Correo y calendario. Repite el comando para actualizar."),
+    ("Proton", "proton-vpn", "Proton VPN", "vpn-proton", "proton-vpn-gnome-desktop", "proton-vpn-gnome-desktop",
+     "Repositorio firmado de Proton. Proton solo la soporta con GNOME: en LeksSO, sin garantía."),
     # Juegos
+    ("Juegos", "umu", "Programas de Windows con Proton", "umu", "1.4.4", "umu-launcher",
+     "umu-launcher. Se usa con `leksso-proton programa.exe`, dentro de la caja."),
     ("Juegos", "steam", "Steam", "steam", "steam-installer", "steam-installer", "Activa la arquitectura de 32 bits y el repositorio contrib."),
     ("Juegos", "heroic", "Epic Games Launcher / Amazon Games", "deb-github",
      "Heroic-Games-Launcher/HeroicGamesLauncher|linux-amd64\\.deb$", "heroic", "Heroic abre Epic, GOG y Amazon."),
@@ -108,7 +121,11 @@ ALTERNATIVAS = {
     "lutris": "Ubisoft no publica Connect para Linux; Lutris ejecuta el de Windows con Wine, sin garantía.",
     "r2modman": "No es el gestor de Thunderstore (ese depende de Overwolf); es otro gestor que usa sus mods.",
     "wine": "No es un programa de Windows: es la capa que permite ejecutarlos.",
+    "umu": "No es de Valve ni de Proton AG: umu-launcher es de terceros y ejecuta programas con Proton fuera de Steam.",
 }
+
+# Programas oficiales que piden una cuenta propia: ni --todo ni --completo los instalan; se piden por nombre o grupo.
+SOLO_POR_NOMBRE = {"proton-pass", "proton-authenticator", "proton-mail", "proton-vpn"}
 
 # Lo que no se puede instalar con un comando. (Windows, motivo, alternativa)
 PENDIENTES = [
@@ -217,35 +234,56 @@ def descargar(url, destino):
         shutil.copyfileobj(r, f)
 
 
-def instalar_deb(url, simular):
+def instalar_deb(url, simular, suma=None):
     """Descarga el .deb, lo lee UNA vez a memoria, enseña su SHA-256 y lo entrega a root desde esa copia: lo que se
     instala es exactamente lo que se descargó (un proceso del usuario no puede cambiar el archivo entre medias)."""
-    import hashlib
     print(c("  descarga directa del proveedor (sin firma verificada por apt): ", "33") + url)
     if simular:
         return sudo(["apt-get", "install", "-y", "/var/cache/leksso-descargas/paquete.deb"], simular)
+    return instalar_datos([bajar_comprobado(url, suma)])
+
+
+def bajar_comprobado(url, suma=None):
+    """Descarga a memoria. suma = (algoritmo, valor en hexadecimal): si no coincide, no se instala nada."""
     d = tempfile.mkdtemp(prefix="leksso-apps-")
     try:
         ruta = os.path.join(d, "paquete.deb")
         descargar(url, ruta)
         with open(ruta, "rb") as f:
             datos = f.read()
-        print(c("  SHA-256 del paquete: ", "2") + hashlib.sha256(datos).hexdigest())
     finally:
         shutil.rmtree(d, ignore_errors=True)
+    if suma is None:
+        print(c("  SHA-256 del paquete: ", "2") + hashlib.sha256(datos).hexdigest())
+    else:
+        algoritmo, esperada = suma
+        real = hashlib.new(algoritmo, datos).hexdigest()
+        if real != esperada.lower():
+            raise SystemExit(f"La suma {algoritmo} de {url} no es la esperada (es {real}). No se instala nada.")
+        print(c(f"  paquete comprobado por su suma {algoritmo}", "2"))
+    return datos
+
+
+def instalar_datos(paquetes):
+    """Entrega a root cada paquete desde la copia en memoria y los instala en una sola orden de apt."""
     if sudo(["install", "-d", "-m", "0755", "-o", "root", "-g", "root", "/var/cache/leksso-descargas"], False) != 0:
         return 1
     # Cada instalación, su propio archivo (nombre único creado por root): dos a la vez no se pisan.
-    m = subprocess.run(["sudo", "mktemp", "/var/cache/leksso-descargas/paquete.XXXXXXXX.deb"], capture_output=True, text=True)
-    destino = m.stdout.strip()
-    if m.returncode != 0 or not destino.startswith("/var/cache/leksso-descargas/"):
-        return 1
-    if subprocess.run(["sudo", "tee", destino], input=datos, stdout=subprocess.DEVNULL).returncode != 0:
-        return 1
-    sudo(["chmod", "0644", destino], False)
-    r = sudo(["apt-get", "install", "-y", destino], False)
-    sudo(["rm", "-f", destino], False)
-    return r
+    destinos = []
+    try:
+        for datos in paquetes:
+            m = subprocess.run(["sudo", "mktemp", "/var/cache/leksso-descargas/paquete.XXXXXXXX.deb"], capture_output=True, text=True)
+            destino = m.stdout.strip()
+            if m.returncode != 0 or not destino.startswith("/var/cache/leksso-descargas/"):
+                return 1
+            destinos.append(destino)
+            if subprocess.run(["sudo", "tee", destino], input=datos, stdout=subprocess.DEVNULL).returncode != 0:
+                return 1
+            sudo(["chmod", "0644", destino], False)
+        return sudo(["apt-get", "install", "-y"] + destinos, False)
+    finally:
+        if destinos:
+            sudo(["rm", "-f"] + destinos, False)
 
 
 def url_github(repo, patron):
@@ -257,6 +295,76 @@ def url_github(repo, patron):
         if re.search(patron, a["name"]):
             return a["browser_download_url"]
     raise SystemExit(f"No hay un .deb que encaje en {repo}")
+
+
+def version_proton(datos):
+    """(versión, url, sha512) de la versión estable más alta ya repartida a todo el mundo, según el version.json de Proton."""
+    candidatas = []
+    for r in datos.get("Releases", []):
+        reparto = r.get("RolloutPercentage", r.get("RolloutProportion", 0))
+        if r.get("CategoryName") != "Stable" or not isinstance(reparto, (int, float)) or reparto < 1:
+            continue
+        version = str(r.get("Version", ""))
+        if not re.fullmatch(r"\d+(\.\d+)+", version):
+            continue
+        for f in r.get("File", []):
+            url, suma = str(f.get("Url", "")), str(f.get("Sha512CheckSum", ""))
+            if url.startswith("https://proton.me/download/") and url.endswith(".deb") and re.fullmatch(r"[0-9a-fA-F]{128}", suma):
+                candidatas.append((tuple(int(x) for x in version.split(".")), version, url, suma))
+    if not candidatas:
+        raise SystemExit("Proton no ofrece una versión estable con su suma. No se instala nada.")
+    return max(candidatas)[1:]
+
+
+def version_instalada(paquete):
+    r = subprocess.run(["dpkg-query", "-W", "-f=${Version}", paquete], capture_output=True, text=True)
+    return r.stdout.strip() if r.returncode == 0 else ""
+
+
+# Sin llavero, estas aplicaciones no pueden guardar la sesión cifrada.
+LLAVERO = "gnome-keyring libpam-gnome-keyring"
+
+
+def usar_llavero(paquete, origen="/usr/share/applications", destino="/usr/local/share/applications"):
+    """Las aplicaciones Electron no detectan el llavero bajo sway: se les indica en una copia del lanzador, que tiene
+    preferencia sobre el del paquete y sobrevive a sus actualizaciones."""
+    with open(os.path.join(origen, paquete + ".desktop"), encoding="utf-8") as f:
+        texto = f.read()
+    texto = re.sub(rf"^(Exec={re.escape(paquete)})(?=\s|$)", r"\1 --password-store=gnome-libsecret", texto, flags=re.M)
+    sudo(["install", "-d", "-m", "0755", destino], False)
+    ruta = os.path.join(destino, paquete + ".desktop")
+    if subprocess.run(["sudo", "tee", ruta], input=texto.encode(), stdout=subprocess.DEVNULL).returncode != 0:
+        return 1
+    return sudo(["chmod", "0644", ruta], False)
+
+
+def instalar_proton(paquete, url_versiones, simular):
+    r = apt(LLAVERO, simular)
+    if r != 0:
+        return r
+    if simular:
+        return instalar_deb(f"(última versión estable según {url_versiones})", simular)
+    if not url_versiones.startswith("https://"):
+        raise SystemExit("Solo se descarga por HTTPS")
+    with abrir_https(urllib.request.Request(url_versiones, headers={"User-Agent": "leksso-apps"})) as resp:
+        version, url, suma = version_proton(json.loads(resp.read(5_000_000)))
+    if version_instalada(paquete) == version:
+        print(f"  ya está la última versión: {version}")
+    else:
+        r = instalar_deb(url, simular, ("sha512", suma))
+    if r == 0 and paquete in ("proton-pass", "proton-mail"):   # las dos son Electron
+        r = usar_llavero(paquete)
+    return r
+
+
+# Paquete que añade el repositorio firmado de Proton VPN, con su suma fijada (si Proton publica otro, se cambia a propósito).
+VPN_REPO = ("https://repo.protonvpn.com/debian/dists/stable/main/binary-all/protonvpn-stable-release_1.0.10_all.deb",
+            "c8a9fffb4ebdd63db08ce7f11c9b0ac394064ae6a210feb9ab63a0f7d8d060a7")
+
+# umu-launcher: versión y sumas fijadas. Son dos paquetes que solo se instalan juntos.
+UMU_BASE = "https://github.com/Open-Wine-Components/umu-launcher/releases/download/1.4.4/"
+UMU = (("python3-umu-launcher_1.4.4-1_amd64_debian-13.deb", "602c4ac7210a54b835530f927b10c2781e51e294b1cf46448006e48fae66f232"),
+       ("umu-launcher_1.4.4-1_all_debian-13.deb", "11a22c8125787e861355bf93953783f61420840fae6e9c0fd43c28dc01e0a947"))
 
 
 # Huellas de las claves de los repositorios de terceros. Se descarga la clave, se calcula su huella y solo se
@@ -416,6 +524,28 @@ def hacer(item, simular, si):
         if r == 0 and subprocess.run(["dpkg", "-s", "libglx-nvidia0"], capture_output=True).returncode == 0:
             r = apt("nvidia-driver-libs:i386", simular)
         return r
+    if tipo == "deb-proton":
+        return instalar_proton(comprobar, objetivo, simular)
+    if tipo == "vpn-proton":
+        r = instalar_deb(VPN_REPO[0], simular, ("sha256", VPN_REPO[1]))
+        if r == 0:
+            r = sudo(["apt-get", "update"], simular)
+        if r == 0:   # el último paquete es el del icono en la bandeja
+            r = apt(f"{objetivo} {LLAVERO} gir1.2-ayatanaappindicator3-0.1", simular)
+        if r == 0:
+            # El túnel dividido necesita las cabeceras del núcleo para compilar su programa BPF: sin ellas el servicio
+            # falla en cada arranque. Se deja apagado; la VPN no depende de él.
+            sudo(["systemctl", "disable", "--now", "me.proton.vpn.split_tunneling.service"], simular)
+            sudo(["systemctl", "reset-failed", "me.proton.vpn.split_tunneling.service"], simular)
+        return r
+    if tipo == "umu":
+        sudo(["dpkg", "--add-architecture", "i386"], simular)   # umu depende de librerías de 32 bits
+        r = sudo(["apt-get", "update"], simular)
+        if r != 0:
+            return r
+        if simular:
+            return sudo(["apt-get", "install", "-y"] + [n for n, _ in UMU], simular)
+        return instalar_datos([bajar_comprobado(UMU_BASE + n, ("sha256", s)) for n, s in UMU])
     if tipo == "deb-url":
         return instalar_deb(objetivo, simular)
     if tipo == "deb-github":
@@ -483,7 +613,8 @@ def main(argv):
     todo = "--todo" in argv or "--completo" in argv
     if todo:
         # --todo instala solo lo oficial: las alternativas de terceros se piden por su nombre o con --completo
-        sel = [it for it in CATALOGO if (it[1] not in ALTERNATIVAS or "--completo" in argv) and not instalado(it[3], it[5])]
+        sel = [it for it in CATALOGO if (it[1] not in ALTERNATIVAS or "--completo" in argv)
+               and it[1] not in SOLO_POR_NOMBRE and not instalado(it[3], it[5])]
     else:
         nombres = args[1:]
         if not nombres:
@@ -493,7 +624,8 @@ def main(argv):
         if not sel:
             print("No encuentro nada con ese nombre. Mira la lista con: leksso-apps")
             return 1
-    pend = [it for it in sel if not instalado(it[3], it[5])]
+    # Lo de Proton pedido por su nombre se revisa aunque ya esté: así se actualiza.
+    pend = [it for it in sel if it[3] == "deb-proton" or not instalado(it[3], it[5])]
     for it in sel:
         if it not in pend:
             print(f"  ya instalado: {it[1]}")

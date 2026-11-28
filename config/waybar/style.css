@@ -66,7 +66,7 @@ window#waybar.raiz {
   border-right: 1px solid #3e4145;
   border-top: none;
 }
-#custom-juego, #custom-seguridad, #custom-portapapeles, #custom-camara, #custom-notificaciones, #custom-remoto, #custom-captura, #custom-actualizaciones, #custom-apps, #custom-asistente, #custom-archivos, #custom-config, #custom-vista, #custom-flotantes, #custom-energia {
+#custom-juego, #custom-seguridad, #custom-portapapeles, #custom-camara, #custom-notificaciones, #custom-remoto, #custom-proyectar, #custom-captura, #custom-actualizaciones, #custom-apps, #custom-asistente, #custom-archivos, #custom-config, #custom-vista, #custom-flotantes, #custom-energia {
   font-family: "Raxtor", "FontAwesome", "Montserrat", "DejaVu Sans";
   font-size: 20px;
   padding: 14px 0;
@@ -74,7 +74,7 @@ window#waybar.raiz {
   color: #9d9ea1;
   background: transparent;
 }
-#custom-juego:hover, #custom-seguridad:hover, #custom-portapapeles:hover, #custom-camara:hover, #custom-notificaciones:hover, #custom-remoto:hover, #custom-captura:hover, #custom-actualizaciones:hover, #custom-apps:hover, #custom-asistente:hover, #custom-archivos:hover, #custom-config:hover, #custom-vista:hover, #custom-flotantes:hover {
+#custom-juego:hover, #custom-seguridad:hover, #custom-portapapeles:hover, #custom-camara:hover, #custom-notificaciones:hover, #custom-remoto:hover, #custom-proyectar:hover, #custom-captura:hover, #custom-actualizaciones:hover, #custom-apps:hover, #custom-asistente:hover, #custom-archivos:hover, #custom-config:hover, #custom-vista:hover, #custom-flotantes:hover {
   color: #79b1e0;
   background: #143c5b;
 }

@@ -594,6 +594,9 @@ def instalar_nvidia(est, si=False, ignorar_sb=False, si_mok=False):
         print("✕ La instalación falló. No reinicies hasta revisar: sudo apt-get -f install")
         return 1
     escribir_atomico(MODPROBE, "# LeksSO: sway necesita el modo DRM del controlador de NVIDIA\noptions nvidia-drm modeset=1\n")
+    # Decodificación de vídeo con la NVIDIA (VA-API). Va aparte: si falla, el controlador queda igualmente instalado.
+    if ejecutar(["apt-get", "install", "-y", "-qq", "nvidia-vaapi-driver"], 600)[0] != 0:
+        print("⚠ Sin nvidia-vaapi-driver: el vídeo no usará la NVIDIA. Después: sudo apt install nvidia-vaapi-driver")
     dk = ejecutar(["dkms", "status"])[1]
     if "nvidia" not in dk or "installed" not in dk:
         print("⚠ El módulo no aparece compilado en «dkms status». No reinicies hasta revisarlo.")

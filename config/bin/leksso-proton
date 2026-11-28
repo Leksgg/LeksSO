@@ -1,0 +1,27 @@
+#!/bin/sh
+# Abre un programa de Windows con Proton (umu-launcher) dentro de la caja: solo ve su carpeta (lectura), su propio
+# prefijo y los datos de umu, en ~/.leksso-proton. Además ve /sys en solo lectura (el contenedor de Proton lo exige).
+#   leksso-proton [--red] programa.exe [argumentos]
+# La primera vez umu descarga Proton y su entorno, así que la caja lleva red; después, solo con --red.
+red=""
+if [ "${1:-}" = "--red" ]; then red=1; shift; fi
+[ $# -ge 1 ] || { echo "Uso: leksso-proton [--red] programa.exe [argumentos]" >&2; exit 2; }
+command -v umu-run >/dev/null 2>&1 || { echo "Falta umu-launcher: leksso-apps instalar umu" >&2; exit 1; }
+f="$(realpath -e "$1")" || exit 1
+shift
+d="$(dirname "$f")"
+base="$HOME/.leksso-proton"
+mkdir -p "$base/datos" "$base/prefijo"
+sin_actualizar=""
+if [ ! -f "$base/listo" ]; then
+  red=1
+  echo "Primera vez: la caja sale a Internet para descargar Proton." >&2
+elif [ -z "$red" ]; then
+  sin_actualizar=1
+fi
+estado=0
+caja --gui --x11 --audio --gpu --sys ${red:+--red} --rw "$base/datos" --wine "$base/prefijo" --ro "$d" \
+  --env XDG_DATA_HOME=/home/caja/datos --env GAMEID=umu-default ${sin_actualizar:+--env UMU_RUNTIME_UPDATE=0} \
+  -- umu-run "/home/caja/$(basename "$d")/$(basename "$f")" "$@" || estado=$?
+[ "$estado" -eq 0 ] && : > "$base/listo"
+exit "$estado"

@@ -40,15 +40,17 @@ install -d /etc/apt/apt.conf.d
 install -m 0644 "$RAIZ/config/apt/99leksso-auditoria" /etc/apt/apt.conf.d/99leksso-auditoria
 
 # Paquetes por capa. Todos existen en Debian 13 (trixie); winetricks necesita la sección contrib.
-ESCRITORIO=(sway swaybg waybar kitty fuzzel grim pcmanfm-qt qt6-wayland qt6-svg-plugins qt6ct xwayland wtype fonts-font-awesome fonts-montserrat fonts-jetbrains-mono seatd xdg-desktop-portal-wlr xdg-desktop-portal-lxqt libfm-qt-l10n qt6-translations-l10n micro imv zathura zathura-pdf-poppler mpv vlc xarchiver udisks2 udiskie gvfs gvfs-backends polkitd ntfs-3g exfatprogs usbutils v4l-utils bluez pavucontrol-qt swaylock gtklock wayvnc tigervnc-viewer wl-clipboard mako-notifier libnotify-bin swayidle brightnessctl slurp cliphist wdisplays blueman cups avahi-daemon libnss-mdns system-config-printer fonts-noto-color-emoji fonts-liberation fonts-montserrat ffmpegthumbnailer power-profiles-daemon playerctl wlr-randr network-manager streamdeck-ui python3-pyside6.qtwidgets python3-pyside6.qtgui python3-pyside6.qtcore python3-pyside6.qtsvg)
-AUDIO=(pipewire pipewire-pulse wireplumber alsa-ucm-conf alsa-utils libspa-0.2-bluetooth)   # ucm: micrófono y altavoz del portátil; bluetooth: auriculares
+ESCRITORIO=(sway swaybg waybar kitty fuzzel grim pcmanfm-qt qt6-wayland qt6-svg-plugins qt6ct xwayland wtype fonts-font-awesome fonts-montserrat fonts-jetbrains-mono seatd xdg-desktop-portal-wlr xdg-desktop-portal-lxqt libfm-qt-l10n qt6-translations-l10n micro imv zathura zathura-pdf-poppler mpv vlc xarchiver udisks2 udiskie gvfs gvfs-backends polkitd ntfs-3g exfatprogs usbutils v4l-utils bluez pavucontrol-qt swaylock gtklock wayvnc tigervnc-viewer wl-clipboard mako-notifier libnotify-bin swayidle brightnessctl slurp cliphist wdisplays wl-mirror blueman cups avahi-daemon libnss-mdns system-config-printer fonts-noto-color-emoji fonts-liberation fonts-montserrat ffmpegthumbnailer power-profiles-daemon playerctl wlr-randr network-manager streamdeck-ui python3-pyside6.qtwidgets python3-pyside6.qtgui python3-pyside6.qtcore python3-pyside6.qtsvg)
+AUDIO=(pipewire pipewire-pulse wireplumber alsa-ucm-conf alsa-utils libspa-0.2-bluetooth rtkit)   # ucm: micrófono y altavoz del portátil; bluetooth: auriculares; rtkit: audio sin cortes
 AISLAMIENTO=(bubblewrap python3-seccomp passt)    # firejail se quitó: nada lo llamaba y en Debian es un binario con privilegios de root
-HERRAMIENTAS=(git curl btop lm-sensors python3 bc pciutils mokutil fwupd plocate restic efibootmgr)   # plocate: búsqueda de archivos; restic: copias de seguridad
+HERRAMIENTAS=(git curl btop lm-sensors python3 bc pciutils mokutil fwupd plocate restic efibootmgr 7zip unrar-free)   # plocate: búsqueda de archivos; restic: copias de seguridad; 7zip y unrar-free: archivos comprimidos
 # Red inalámbrica: NetworkManager necesita wpasupplicant para conectarse a cualquier Wi-Fi con contraseña; es un paquete «recomendado»
 # y el instalador instala sin recomendados, así que sin esto un portátil solo con Wi-Fi se quedaba sin red. iw y wireless-regdb: canales y
 # potencias permitidos por país.
 RED=(network-manager wpasupplicant iw wireless-regdb)
-GRAFICA=(mesa-vulkan-drivers)
+# Decodificación de vídeo por la gráfica (VA-API): AMD (mesa), Intel moderna y antigua. Son «recomendados» y aquí se
+# instala sin ellos: sin esto el vídeo se decodifica en el procesador aunque haya gráfica. NVIDIA: más abajo.
+GRAFICA=(mesa-vulkan-drivers mesa-va-drivers intel-media-va-driver i965-va-driver)
 HYPERV=(hyperv-daemons)       # solo útil dentro de una máquina virtual de Hyper-V
 COMPATIBILIDAD=(wine winetricks)
 
@@ -62,6 +64,11 @@ for f in /etc/apt/sources.list.d/*.sources; do
   sed -i -E '/^Components:/{/contrib/!s/ main( |$)/ main contrib\1/}' "$f"
 done
 
+# Quien ya tiene la variante non-free del controlador de Intel la conserva (las dos no pueden estar a la vez).
+if dpkg -s intel-media-va-driver-non-free 2>/dev/null | grep -q "^Status: install ok installed"; then
+  for i in "${!GRAFICA[@]}"; do [ "${GRAFICA[$i]}" = intel-media-va-driver ] && unset "GRAFICA[$i]"; done
+fi
+
 export DEBIAN_FRONTEND=noninteractive
 apt-get update || echo "Sin conexión: se usan los paquetes locales disponibles."
 apt-get install -y --no-install-recommends \
@@ -69,6 +76,15 @@ apt-get install -y --no-install-recommends \
   "${HERRAMIENTAS[@]}" "${RED[@]}" "${GRAFICA[@]}" "${COMPATIBILIDAD[@]}"
 # Los equipos instalados antes de quitarlo traen firejail (setuid root, sin uso): se retira al actualizar.
 if dpkg -s firejail >/dev/null 2>&1; then apt-get purge -y firejail >/dev/null 2>&1 || echo "AVISO: no se pudo quitar firejail."; fi
+
+# Equipos con el controlador de NVIDIA ya puesto: el puente para decodificar vídeo con ella.
+if dpkg -s nvidia-driver >/dev/null 2>&1; then
+  apt-get install -y --no-install-recommends nvidia-vaapi-driver || echo "AVISO: sin nvidia-vaapi-driver (¿sin conexión?)"
+fi
+
+# HDMI solo en PCM (ver el propio archivo).
+install -d /etc/wireplumber/wireplumber.conf.d
+install -m 0644 "$RAIZ/config/wireplumber/51-leksso-hdmi-pcm.conf" /etc/wireplumber/wireplumber.conf.d/
 
 # Herramientas de invitado solo si estamos en Hyper-V.
 if [ "$(systemd-detect-virt 2>/dev/null || true)" = "microsoft" ]; then
@@ -261,7 +277,7 @@ U install -m 0755 "$RAIZ"/config/escritorio/*.desktop "$HOME_USR/Escritorio/"
 
 # Programas predeterminados por tipo de archivo (no pisa lo que el usuario ya haya elegido).
 install -m 0755 "$RAIZ/config/bin/leksso-bloquear" /usr/local/bin/
-install -m 0755 "$RAIZ/config/bin/leksso-info" "$RAIZ/config/bin/leksso-wine" "$RAIZ/config/bin/leksso-menu" "$RAIZ/config/bin/leksso-energia" "$RAIZ/config/bin/leksso-flotantes" "$RAIZ/config/bin/leksso-term" "$RAIZ/config/bin/leksso-medios" "$RAIZ/config/bin/leksso-captura" "$RAIZ/config/bin/leksso-reposo" "$RAIZ/config/bin/leksso-portapapeles" "$RAIZ/config/bin/leksso-ajustes" "$RAIZ/config/bin/leksso-redes" "$RAIZ/config/bin/leksso-redes-texto" "$RAIZ/config/bin/leksso-actualizaciones" "$RAIZ/config/bin/leksso-panel-ia" "$RAIZ/config/bin/leksso-acceso-remoto" "$RAIZ/config/bin/leksso-instalador" "$RAIZ/config/bin/leksso-barra" "$RAIZ/config/bin/leksso-disco" "$RAIZ/config/bin/leksso-ts3" "$RAIZ/config/bin/leksso-hora" "$RAIZ/config/bin/leksso-reiniciar-en" "$RAIZ/config/bin/leksso-reparar" "$RAIZ/config/bin/leksso-archivos" "$RAIZ/config/bin/leksso-juego" "$RAIZ/config/bin/leksso-office-web" "$RAIZ/config/bin/leksso-secureboot" /usr/local/bin/
+install -m 0755 "$RAIZ/config/bin/leksso-info" "$RAIZ/config/bin/leksso-wine" "$RAIZ/config/bin/leksso-menu" "$RAIZ/config/bin/leksso-energia" "$RAIZ/config/bin/leksso-flotantes" "$RAIZ/config/bin/leksso-term" "$RAIZ/config/bin/leksso-medios" "$RAIZ/config/bin/leksso-captura" "$RAIZ/config/bin/leksso-reposo" "$RAIZ/config/bin/leksso-portapapeles" "$RAIZ/config/bin/leksso-ajustes" "$RAIZ/config/bin/leksso-redes" "$RAIZ/config/bin/leksso-redes-texto" "$RAIZ/config/bin/leksso-actualizaciones" "$RAIZ/config/bin/leksso-panel-ia" "$RAIZ/config/bin/leksso-acceso-remoto" "$RAIZ/config/bin/leksso-instalador" "$RAIZ/config/bin/leksso-barra" "$RAIZ/config/bin/leksso-disco" "$RAIZ/config/bin/leksso-ts3" "$RAIZ/config/bin/leksso-hora" "$RAIZ/config/bin/leksso-reiniciar-en" "$RAIZ/config/bin/leksso-reparar" "$RAIZ/config/bin/leksso-archivos" "$RAIZ/config/bin/leksso-juego" "$RAIZ/config/bin/leksso-office-web" "$RAIZ/config/bin/leksso-secureboot" "$RAIZ/config/bin/leksso-proyectar" /usr/local/bin/
 # Apagar y reiniciar no se quedan esperando a un servicio que no responde (por defecto serían hasta 2 minutos).
 install -d /etc/systemd/system.conf.d /etc/systemd/user.conf.d /etc/systemd/system/user@.service.d /etc/systemd/user/mpris-proxy.service.d
 printf '[Manager]
@@ -302,6 +318,7 @@ install -m 0644 "$RAIZ/config/ui/leksso_ui.py" "$RAIZ/config/ui/leksso_conexione
 install -m 0644 "$RAIZ"/config/applications/*.desktop /usr/share/applications/
 install -m 0755 "$RAIZ/scripts/asociar-archivos.py" /usr/local/bin/leksso-asociar
 install -m 0755 "$RAIZ/scripts/leksso-apps.py" /usr/local/bin/leksso-apps
+install -m 0755 "$RAIZ/config/bin/leksso-proton" /usr/local/bin/leksso-proton
 # Solicitudes de conexión por SSH: pedir (cliente), recibir (lo arranca systemd, solo con el acceso remoto en modo local) y la ventana.
 install -m 0755 "$RAIZ/scripts/leksso-solicitud.py" /usr/local/bin/leksso-solicitud
 # Ver la pantalla de otro equipo (con permiso cada vez) y la ventana «Acceso remoto» del raíl.
