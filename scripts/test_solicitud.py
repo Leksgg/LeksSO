@@ -298,7 +298,8 @@ class CompromisoYRevelacion(unittest.TestCase):
             enviadas.append(linea)
             return pendiente if len(enviadas) == 1 else "OK\n"
         salida = []
-        with mock.patch.object(sol, "_hablar", falso), mock.patch.object(sol, "clave_propia", lambda r=None: ("/tmp/x.pub", CLAVE)):
+        with mock.patch.object(sol, "_hablar", falso), mock.patch.object(sol, "clave_propia", lambda r=None: ("/tmp/x.pub", CLAVE)), \
+                mock.patch.object(sol, "puede_firmar", lambda p: True):
             sol.pedir("192.168.1.30", nombre="PC", espera=0, salida=salida.append)
         self.assertEqual(len(enviadas), 2)
         _, _, huella = sol.leer_solicitud(enviadas[0])
@@ -315,7 +316,8 @@ class CompromisoYRevelacion(unittest.TestCase):
             cola = os.path.join(d, "cola")
             salida = []
             with mock.patch.object(sol, "_hablar", lambda direccion, puerto, linea: self.correr(d, linea)[0]), \
-                    mock.patch.object(sol, "clave_propia", lambda r=None: ("/tmp/x.pub", CLAVE)):
+                    mock.patch.object(sol, "clave_propia", lambda r=None: ("/tmp/x.pub", CLAVE)), \
+                    mock.patch.object(sol, "puede_firmar", lambda p: True):
                 sol.pedir("192.168.1.30", nombre="PC", espera=0, salida=salida.append)
             visto_por_quien_pide = next(x.split("CÓDIGO: ")[1] for x in salida if x.startswith("CÓDIGO: "))
             listas = sol.pendientes(cola)
@@ -331,6 +333,49 @@ class CompromisoYRevelacion(unittest.TestCase):
             rc = sol.pedir("192.168.1.30", espera=0, salida=salida.append)
         self.assertEqual(rc, 1)
         self.assertFalse(any("CÓDIGO" in x for x in salida))
+
+
+class ClaveConContrasena(unittest.TestCase):
+    def correr(self, codigos, preguntar):
+        """pedir() con una clave que no puede firmar sola; `codigos` son los resultados sucesivos de ssh."""
+        respuestas = iter([f"PENDIENTE 2 00112233aabbccdd a01 {HOST[0]} {HOST[1]}\n", "OK\n"])
+        ordenes, salida, restantes = [], [], iter(codigos)
+
+        def ssh(orden, **k):
+            ordenes.append(orden)
+            return mock.Mock(returncode=next(restantes) if orden[0] == "ssh" else 0)
+        with tempfile.TemporaryDirectory() as casa:
+            os.mkdir(os.path.join(casa, ".ssh"))
+            with mock.patch.object(sol, "_hablar", lambda *a: next(respuestas)), \
+                    mock.patch.object(sol, "clave_propia", lambda r=None: ("/tmp/x.pub", CLAVE)), \
+                    mock.patch.object(sol, "puede_firmar", lambda p: False), \
+                    mock.patch.object(sol.os.path, "expanduser", lambda r: casa), \
+                    mock.patch.object(sol.sys, "stdin", io.StringIO()), \
+                    mock.patch.object(sol.subprocess, "run", ssh):
+                rc = sol.pedir("192.168.1.30", salida=salida.append, preguntar=preguntar)
+            apuntado = os.path.exists(os.path.join(casa, ".ssh", "known_hosts"))
+        return rc, [o for o in ordenes if o[0] == "ssh"], "\n".join(salida), apuntado
+
+    def test_sin_terminal_no_insiste_y_explica_como_entrar(self):
+        rc, ssh, texto, apuntado = self.correr([], None)
+        self.assertEqual((rc, ssh, apuntado), (1, [], False))
+        self.assertIn("tiene contraseña", texto)
+        self.assertIn(sol.huella_ssh(HOST), texto)
+        self.assertNotIn("Nadie lo ha permitido", texto)
+
+    def test_prueba_solo_cuando_se_le_dice_y_deja_que_ssh_pida_la_contrasena(self):
+        rc, ssh, _, apuntado = self.correr([0], lambda t: "")
+        self.assertEqual((rc, len(ssh), apuntado), (0, 1, True))
+        self.assertNotIn("BatchMode=yes", ssh[0])
+        self.assertIn("StrictHostKeyChecking=yes", ssh[0])
+
+    def test_tres_intentos_como_mucho(self):
+        rc, ssh, _, apuntado = self.correr([255, 255, 255], lambda t: "")
+        self.assertEqual((rc, len(ssh), apuntado), (1, 3, False))
+
+    def test_se_puede_dejar(self):
+        rc, ssh, _, apuntado = self.correr([], lambda t: "n")
+        self.assertEqual((rc, ssh, apuntado), (1, [], False))
 
 
 class Cableado(unittest.TestCase):

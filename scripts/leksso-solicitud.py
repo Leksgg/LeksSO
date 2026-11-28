@@ -499,7 +499,48 @@ def _decir(texto):
     print(texto, flush=True)          # con la salida redirigida a un archivo, sin esto no se vería nada hasta el final
 
 
-def pedir(direccion, ruta_clave=None, nombre=None, espera=CADUCA, puerto=PUERTO, salida=_decir):
+def puede_firmar(privada):
+    """¿Se puede entrar con esta clave sin preguntar nada? Sí si no tiene contraseña o si ya está en el agente de SSH."""
+    for orden in (["ssh-keygen", "-y", "-P", "", "-f", privada], ["ssh-add", "-T", privada + ".pub"]):
+        try:
+            if subprocess.run(orden, capture_output=True, stdin=subprocess.DEVNULL, timeout=15).returncode == 0:
+                return True
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+    return False
+
+
+def huella_ssh(clave):
+    """La huella de una clave pública tal como la enseña ssh (SHA256:...)."""
+    return "SHA256:" + base64.b64encode(hashlib.sha256(base64.b64decode(clave[1])).digest()).decode("ascii").rstrip("=")
+
+
+def _esperar_sola(orden, espera):
+    """Con una clave que no pide nada: probar a entrar cada pocos segundos hasta que lo permitan."""
+    fin = time.time() + espera
+    while time.time() < fin:
+        if subprocess.run(orden, capture_output=True, stdin=subprocess.DEVNULL).returncode == 0:
+            return True
+        time.sleep(4)
+    return False
+
+
+def _probar_con_contrasena(orden, preguntar, salida):
+    """Con una clave con contraseña no se puede insistir a ciegas: se prueba solo cuando la persona dice que ya lo ha
+    permitido, y ssh le pide la contraseña en esta misma terminal. Tres intentos como mucho."""
+    for _ in range(3):
+        try:
+            if preguntar("Cuando hayas pulsado «Permitir», pulsa Intro (n para dejarlo): ").strip().lower() == "n":
+                return False
+        except (EOFError, KeyboardInterrupt):
+            return False
+        if subprocess.run(orden).returncode == 0:
+            return True
+        salida("Todavía no se puede entrar: falta «Permitir» en el otro equipo o la contraseña de la clave no es esa.")
+    return False
+
+
+def pedir(direccion, ruta_clave=None, nombre=None, espera=CADUCA, puerto=PUERTO, salida=_decir, preguntar=None):
     ruta, clave = clave_propia(ruta_clave)
     nombre = nombre_limpio(nombre or socket.gethostname())
     secreto = secrets.token_hex(16)               # mi número: no lo enseño hasta ver el del otro equipo
@@ -533,17 +574,25 @@ def pedir(direccion, ruta_clave=None, nombre=None, espera=CADUCA, puerto=PUERTO,
         conocidos = os.path.join(tmp, "known_hosts")
         with open(conocidos, "w", encoding="ascii") as f:
             f.write(f"{direccion} {hk[0]} {hk[1]}\n")
-        orden = ["ssh", "-i", privada, "-o", "IdentitiesOnly=yes", "-o", "BatchMode=yes", "-o", "ConnectTimeout=6",
+        orden = ["ssh", "-i", privada, "-o", "IdentitiesOnly=yes", "-o", "ConnectTimeout=6",
+                 "-o", "PreferredAuthentications=publickey",
                  "-o", f"UserKnownHostsFile={conocidos}", "-o", "StrictHostKeyChecking=yes",
                  "-o", f"HostKeyAlgorithms={hk[0]}", f"{usuario}@{direccion}", "true"]
-        fin = time.time() + espera
-        while time.time() < fin:
-            if subprocess.run(orden, capture_output=True, stdin=subprocess.DEVNULL).returncode == 0:
-                break
-            time.sleep(4)
+        if puede_firmar(privada):
+            if not _esperar_sola(orden[:1] + ["-o", "BatchMode=yes"] + orden[1:], espera):
+                salida("Nadie lo ha permitido a tiempo (o han dicho que no). Puedes volver a pedirlo.")
+                return 1
         else:
-            salida("Nadie lo ha permitido a tiempo (o han dicho que no). Puedes volver a pedirlo.")
-            return 1
+            if preguntar is None and sys.stdin is not None and sys.stdin.isatty():
+                preguntar = input
+            if preguntar is None:
+                salida("Tu clave tiene contraseña y no está en el agente de SSH: desde aquí no puedo comprobar si te han "
+                       f"permitido. Cuando pulses «Permitir», entra con:  ssh -i {privada} {usuario}@{direccion}\n"
+                       f"Si ssh pregunta por la huella del equipo, tiene que ser {huella_ssh(hk)}")
+                return 1
+            if not _probar_con_contrasena(orden, preguntar, salida):
+                salida("No se ha podido comprobar el acceso. Puedes volver a pedirlo.")
+                return 1
     # la identidad del equipo, ya comprobada con el código, pasa a la lista de equipos conocidos
     subprocess.run(["ssh-keygen", "-R", direccion], capture_output=True)
     lista = os.path.join(os.path.expanduser("~"), ".ssh", "known_hosts")

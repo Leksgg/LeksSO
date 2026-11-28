@@ -27,7 +27,7 @@ Está en uso diario en equipos reales. Las versiones normales son solo un númer
 - **Conexiones a la vista.** El botón de seguridad enseña qué programas se conectan a internet y a dónde, y deja bloquear un destino.
 - **Cámara y micrófono.** Un panel para silenciar el micrófono y **bloquear la cámara de verdad** (se descarga su controlador: ningún programa puede usarla). Bloquear no pide contraseña; volver a permitirla, sí.
 - **Actualizaciones firmadas.** Solo se instalan versiones firmadas con la clave de LeksSO, cuando tú pulsas «Actualizar». Se puede volver a la anterior.
-- **Acceso remoto apagado de serie.** Al encenderlo en «solo red local», otro equipo de tu red puede **pedir entrar** (`leksso-solicitud pedir DIRECCIÓN`): en tu pantalla sale una ventana con un código de dos palabras que debe coincidir en los dos equipos, y solo entra si pulsas «Permitir».
+- **Acceso remoto apagado de serie.** Al encenderlo en «solo red local», otro equipo de tu red puede **pedir entrar** (`leksso-solicitud pedir DIRECCIÓN`): en tu pantalla sale una ventana con un código de cuatro palabras que debe coincidir en los dos equipos, y solo entra si pulsas «Permitir».
 - **Ayuda a distancia con permiso.** Quien tiene acceso puede pedir ver tu pantalla (`leksso-pantalla pedir`): sale una ventana para permitirlo cada vez, un aviso rojo mientras dura y un botón PARAR. El botón «Acceso remoto» del raíl enseña quién puede entrar y deja quitarlo.
 - **Disco cifrado** opcional, con clave al arrancar o desbloqueo con el TPM del equipo. Cortafuegos activo y arranque seguro (Secure Boot) compatible.
 
